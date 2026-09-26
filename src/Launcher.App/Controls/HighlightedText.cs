@@ -1,7 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Media;
 
 namespace YourLauncher.App.Controls;
 
@@ -13,14 +12,6 @@ namespace YourLauncher.App.Controls;
 /// </summary>
 public static class HighlightedText
 {
-    private static readonly SolidColorBrush AccentBrush;
-
-    static HighlightedText()
-    {
-        AccentBrush = new SolidColorBrush(Color.FromRgb(0x3B, 0x82, 0xF6));
-        AccentBrush.Freeze();
-    }
-
     public static readonly DependencyProperty TextProperty = DependencyProperty.RegisterAttached(
         "Text", typeof(string), typeof(HighlightedText), new PropertyMetadata("", OnChanged));
 
@@ -82,7 +73,10 @@ public static class HighlightedText
             var run = new Run(text[start..i]);
             if (isHighlighted)
             {
-                run.Foreground = AccentBrush;
+                // Theme accent brush swaps with the merged theme dictionary (spec §10 item 3) - a live
+                // resource reference rather than a frozen static brush, so a Run created under one theme
+                // keeps tracking the accent color if the theme changes while it's still on screen.
+                run.SetResourceReference(TextElement.ForegroundProperty, "AccentBrush");
                 run.FontWeight = FontWeights.SemiBold;
             }
 

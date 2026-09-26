@@ -33,6 +33,7 @@ public sealed partial class MainViewModel : ObservableObject
     private const string EditorHint = "Enter save  Esc cancel  Alt+A advanced";
     private const string TypePickerHint = "↑↓ choose  ↵ select  Esc cancel";
     private const string IconPickerHint = "Ctrl+Tab tab  ↑↓←→ move  ↵ apply  Ctrl+0 default  Esc cancel";
+    private const string SettingsHint = "Tab move  Enter save  Esc cancel";
 
     private readonly LauncherConfig _config;
     private readonly ConfigService _configService;
@@ -40,11 +41,20 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly SearchService _searchService;
     private readonly IconService _iconService;
     private readonly Func<string, string?> _fileDescriptionLookup;
+    private readonly Action<string> _recordUsage;
+    private readonly Action _pruneUsage;
+    private readonly Func<string, string?> _tryApplyHotkey;
+    private readonly Action _beginHotkeyCapture;
+    private readonly Action _endHotkeyCaptureRestore;
     private readonly List<FolderNode> _folderStack = new();
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
     private Node? _pendingDeleteNode;
     private Node? _iconPickerNode;
+    private LauncherConfig? _pendingImportConfig;
+
+    /// <summary>Folder id the panel was showing right before the last hide, consulted by <see cref="ResetToRoot"/> only when settings.rememberLastLocation is true (spec §1.2) - kept in memory only, never persisted.</summary>
+    private string? _lastLocationFolderId;
 
     /// <summary>
     /// Set by <see cref="RequestReload"/> while the Editor/TypePicker/IconPicker page is open (spec §10
@@ -96,10 +106,19 @@ public sealed partial class MainViewModel : ObservableObject
     private IconPickerViewModel? _iconPicker;
 
     [ObservableProperty]
+    private SettingsViewModel? _settings;
+
+    [ObservableProperty]
     private Node? _cutNode;
 
     [ObservableProperty]
     private string _deleteConfirmMessage = "";
+
+    [ObservableProperty]
+    private string _importConfirmMessage = "";
+
+    /// <summary>Raised after a settings save succeeds (spec §10 item 2) - App handles StartupService.SetEnabled + ThemeService.Apply, since this VM stays free of Win32/registry/WPF-resource references.</summary>
+    public event Action? SettingsApplied;
 
     partial void OnIsEmptyChanged(bool value) => OnPropertyChanged(nameof(HasItems));
 
@@ -113,7 +132,10 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowTypePickerPage));
         OnPropertyChanged(nameof(ShowEditorPage));
         OnPropertyChanged(nameof(ShowIconPickerPage));
+        OnPropertyChanged(nameof(ShowSettingsPage));
         OnPropertyChanged(nameof(ShowConfirmBar));
+        OnPropertyChanged(nameof(ShowConfirmImportBar));
+        OnPropertyChanged(nameof(IsConfirmBarActive));
         OnPropertyChanged(nameof(ShowHintBarRow));
 
         // A reload deferred while Editor/TypePicker/IconPicker was open (spec §10 item 5) is safe to apply
@@ -142,6 +164,7 @@ public sealed partial class MainViewModel : ObservableObject
         PanelPage.TypePicker => BreadcrumbPath + " · New item",
         PanelPage.Editor => BreadcrumbPath + (Editor?.Mode == EditorMode.Add ? " · New item" : " · Edit"),
         PanelPage.IconPicker => BreadcrumbPath + " · Icon",
+        PanelPage.Settings => BreadcrumbPath + " · Settings",
         _ => BreadcrumbPath,
     };
 
@@ -150,24 +173,32 @@ public sealed partial class MainViewModel : ObservableObject
         PanelPage.Editor => EditorHint,
         PanelPage.TypePicker => TypePickerHint,
         PanelPage.IconPicker => IconPickerHint,
+        PanelPage.Settings => SettingsHint,
         _ => IsSearchMode ? SearchHint : (CutNode is not null ? $"Cut: {CutNode.Name} — go to a folder and press Ctrl+V" : NavHint),
     };
 
     public bool ShowHintBar => _config.Settings.ShowHintBar;
 
-    /// <summary>The hint bar row is replaced by the inline delete-confirm bar on that page.</summary>
-    public bool ShowHintBarRow => ShowHintBar && CurrentPage != PanelPage.ConfirmDelete;
+    /// <summary>The hint bar row is replaced by the inline delete-/import-confirm bar on those pages.</summary>
+    public bool ShowHintBarRow => ShowHintBar && CurrentPage is not (PanelPage.ConfirmDelete or PanelPage.ConfirmImport);
 
     public bool ShowConfirmBar => CurrentPage == PanelPage.ConfirmDelete;
 
-    /// <summary>Search box + item list are visible on List and ConfirmDelete (the confirm bar is an overlay, not a page swap).</summary>
-    public bool IsListPage => CurrentPage is PanelPage.List or PanelPage.ConfirmDelete;
+    public bool ShowConfirmImportBar => CurrentPage == PanelPage.ConfirmImport;
+
+    /// <summary>Either inline confirm bar being up makes the search box read-only (spec: nav keys there mean confirm/cancel, not typing).</summary>
+    public bool IsConfirmBarActive => ShowConfirmBar || ShowConfirmImportBar;
+
+    /// <summary>Search box + item list are visible on List, ConfirmDelete and ConfirmImport (the confirm bars are overlays, not page swaps).</summary>
+    public bool IsListPage => CurrentPage is PanelPage.List or PanelPage.ConfirmDelete or PanelPage.ConfirmImport;
 
     public bool ShowTypePickerPage => CurrentPage == PanelPage.TypePicker;
 
     public bool ShowEditorPage => CurrentPage == PanelPage.Editor;
 
     public bool ShowIconPickerPage => CurrentPage == PanelPage.IconPicker;
+
+    public bool ShowSettingsPage => CurrentPage == PanelPage.Settings;
 
     public int MaxVisibleItems => _config.Settings.MaxVisibleItems;
 
@@ -198,7 +229,17 @@ public sealed partial class MainViewModel : ObservableObject
             ? "Ctrl+Shift+R: keep current version"
             : "Ctrl+Shift+R: restore backup";
 
-    public MainViewModel(ConfigService configService, LaunchService launchService, SearchService searchService, IconService iconService, Func<string, string?> fileDescriptionLookup)
+    public MainViewModel(
+        ConfigService configService,
+        LaunchService launchService,
+        SearchService searchService,
+        IconService iconService,
+        Func<string, string?> fileDescriptionLookup,
+        Action<string> recordUsage,
+        Action pruneUsage,
+        Func<string, string?> tryApplyHotkey,
+        Action beginHotkeyCapture,
+        Action endHotkeyCaptureRestore)
     {
         _configService = configService;
         _config = configService.Config;
@@ -206,6 +247,11 @@ public sealed partial class MainViewModel : ObservableObject
         _searchService = searchService;
         _iconService = iconService;
         _fileDescriptionLookup = fileDescriptionLookup;
+        _recordUsage = recordUsage;
+        _pruneUsage = pruneUsage;
+        _tryApplyHotkey = tryApplyHotkey;
+        _beginHotkeyCapture = beginHotkeyCapture;
+        _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
         _folderStack.Add(_config.Root);
 
         if (!string.IsNullOrEmpty(configService.LoadError))
@@ -263,17 +309,37 @@ public sealed partial class MainViewModel : ObservableObject
         ErrorMessage = "";
     }
 
-    /// <summary>Called every time the panel is shown (spec: always starts at root) and whenever it's hidden - resets to a clean List page so a half-finished edit never lingers across show/hide.</summary>
+    /// <summary>
+    /// Called every time the panel is shown and whenever it's hidden - resets to a clean List page so a
+    /// half-finished edit never lingers across show/hide. Normally goes to root (spec: launcher always
+    /// starts at root); when settings.rememberLastLocation is true (spec §1.2) it instead reopens the
+    /// folder that was current at the *last hide* (tracked in <see cref="_lastLocationFolderId"/>, by id,
+    /// falling back to root if that folder no longer exists) - the id walk mirrors
+    /// <see cref="OnConfigReloadedSuccess"/>'s own folder-stack rebuild.
+    /// </summary>
     public void ResetToRoot()
     {
         DetachTypePicker();
         DetachEditor();
         DetachIconPicker();
+        DetachSettings();
         _pendingDeleteNode = null;
+        _pendingImportConfig = null;
         CurrentPage = PanelPage.List;
 
         _folderStack.Clear();
         _folderStack.Add(_config.Root);
+
+        if (_config.Settings.RememberLastLocation && _lastLocationFolderId is { } lastId)
+        {
+            var found = FindChildFolderByIdRecursive(_config.Root, lastId);
+            if (found is not null)
+            {
+                _folderStack.Clear();
+                _folderStack.AddRange(found);
+            }
+        }
+
         SearchText = "";
         UpdateBreadcrumb();
         RefreshItems();
@@ -281,6 +347,36 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Cut state is cleared when the launcher is hidden (spec §6.3), independently of ResetToRoot (which also runs on the next show).</summary>
     public void ClearCutState() => CutNode = null;
+
+    /// <summary>Called by MainWindow.HideLauncher() (spec §1.2) - remembers the current folder in memory only, for the next ResetToRoot() to consult if settings.rememberLastLocation is on.</summary>
+    public void RememberCurrentLocation()
+    {
+        if (_config.Settings.RememberLastLocation)
+        {
+            _lastLocationFolderId = CurrentFolder.Id;
+        }
+    }
+
+    /// <summary>Root..folder chain down to the folder with the given id, or null if it no longer exists (spec §1.2's "fall back to root if it no longer exists").</summary>
+    private static List<FolderNode>? FindChildFolderByIdRecursive(FolderNode root, string id)
+    {
+        if (root.Id == id)
+        {
+            return new List<FolderNode> { root };
+        }
+
+        foreach (var child in root.Children.OfType<FolderNode>())
+        {
+            var found = FindChildFolderByIdRecursive(child, id);
+            if (found is not null)
+            {
+                found.Insert(0, root);
+                return found;
+            }
+        }
+
+        return null;
+    }
 
     public void MoveSelection(int delta)
     {
@@ -425,6 +521,14 @@ public sealed partial class MainViewModel : ObservableObject
     private void Launch(Node node)
     {
         var launched = _launchService.Launch(node, _config.Settings);
+        if (launched)
+        {
+            // Spec §8.4/§10 item 10: recorded for every successful launch. Folders never reach here
+            // (EnterSelected routes them to EnterFolder instead), so "all node types except folders" is
+            // satisfied automatically.
+            _recordUsage(node.Id);
+        }
+
         if (launched && _config.Settings.CloseAfterLaunch)
         {
             RequestHide?.Invoke();
@@ -662,6 +766,148 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Phase 6: settings page (Ctrl+,, spec §11) and import/export (spec §10/§11, revised §10 item 9).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>Ctrl+,, the tray's Settings…, or a click on the hotkey-failure balloon. Opens even when read-only (spec: "page opens but Save is refused").</summary>
+    public void BeginSettings() => OpenSettings(hotkeyErrorToShow: null);
+
+    /// <summary>Spec §10 item 13: a startup/reload hotkey failure opens the panel straight to Settings with the error line showing and the hotkey box focused, in addition to the tray balloon.</summary>
+    public void OpenSettingsWithHotkeyError(string message) => OpenSettings(message);
+
+    private void OpenSettings(string? hotkeyErrorToShow)
+    {
+        var vm = new SettingsViewModel(
+            _config.Settings,
+            _configService.Directory,
+            _configService.IsReadOnly,
+            _tryApplyHotkey,
+            _beginHotkeyCapture,
+            _endHotkeyCaptureRestore,
+            () => ConfigSerializer.Serialize(_config),
+            hotkeyErrorToShow);
+        vm.Saved += OnSettingsSaved;
+        vm.Cancelled += OnSettingsCancelled;
+        vm.ImportParsed += OnImportParsed;
+        Settings = vm;
+        CurrentPage = PanelPage.Settings;
+    }
+
+    private void DetachSettings()
+    {
+        if (Settings is null)
+        {
+            return;
+        }
+
+        Settings.Saved -= OnSettingsSaved;
+        Settings.Cancelled -= OnSettingsCancelled;
+        Settings.ImportParsed -= OnImportParsed;
+        Settings = null;
+    }
+
+    private void OnSettingsCancelled()
+    {
+        DetachSettings();
+        CurrentPage = PanelPage.List;
+    }
+
+    private void OnSettingsSaved(Settings newSettings)
+    {
+        if (RefuseSaveIfReloadPending())
+        {
+            DetachSettings();
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
+        _config.Settings = newSettings;
+        DetachSettings();
+        CurrentPage = PanelPage.List;
+
+        var result = _configService.Save();
+        if (!result.Success)
+        {
+            ErrorMessage = result.Error ?? "Could not save config.";
+        }
+
+        // Live-apply (spec §10 item 2): the hotkey itself was already applied by _tryApplyHotkey before
+        // this event fired; StartWithWindows/theme need Win32/WPF-resource access this VM deliberately
+        // doesn't have, so SettingsApplied hands those to App. maxVisibleItems/showHintBar/closeAfterLaunch/
+        // defaultShell need nothing beyond the property-changed notifications ApplySettings() raises.
+        ApplySettings();
+        SettingsApplied?.Invoke();
+    }
+
+    /// <summary>The live-apply projection of a settings change (spec §10 item 2) - shared between a settings-page save and a config reload that changed settings, so there's exactly one place that decides what "apply settings" means.</summary>
+    private void ApplySettings()
+    {
+        OnPropertyChanged(nameof(MaxVisibleItems));
+        OnPropertyChanged(nameof(ShowHintBar));
+        OnPropertyChanged(nameof(ShowHintBarRow));
+    }
+
+    private void OnImportParsed(LauncherConfig imported)
+    {
+        DetachSettings();
+
+        if (BlockIfReadOnly())
+        {
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
+        _pendingImportConfig = imported;
+        ImportConfirmMessage = "Import this config? M = Merge (append; renames colliding ids) · R = Replace (keeps current settings) · Esc = cancel";
+        CurrentPage = PanelPage.ConfirmImport;
+    }
+
+    public void ConfirmImportMerge() => ApplyImport(merge: true);
+
+    public void ConfirmImportReplace() => ApplyImport(merge: false);
+
+    public void CancelPendingImport()
+    {
+        _pendingImportConfig = null;
+        CurrentPage = PanelPage.List;
+    }
+
+    private void ApplyImport(bool merge)
+    {
+        var imported = _pendingImportConfig;
+        _pendingImportConfig = null;
+        CurrentPage = PanelPage.List;
+
+        if (imported is null)
+        {
+            return;
+        }
+
+        int count;
+        if (merge)
+        {
+            count = ConfigImport.Merge(_config.Root, imported.Root);
+        }
+        else
+        {
+            // Replace keeps current settings untouched (spec §10 revision item 9) - only Root swaps.
+            count = ConfigImport.CountDescendants(imported.Root);
+            _config.Root = imported.Root;
+        }
+
+        SaveAndRebuildIndex();
+        _pruneUsage();
+
+        _folderStack.Clear();
+        _folderStack.Add(_config.Root);
+        SearchText = "";
+        UpdateBreadcrumb();
+        RefreshItems();
+
+        ErrorMessage = $"Imported {count} item{(count == 1 ? "" : "s")} ({(merge ? "merged" : "replaced")}).";
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // Phase 3: delete (spec §6.3)
     // ---------------------------------------------------------------------------------------------
 
@@ -701,6 +947,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         TreeOps.Remove(_config.Root, node);
         SaveAndRebuildIndex();
+        _pruneUsage(); // spec §10 item 10: usage.json shouldn't keep scoring nodes that no longer exist.
         RefreshItems();
 
         SelectedIndex = Items.Count == 0 ? -1 : Math.Clamp(deletedAt, 0, Items.Count - 1);
@@ -942,17 +1189,17 @@ public sealed partial class MainViewModel : ObservableObject
 
         _searchService.Rebuild(_config);
         _iconService.Invalidate();
+        _pruneUsage();
         CutNode = null;
         _pendingDeleteNode = null;
+        _pendingImportConfig = null;
 
-        if (CurrentPage == PanelPage.ConfirmDelete)
+        if (CurrentPage is PanelPage.ConfirmDelete or PanelPage.ConfirmImport)
         {
             CurrentPage = PanelPage.List;
         }
 
-        OnPropertyChanged(nameof(MaxVisibleItems));
-        OnPropertyChanged(nameof(ShowHintBar));
-        OnPropertyChanged(nameof(ShowHintBarRow));
+        ApplySettings();
 
         UpdateBreadcrumb();
         RefreshItems();

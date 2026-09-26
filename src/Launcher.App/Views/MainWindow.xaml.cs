@@ -7,28 +7,37 @@ using System.Windows.Media;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
+using YourLauncher.Core.Model;
 
 namespace YourLauncher.App.Views;
 
 /// <summary>
 /// The single panel window. Owns positioning, show/hide, and keyboard routing (spec §5, §6.1, §6.3) - the
 /// ViewModel holds no WPF/Win32 references so it stays testable, but keyboard focus must always remain
-/// in the search TextBox while on the List/ConfirmDelete pages (only that TextBox's key handler drives
-/// navigation and editing shortcuts); the TypePicker/Editor pages own their own focus and key handling in
-/// their respective Views once <see cref="MainViewModel.CurrentPage"/> switches to them.
+/// in the search TextBox while on the List/ConfirmDelete/ConfirmImport pages (only that TextBox's key
+/// handler drives navigation and editing shortcuts); the TypePicker/Editor/IconPicker/Settings pages own
+/// their own focus and key handling in their respective Views once
+/// <see cref="MainViewModel.CurrentPage"/> switches to them.
 /// </summary>
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly ThemeService _themeService;
+    private readonly Func<Theme> _currentThemeSetting;
     private int _suppressAutoHideCount;
+
+    private const int WM_SETTINGCHANGE = 0x001A;
 
     /// <summary>Fixed row height so the list can be capped at exactly settings.maxVisibleItems rows.</summary>
     public const double RowHeight = 36;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, ThemeService themeService, Func<Theme> currentThemeSetting)
     {
         _viewModel = viewModel;
+        _themeService = themeService;
+        _currentThemeSetting = currentThemeSetting;
         DataContext = viewModel;
         InitializeComponent();
         ItemsList.MaxHeight = RowHeight * Math.Max(1, viewModel.MaxVisibleItems);
@@ -63,7 +72,8 @@ public partial class MainWindow : Window
 
     public void EndSuppressAutoHide() => _suppressAutoHideCount = Math.Max(0, _suppressAutoHideCount - 1);
 
-    /// <summary>Hotkey path: always resets to root first (spec: launcher always opens at root).</summary>
+    /// <summary>Hotkey path: always calls <see cref="MainViewModel.ResetToRoot"/> first - root, unless
+    /// settings.rememberLastLocation reopens the last-hidden folder instead (spec §1.2).</summary>
     public void ShowLauncher()
     {
         var stopwatch = Stopwatch.StartNew();
@@ -102,6 +112,7 @@ public partial class MainWindow : Window
 
     public void HideLauncher()
     {
+        _viewModel.RememberCurrentLocation();
         _viewModel.ClearCutState();
         _viewModel.FlushPendingReloadIfAny();
         Hide();
@@ -177,8 +188,13 @@ public partial class MainWindow : Window
                 IconPickerViewHost.FocusFirstField();
                 break;
 
+            case PanelPage.Settings:
+                SettingsViewHost.FocusFirstField();
+                break;
+
             case PanelPage.List:
             case PanelPage.ConfirmDelete:
+            case PanelPage.ConfirmImport:
                 SearchBox.Focus();
                 Keyboard.Focus(SearchBox);
                 break;
@@ -236,13 +252,22 @@ public partial class MainWindow : Window
     /// <summary>
     /// Spec §10 item 11: Mica/Acrylic + rounded corners on Windows 11, applied once the HWND exists. Any
     /// failure along the way (Win10, or a DWM call failing) leaves the window exactly as XAML compiled it -
-    /// solid #1E1E1E background, square corners, <see cref="AllowsTransparency"/> stays false throughout
-    /// (a layered/transparent window breaks the DWM backdrop entirely).
+    /// solid background (theme brush), square corners, <see cref="AllowsTransparency"/> stays false
+    /// throughout (a layered/transparent window breaks the DWM backdrop entirely). Also wires up the
+    /// WM_SETTINGCHANGE hook (spec §10 item 4) that keeps Theme.System following the OS live.
     /// </summary>
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero)
+        {
+            HwndSource.FromHwnd(hwnd)?.AddHook(SettingChangeWndProc);
+        }
+
         ApplyWindowChromeAndBackdrop();
+        ApplyTheme(_themeService.IsDark);
     }
 
     private void ApplyWindowChromeAndBackdrop()
@@ -260,9 +285,6 @@ public partial class MainWindow : Window
             {
                 return; // Win10 or older: keep the compiled solid look.
             }
-
-            var darkMode = 1; // Phase 6: a theme switch flips this.
-            Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
 
             var corner = Win32.DWMWCP_ROUND;
             Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
@@ -299,12 +321,57 @@ public partial class MainWindow : Window
             }
 
             Background = Brushes.Transparent;
-            RootBorder.Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x1E, 0x1E, 0x1E));
+
+            // A live resource reference, set once: from here on, any theme change (ThemeService.Apply
+            // swapping the merged dictionary) re-tints this background automatically with zero extra code
+            // - see ApplyTheme below, which therefore only needs to deal with the DWM-level dark flag.
+            RootBorder.SetResourceReference(BackgroundProperty, "PanelBackgroundTintBrush");
         }
         catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
         {
             Debug.WriteLine($"[YourLauncher] Mica/Acrylic setup failed, keeping the solid fallback look: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Re-applies the DWM immersive-dark-mode flag for <paramref name="dark"/> (spec §10 item 2-3). Called
+    /// once at startup (after <see cref="ApplyWindowChromeAndBackdrop"/> determines whether the backdrop is
+    /// active) and again whenever the effective theme changes afterwards (a settings save, an external
+    /// config reload that changes <c>settings.theme</c>, or a live Theme.System OS change). Every other
+    /// theme-dependent color updates itself via the live <c>DynamicResource</c>/<c>SetResourceReference</c>
+    /// bindings already in place once <see cref="ThemeService.Apply"/> swaps the merged dictionary - this
+    /// method only needs to poke the one thing DWM itself needs told explicitly.
+    /// </summary>
+    public void ApplyTheme(bool dark)
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero || Environment.OSVersion.Version.Build < 22000)
+        {
+            return;
+        }
+
+        var darkMode = dark ? 1 : 0;
+        Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+    }
+
+    /// <summary>
+    /// Spec §10 item 4: WM_SETTINGCHANGE with lParam "ImmersiveColorSet" fires whenever the user flips
+    /// Windows' light/dark app mode - re-resolves and re-applies the theme only while Theme.System is the
+    /// configured setting (Light/Dark are pinned regardless of what the OS does).
+    /// </summary>
+    private IntPtr SettingChangeWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_SETTINGCHANGE && lParam != IntPtr.Zero && _currentThemeSetting() == Theme.System)
+        {
+            var setting = Marshal.PtrToStringUni(lParam);
+            if (setting == "ImmersiveColorSet")
+            {
+                var dark = _themeService.Apply(Theme.System);
+                ApplyTheme(dark);
+            }
+        }
+
+        return IntPtr.Zero;
     }
 
     private void SearchBox_OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -324,6 +391,34 @@ public partial class MainWindow : Window
                 _viewModel.CancelPendingDelete();
             }
 
+            e.Handled = true;
+            return;
+        }
+
+        if (_viewModel.CurrentPage == PanelPage.ConfirmImport)
+        {
+            // M merges, R replaces; anything else (including Esc) cancels (spec §10 revision item 9,
+            // same "any other key cancels" pattern as ConfirmDelete above).
+            switch (e.Key)
+            {
+                case Key.M:
+                    _viewModel.ConfirmImportMerge();
+                    break;
+                case Key.R:
+                    _viewModel.ConfirmImportReplace();
+                    break;
+                default:
+                    _viewModel.CancelPendingImport();
+                    break;
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.OemComma)
+        {
+            _viewModel.BeginSettings();
             e.Handled = true;
             return;
         }

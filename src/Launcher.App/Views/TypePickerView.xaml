@@ -8,7 +8,7 @@
              ItemsSource="{x:Static vm:TypePickerViewModel.Options}"
              SelectedIndex="{Binding SelectedIndex, Mode=OneWay}"
              Focusable="False"
-             Foreground="#E6E6E6"
+             Foreground="{DynamicResource ForegroundBrush}"
              Background="Transparent"
              BorderThickness="0"
              ScrollViewer.VerticalScrollBarVisibility="Disabled"
@@ -30,8 +30,8 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#2D2D30" />
-                                    <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6" />
+                                    <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+                                    <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -58,7 +58,7 @@
                                Margin="8,0,8,0" />
                     <TextBlock Grid.Column="2"
                                Text="{Binding KeyHint}"
-                               Foreground="#8A8A8A"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center" />
                 </Grid>
             </DataTemplate>

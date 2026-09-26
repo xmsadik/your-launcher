@@ -1,0 +1,114 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Dark theme (spec §11/§10 item 2-3): the original, pre-Phase-6 colors, unchanged - Dark must look
+        pixel-identical to before the DynamicResource conversion. Light.xaml defines the exact same set of
+        keys with light-appropriate values; every color in the app is looked up through one of these keys
+        (XAML: {DynamicResource Key}; code-behind for a resource decided at runtime rather than compile
+        time: SetResourceReference) so swapping which of these two dictionaries is merged into
+        Application.Resources (ThemeService.Apply) re-themes the whole app with no other code involved.
+    -->
+    <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1E1E1E" />
+    <!-- Used once, imperatively (MainWindow.RootBorder), only when the Mica/Acrylic backdrop is actually active. -->
+    <SolidColorBrush x:Key="PanelBackgroundTintBrush" Color="#E61E1E1E" />
+    <SolidColorBrush x:Key="PanelBorderBrush" Color="#3B4048" />
+    <SolidColorBrush x:Key="ForegroundBrush" Color="#E6E6E6" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#8A8A8A" />
+    <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+    <SolidColorBrush x:Key="SelectionBackgroundBrush" Color="#2D2D30" />
+    <SolidColorBrush x:Key="HoverBackgroundBrush" Color="#2D2D30" />
+    <SolidColorBrush x:Key="ErrorBrush" Color="#E06C75" />
+    <SolidColorBrush x:Key="WarningBrush" Color="#E5C07B" />
+    <SolidColorBrush x:Key="MissingBadgeBrush" Color="#E5A050" />
+    <SolidColorBrush x:Key="InputBackgroundBrush" Color="#2A2A2E" />
+
+    <!--
+        Shared ComboBox/ComboBoxItem chrome (spec §10 item 3: "Move EditorView's custom ComboBox/
+        ComboBoxItem templates into the theme dictionaries so Settings reuses them"). Implicit (no x:Key) -
+        WPF applies these to every ComboBox/ComboBoxItem in the app that doesn't set its own local Style,
+        via the normal TargetType-based resource lookup. Colors are StaticResource, not Dynamic: the whole
+        dictionary is swapped wholesale on a theme change, so there is nothing for an internal
+        DynamicResource to gain here.
+    -->
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource HoverBackgroundBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="Background" Value="{StaticResource InputBackgroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PanelBorderBrush}" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid>
+                        <ToggleButton x:Name="Toggle"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      BorderThickness="1"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Focusable="False"
+                                      ClickMode="Press">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path Grid.Column="1"
+                                                  Data="M0,0 L4,4 L8,0 Z"
+                                                  Fill="{StaticResource SecondaryTextBrush}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                                        </Grid>
+                                    </Border>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                           Margin="{TemplateBinding Padding}"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Center"
+                                           IsHitTestVisible="False"
+                                           TextElement.Foreground="{TemplateBinding Foreground}" />
+                        <Popup x:Name="Popup"
+                               IsOpen="{TemplateBinding IsDropDownOpen}"
+                               Placement="Bottom"
+                               AllowsTransparency="True"
+                               PopupAnimation="None">
+                            <Border Background="{StaticResource InputBackgroundBrush}"
+                                    BorderBrush="{StaticResource PanelBorderBrush}"
+                                    BorderThickness="1"
+                                    MinWidth="{TemplateBinding ActualWidth}">
+                                <ScrollViewer Margin="0" SnapsToDevicePixels="True">
+                                    <ItemsPresenter />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

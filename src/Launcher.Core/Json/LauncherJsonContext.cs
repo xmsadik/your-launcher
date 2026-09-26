@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.Usage;
 
 namespace YourLauncher.Core.Json;
 
@@ -20,6 +21,7 @@ namespace YourLauncher.Core.Json;
 [JsonSerializable(typeof(PathNode))]
 [JsonSerializable(typeof(CommandNode))]
 [JsonSerializable(typeof(UrlNode))]
+[JsonSerializable(typeof(UsageData))]
 public partial class LauncherJsonContext : JsonSerializerContext
 {
 }

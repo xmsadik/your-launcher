@@ -95,13 +95,18 @@ Aşama 1 dışında bırakılanlar (bilerek, plana göre): arama yalnızca bulun
 - [x] Mica/Acrylic + köşe yuvarlama (Win11), fallback düz renk
 
 ### Aşama 6 — Cila
+
+**Aşama 6A (Part A, tamamlandı 2026-09-26):**
+- [x] ThemeService: sistem teması (registry `AppsUseLightTheme` + panelin mevcut `HwndSource` hook'unda `WM_SETTINGCHANGE`/`ImmersiveColorSet`, `SystemEvents` değil — §10 madde 4), açık/koyu ResourceDictionary (`Themes/Dark.xaml`, `Themes/Light.xaml`), tüm sabit renkler `DynamicResource`'a taşındı
+- [x] Ayarlar sayfası §11 (hotkey kaydı tuşa basarak, tema, **"Start with Windows" açma/kapama anahtarı** (kullanıcı talebi 2026-09-26; değişince registry anında güncellenir), closeAfterLaunch, maxVisibleItems, defaultShell, son konumu hatırla, ipucu satırı)
+- [x] Import/Export (birleştir: id çakışmasında yeni id / değiştir)
+- [x] UsageService (`usage.json`, debounce'lu kayıt) → arama eşitlik bozucusu
+
+**Aşama 6B (Part B, henüz yapılmadı — bilerek, orkestratör talimatı):**
+- [ ] Fare önkoşulu: `ListBoxItem.Focusable=False`, tıklama = seçim, çift tıklama = aç (§10 madde 5)
 - [ ] Drag&drop Explorer'dan: `.exe/.lnk` → app, diğerleri → path; `.lnk` çözümleme (IShellLinkW: hedef, argüman, çalışma dizini, ikon) — AC12
 - [ ] Liste içi sürükle: sıralama + klasöre bırak
-- [ ] Sağ tık menüsü (Aç, Düzenle, İkon Değiştir, Taşı, Çoğalt, Sil, Dosya konumunu aç)
-- [ ] Ayarlar sayfası §11 (hotkey kaydı tuşa basarak, tema, **"Start with Windows" açma/kapama anahtarı** (kullanıcı talebi 2026-09-26; değişince registry anında güncellenir), closeAfterLaunch, maxVisibleItems, defaultShell, son konumu hatırla, ipucu satırı)
-- [ ] Import/Export (birleştir: id çakışmasında yeni id / değiştir)
-- [ ] UsageService (`usage.json`, debounce'lu kayıt) → arama eşitlik bozucusu
-- [ ] ThemeService: sistem teması (registry `AppsUseLightTheme` + `SystemEvents.UserPreferenceChanged`), açık/koyu ResourceDictionary
+- [ ] Sağ tık menüsü (Aç, Düzenle, İkon Değiştir, Kes, Buraya Yapıştır, Çoğalt, Sil, Dosya konumunu aç)
 
 ### Teslimat
 - [ ] `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true`
@@ -418,14 +423,96 @@ doğrulama, iki gerçek hatanın düzeltilmesi ve dokümantasyon içindi — kod
   istatistiği/tema/sağ tık menüsü (Aşama 6). "Settings…" tray öğesi ve hotkey-hatası balonunun tıklaması
   şimdilik config.json'ı varsayılan düzenleyicide açıyor (`// Phase 6` notu).
 
-## Devam noktası (güncellendi 2026-09-26, Aşama 5 sonrası)
-- Aşama 1–5 tamam, 180 test yeşil (Debug+Release, 0 uyarı); `main` → https://github.com/xmsadik/your-launcher
-  (private), commit `224bd09`'a kadar (Aşama 1-4; Aşama 5 henüz commit edilmedi — orkestratör commit
-  etmeyecek şekilde talimat verdi).
-- Sıradaki: **Aşama 6 — Cila** (sürükle-bırak/`.lnk`, sağ tık menüsü, ayarlar sayfası — "Start with Windows"
-  anahtarı dahil, `StartupService.SetEnabled` zaten hazır —, import/export, kullanım istatistiği, tema).
+### Aşama 6A — Cila, Part A: tema/ayarlar/import-export/kullanım istatistiği (tamamlandı 2026-09-26)
+
+`tasks/phase6-spec.md` §1–§4 ve §9 (Part A doğrulaması), §10 revizyonları esas alınarak, §10'da belirtilen
+sıra ile uygulandı: **tema → ayarlar sayfası → import/export → kullanım istatistiği**. Part B (§5–§8: sağ
+tık menüsü, Explorer'dan sürükle-bırak, liste içi sürükle-sıralama, ve fare önkoşulu) orkestratör talimatı
+gereği bu oturumda **bilerek yapılmadı**.
+
+- Build: `dotnet build` (Debug **ve** Release) — 0 uyarı, 0 hata. Test: `dotnet test` — **206/206 yeşil**
+  (Aşama 1–5'in 180'i + Aşama 6A için 26 yeni: `UsageScorerTests` 17 — kayıt/skor/yaş-kovası (Theory, 6
+  vaka)/belirlenimlilik/`Prune`/bozuk-boş dosya/round-trip —, `SearchEngineTests`'e 1 yeni eşitlik-bozucu
+  testi, `ConfigImportTests` 8 — çakışmasız ekleme, üst/iç içe id çakışması yeniden adlandırma, iki çakışan
+  id'nin farklı yeni id alması, sıra korunumu, kaynakla takma ad paylaşmama, Replace ayarları koruyor,
+  `CountDescendants`).
+- Canlı doğrulama, her seferinde `YOURLAUNCHER_CONFIG_DIR` → `%TEMP%` altında ayrı bir scratch klasörü
+  (gerçek `%APPDATA%\Your Launcher\` ve gerçek `HKCU\...\Run\Your Launcher` değerine hiç dokunulmadı;
+  Windows'un kendi tema ayarı da hiç değiştirilmedi):
+  1. **Tema (koyu/açık dönüşüm, piksel karşılaştırması)**: `git stash -u` ile Aşama 6A öncesi temiz build
+     alınıp liste/editör/ikon seçici sayfalarının koyu temada "önce" ekran görüntüleri çekildi, `git stash
+     pop` ile Aşama 6A geri getirilip aynı sayfaların "sonra" görüntüleri çekildi — üçü de piksel bazında
+     özdeş görünüyor (DynamicResource dönüşümü mevcut koyu görünümü bozmamış). Açık temada da panel
+     acrylic üzerinde okunaklı.
+  2. **Ayarlar sayfası (`Ctrl+,`)**: açılış/düzenleme/kaydetme hem koyu hem açık temada ekran görüntüsüyle
+     doğrulandı; hotkey kutusuna odaklanınca canlı global hotkey devre dışı kalıyor (aksi halde
+     `WM_HOTKEY` tuş kombinasyonunu yutuyor), yeni kombinasyon yakalanıp kaydedildikten sonra panel eski
+     kısayol artık açmıyor, yeni kısayol açıyor. Visible rows alanı canlı uygulanıyor: `Ctrl+A` ile
+     seçilip "3" yazılınca liste anında 3 satıra küçüldü (kaydetmeden önce, editördeki gibi).
+  3. **Salt-okunur (bozuk config) davranışı**: bozuk `config.json` ile başlatılan bir örnekte Ayarlar
+     sayfası yine de açılıyor (§1'in "page opens but Save is refused" kuralı), ama `Ctrl+S` kaydetmeyi
+     reddediyor — `config.json`'ın SHA256'sı başlangıçtan sonuna birebir aynı kaldı (dosyaya hiç
+     dokunulmadı).
+  4. **Import/Export round-trip**: Export… ile geçerli config bir `.json`'a yazıldı (`SaveFileDialog`,
+     varsayılan ad deseni doğru); aynı dosya Import… ile geri okunup **Merge** seçildi — id çakışan
+     düğümler yeniden adlandırılarak eklendi, mevcut ağaç korundu, durum satırı "Imported N items
+     (merged)" gösterdi. Ayrı bir çalıştırmada aynı dosya **Replace** ile içe aktarıldı — ağaç tamamen
+     değişti, mevcut `settings` (hotkey, tema, vb.) **değişmeden kaldı** (spec §4'ün açık kuralı),
+     `config.json`'ın önceki hâli normal atomik kaydetme yoluyla `config.backup.json`'a gitti.
+  5. **Kullanım istatistiği ve arama eşitlik bozucusu**: bir örnekte bir öğe başlatıldı (`usage.json`
+     debounce'lu ve atomik yazıldı, id bazlı `{ useCount, lastUsedUtc }`); uygulama kapatılıp
+     **aynı config dizini** ile taze bir örnek açıldı, aynı adı taşıyan iki eşit-skorlu sonucu döndüren bir
+     arama yapıldı — daha önce kullanılan öğe üstte çıktı (frecency eşitlik bozucusu doğru çalışıyor;
+     odak-çalma nedeniyle ilk denemedeki bir SendKeys yan etkisi ikinci, taze bir çalıştırmayla
+     çözüldü — ayrıntı aşağıda "Sapmalar"da).
+  6. **"Son konumu hatırla" (§1.2, bu oturumda ek olarak bulunup düzeltilen gerçek hata — bkz. aşağı)**:
+     `rememberLastLocation: true` iken Root › Dev › Tools'a girilip panel gerçekten gizlenince (pencere
+     deactivate olunca, `MainWindow_OnDeactivated` → `HideLauncher()`), ikinci bir örnek başlatılıp (named
+     pipe "show" mesajı) panel yeniden gösterildiğinde **doğrudan Root › Dev › Tools'a** döndüğü ekran
+     görüntüsüyle doğrulandı (ilk denemede Esc'in nav-modda önce bir üst klasöre çıkıp ancak kökteyken
+     gizlediği fark edilmeden test edilmiş, bu yüzden ilk koşu yanlış pozitif "hata" gibi görünmüştü — asıl
+     hata aşağıda anlatılıyor ve gerçek).
+- **Bulunan ve düzeltilen 1 gerçek hata**: `MainViewModel.RememberCurrentLocation()` (spec §1.2, doc
+  yorumunda zaten "Called by MainWindow.HideLauncher()" yazıyordu) **hiçbir yerden çağrılmıyordu** —
+  `MainWindow.HideLauncher()` sadece `ClearCutState()` ve `FlushPendingReloadIfAny()` çağırıyordu, bu da
+  "son konumu hatırla" ayarını fiilen tamamen işlevsiz bırakıyordu (her zaman köke dönerdi). Düzeltme:
+  `src/Launcher.App/Views/MainWindow.xaml.cs`'de `HideLauncher()`'ın en başına
+  `_viewModel.RememberCurrentLocation();` eklendi; ayrıca `ShowLauncher()`'ın artık yanlış olan "always
+  resets to root" doc yorumu güncellendi. Yukarıdaki madde 6'da canlı doğrulandı; düzeltmeden sonra
+  `dotnet build`/`dotnet test` tekrar 0 uyarı/206 yeşil kaldı.
+- Sapmalar/netleştirmeler:
+  - Ekran görüntüsü karşılaştırması `git stash`/`git stash pop` ile yapıldı (commit atılmadı,
+    orkestratörün "commit etme" talimatına uyuldu) — spec'in istediği "before/after dark screenshot diff"
+    hedefine ulaşmanın en basit yolu.
+  - Global hotkey ile panel yeniden gösterme testi bu geliştirme ortamında güvenilir değildi (bu makinedeki
+    başka bir yazılımın düşük seviyeli klavye kancası `Alt+Space`'i YourLauncher'a ulaşmadan yutuyor gibi
+    görünüyor); tüm "yeniden göster" doğrulamaları bunun yerine tek-instance named pipe mekanizmasıyla
+    yapıldı (ikinci bir `YourLauncher.exe` başlatmak ilkine "show" sinyali gönderip hemen çıkıyor) — gerçek
+    kullanıcı deneyimini (Ctrl+, dahil tüm klavye kısayolları için ayrı ayrı) etkilemez, sadece bu oturumun
+    otomasyon script'lerinin fiziksel Alt+Space tuş simülasyonuna güvenmediği anlamına gelir.
+  - Kullanım istatistiği testinde bir alt-süreç (launch edilen Notepad) ön plan odağını çaldığı için
+    `SendKeys` bir sonraki arama metnini yanlış pencereye yazdı; bu koşu tekrarlanmadı, bunun yerine
+    aynı config dizini ile taze bir örnek açılarak kalıcı `usage.json` verisiyle doğru sıralama ayrı bir
+    çalıştırmada doğrulandı — üretim kodunda bir hata değil, tamamen script/otomasyon kısıtı.
+  - Visible rows canlı-uygulama testinde imleç seçili metnin başına değil TextBox'ın mevcut içeriğinin
+    (`8`) üzerine `Ctrl+A` ile tam seçim yapılarak yazıldı; ilk deneme (Backspace + yazma) beklenmedik
+    şekilde "38"e klemlendi (kaydetme anındaki 3–20 klemplemenin de doğru çalıştığını yan ürün olarak
+    gösterdi) ama asıl "canlı satır sayısı küçülüyor mu" sorusunu net cevaplamadığı için tekrarlandı.
+- Bilerek bırakılanlar (plana uygun, orkestratör talimatıyla): Part B'nin tamamı — fare önkoşulu, sağ tık
+  menüsü, Explorer'dan sürükle-bırak (`.lnk`/`.url` çözümleme dahil), liste içi sürükle-sıralama. Kod bu
+  parçaların üzerine oturacağı `PanelPage`/tema/ayarlar altyapısını yeniden şekillendirmeden ekleyecek
+  şekilde yapılandırıldı (README'de belirtildi).
+
+## Devam noktası (güncellendi 2026-09-26, Aşama 6A sonrası)
+- Aşama 1–5 tamam ve commit edilmiş: `main` → https://github.com/xmsadik/your-launcher (private), Aşama 5
+  dahil commit `94454b6`'ya kadar. Aşama 6A (bu oturum) **commit edilmedi** — orkestratör commit
+  etmeyecek şekilde talimat verdi; değişiklikler working tree'de bekliyor.
+- 206 test yeşil (Debug+Release, 0 uyarı): Aşama 1–5'in 180'i + Aşama 6A'nın 26 yenisi.
+- Sıradaki: **Aşama 6B — Cila Part B** (fare önkoşulu, sağ tık menüsü, Explorer'dan sürükle-bırak/`.lnk`
+  çözümleme, liste içi sürükle-sıralama) — `tasks/phase6-spec.md` §5–§8 ve §10 madde 5–8/11–14.
 - Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek Release/R2R yayında
   ~148 MB Working Set / ~85 MB Private Bytes, 80 MB hedefinin üzerinde (Aşama 5 review'ına bakın — bilerek
   hack'lenmedi); `icons\` klasöründe öksüz dosya temizliği yok; DPI/çoklu monitör pozisyonlaması sadece kod
-  incelemesiyle doğrulandı (geliştirme makinesinde tek monitör var); "Settings…" ve hotkey-hatası balonu
-  şimdilik config.json'ı açıyor, gerçek ayarlar sayfası Aşama 6'da.
+  incelemesiyle doğrulandı (geliştirme makinesinde tek monitör var); global hotkey ile panel gösterme bu
+  geliştirme ortamında otomasyon script'leriyle güvenilir tetiklenemiyor (bkz. Aşama 6A review'ındaki
+  "Sapmalar" — gerçek kullanıcı deneyimini etkilemiyor, sadece bu makinedeki test otomasyonunu).

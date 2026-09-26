@@ -177,56 +177,63 @@ public sealed class TrayService : IDisposable
 
     private ContextMenu BuildMenu()
     {
-        var menu = new ContextMenu { Style = DarkMenuStyle, OverridesDefaultStyle = true };
+        var menuItemStyle = CreateMenuItemStyle();
+        var menu = new ContextMenu { Style = CreateMenuStyle(), OverridesDefaultStyle = true };
 
-        menu.Items.Add(MakeItem("Show", () => ShowRequested?.Invoke()));
-        menu.Items.Add(MakeItem("Settings…", () => SettingsRequested?.Invoke())); // Phase 6: open the real settings page instead.
-        menu.Items.Add(MakeItem("Open config file", () => OpenConfigFileRequested?.Invoke()));
-        menu.Items.Add(MakeItem("Open config folder", () => OpenConfigFolderRequested?.Invoke()));
-        menu.Items.Add(MakeItem("Reload config", () => ReloadConfigRequested?.Invoke()));
+        menu.Items.Add(MakeItem("Show", () => ShowRequested?.Invoke(), menuItemStyle));
+        menu.Items.Add(MakeItem("Settings…", () => SettingsRequested?.Invoke(), menuItemStyle));
+        menu.Items.Add(MakeItem("Open config file", () => OpenConfigFileRequested?.Invoke(), menuItemStyle));
+        menu.Items.Add(MakeItem("Open config folder", () => OpenConfigFolderRequested?.Invoke(), menuItemStyle));
+        menu.Items.Add(MakeItem("Reload config", () => ReloadConfigRequested?.Invoke(), menuItemStyle));
 
         if (IsRecoveryAvailable())
         {
-            menu.Items.Add(MakeItem(RecoveryMenuText(), () => RecoverFromCorruptionRequested?.Invoke()));
+            menu.Items.Add(MakeItem(RecoveryMenuText(), () => RecoverFromCorruptionRequested?.Invoke(), menuItemStyle));
         }
 
-        menu.Items.Add(new Separator { Style = DarkSeparatorStyle });
-        menu.Items.Add(MakeItem("Exit", () => ExitRequested?.Invoke()));
+        menu.Items.Add(new Separator { Style = CreateSeparatorStyle() });
+        menu.Items.Add(MakeItem("Exit", () => ExitRequested?.Invoke(), menuItemStyle));
 
         return menu;
     }
 
-    private static MenuItem MakeItem(string header, Action onClick)
+    private static MenuItem MakeItem(string header, Action onClick, Style style)
     {
-        var item = new MenuItem { Header = header, Style = DarkMenuItemStyle, OverridesDefaultStyle = true };
+        var item = new MenuItem { Header = header, Style = style, OverridesDefaultStyle = true };
         item.Click += (_, _) => onClick();
         return item;
     }
 
     // ------------------------------------------------------------------------------------------------
-    // Dark styling built entirely in code (spec §10 item 6: "styled dark") rather than via App.xaml
-    // implicit TargetType styles: a ContextMenu opened standalone (IsOpen=true, no PlacementTarget/owner
-    // in the logical tree) doesn't reliably pick up Application-level implicit styles for its own chrome
-    // in this WPF version - confirmed by hands-on testing (the menu rendered with the default light
-    // Aero2/Fluent look even with a matching implicit style present in App.xaml). Assigning the Style
-    // explicitly on each element sidesteps that resource-lookup ambiguity entirely. Also mirrors the
-    // ComboBox lesson from Phase 3 (EditorView.xaml): a themed control's own chrome ignores plain
-    // Background/BorderBrush Setters and needs a full ControlTemplate.
+    // Theme-aware styling built entirely in code (spec §10 item 6: "styled dark", revised §10 item 3: a
+    // shared theme-aware menu style factory, rebuilt per BuildMenu() call rather than cached once) rather
+    // than via App.xaml implicit TargetType styles: a ContextMenu opened standalone (IsOpen=true, no
+    // PlacementTarget/owner in the logical tree) doesn't reliably pick up Application-level implicit
+    // styles for its own chrome in this WPF version - confirmed by hands-on testing (the menu rendered
+    // with the default light Aero2/Fluent look even with a matching implicit style present in App.xaml).
+    // Assigning the Style explicitly on each element sidesteps that resource-lookup ambiguity entirely.
+    // Building fresh from the *current* theme resources on every open (rather than once, statically) is
+    // what makes the menu follow a theme change without any extra plumbing - the menu is always rebuilt
+    // per right-click anyway, so there's no live-update need mid-open. Also mirrors the ComboBox lesson
+    // from Phase 3 (EditorView.xaml): a themed control's own chrome ignores plain Background/BorderBrush
+    // Setters and needs a full ControlTemplate.
     // ------------------------------------------------------------------------------------------------
 
-    private static readonly Style DarkMenuStyle = CreateMenuStyle();
-    private static readonly Style DarkMenuItemStyle = CreateMenuItemStyle();
-    private static readonly Style DarkSeparatorStyle = CreateSeparatorStyle();
+    private static Brush ThemeBrush(string key) =>
+        Application.Current?.TryFindResource(key) as Brush ?? Brushes.Black;
 
     private static Style CreateMenuStyle()
     {
+        var background = ThemeBrush("PanelBackgroundBrush");
+        var foreground = ThemeBrush("ForegroundBrush");
+
         var border = new FrameworkElementFactory(typeof(Border));
-        border.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E)));
-        border.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(0x3B, 0x40, 0x48)));
+        border.SetValue(Border.BackgroundProperty, background);
+        border.SetValue(Border.BorderBrushProperty, ThemeBrush("PanelBorderBrush"));
         border.SetValue(Border.BorderThicknessProperty, new Thickness(1));
         border.SetValue(Border.PaddingProperty, new Thickness(2));
         border.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-        border.SetValue(TextElement.ForegroundProperty, new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6)));
+        border.SetValue(TextElement.ForegroundProperty, foreground);
 
         var itemsHost = new FrameworkElementFactory(typeof(StackPanel));
         itemsHost.SetValue(Panel.IsItemsHostProperty, true);
@@ -237,8 +244,8 @@ public sealed class TrayService : IDisposable
         style.Setters.Add(new Setter(Control.TemplateProperty, template));
         style.Setters.Add(new Setter(Control.FontFamilyProperty, new FontFamily("Segoe UI Variable, Segoe UI")));
         style.Setters.Add(new Setter(Control.FontSizeProperty, 13.0));
-        style.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E))));
-        style.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6))));
+        style.Setters.Add(new Setter(Control.BackgroundProperty, background));
+        style.Setters.Add(new Setter(Control.ForegroundProperty, foreground));
         style.Setters.Add(new Setter(FrameworkElement.SnapsToDevicePixelsProperty, true));
         return style;
     }
@@ -257,19 +264,19 @@ public sealed class TrayService : IDisposable
 
         var template = new ControlTemplate(typeof(MenuItem)) { VisualTree = border };
         var highlighted = new Trigger { Property = MenuItem.IsHighlightedProperty, Value = true };
-        highlighted.Setters.Add(new Setter(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30)), "Bd"));
+        highlighted.Setters.Add(new Setter(Border.BackgroundProperty, ThemeBrush("HoverBackgroundBrush"), "Bd"));
         template.Triggers.Add(highlighted);
 
         var style = new Style(typeof(MenuItem));
         style.Setters.Add(new Setter(Control.TemplateProperty, template));
-        style.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(0xE6, 0xE6, 0xE6))));
+        style.Setters.Add(new Setter(Control.ForegroundProperty, ThemeBrush("ForegroundBrush")));
         return style;
     }
 
     private static Style CreateSeparatorStyle()
     {
         var style = new Style(typeof(Separator));
-        style.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(0x3B, 0x40, 0x48))));
+        style.Setters.Add(new Setter(Control.BackgroundProperty, ThemeBrush("PanelBorderBrush")));
         style.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(4)));
         style.Setters.Add(new Setter(FrameworkElement.HeightProperty, 1.0));
         return style;

@@ -3,14 +3,15 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
-This is **Phase 5 (System integration)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching,
-Phase 2's fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/
-cut-paste/duplicate of nodes, Phase 4's automatic system icons + `Ctrl+I` icon picker, plus a single-instance
-guard, a tray icon (own `Shell_NotifyIcon` interop, no WinForms — see decisions below), "Start with
-Windows", live config file watching with reload/recovery, DPI-correct cursor-monitor positioning, and a
-Mica/Acrylic panel with rounded corners on Windows 11. Drag & drop, a settings screen and theming are
-Phase 6 (see `launcher-spec.md` §14 and `tasks/todo.md`) — the code is structured so they slot in without
-reshaping what's here.
+This is **Phase 6 Part A (Polish — theme/settings/import-export/usage)** per `tasks/todo.md`: Phase 1's
+hotkey/panel/navigation/launching, Phase 2's fuzzy Turkish-aware whole-tree search, Phase 3's fully
+keyboard-driven add/edit/delete/move/cut-paste/duplicate of nodes, Phase 4's automatic system icons +
+`Ctrl+I` icon picker, Phase 5's single-instance guard/tray/"Start with Windows"/live config
+watching/DPI-correct positioning/Mica-Acrylic panel, plus Phase 6A's dark/light theme (`Ctrl+,` settings
+page included), usage-based search tie-breaking, and config import/export. Phase 6 Part B — the mouse
+prerequisite, right-click context menu, drag & drop from Explorer, and in-list drag-to-reorder — is not yet
+implemented (see `launcher-spec.md` §5-§9/§14 and `tasks/todo.md`); the code is structured so it slots in
+without reshaping what's here.
 
 ## Build / run / test
 
@@ -33,7 +34,7 @@ $env:YOURLAUNCHER_CONFIG_DIR = "C:\scratch\yl-config"
 dotnet run --project src/Launcher.App
 ```
 
-## Phase 1–5 status
+## Phase 1–6A status
 
 Implemented (Phase 1):
 - Global hotkey (default `Alt+Space`, `settings.hotkey`), toggling the panel.
@@ -60,8 +61,8 @@ Implemented (Phase 2 — search, spec §7):
   description/command text, breadcrumb, depth, and parent chain per node.
 - `SearchEngine` (Core): scores name (×1.0) / keywords (×0.8, best of) / description (×0.6) / command
   text (×0.5, `command` nodes only) and keeps the best weighted field per node; sorts by score desc, then
-  a pluggable usage score (defaults to 0 until Phase 6's `usage.json`), then depth asc, then Turkish
-  alphabetical.
+  a usage score from `UsageScorer` (frecency: use count × an age-bucket weight read from `usage.json`,
+  Phase 6), then depth asc, then Turkish alphabetical.
 - `SearchService` (App): holds the current `FlatIndex`; `Rebuild(config)` is ready for Phase 3/5 to call
   after edits/file-watcher reloads.
 - `MainViewModel`: search mode (search box non-blank) lists ranked whole-tree results with a per-row
@@ -226,11 +227,72 @@ Implemented (Phase 5 — system integration, spec §1–§8/§9, revised per `ta
   `UseSystemResourceKeys=true`, `SatelliteResourceLanguages=en` in `Launcher.App.csproj`. No working-set
   trimming hack — see "Memory" below for measured numbers.
 
-Deliberately not yet implemented (see `// TODO Phase N` markers in code):
-- Drag & drop, `.lnk` resolution, a real settings screen (`Ctrl+,`), import/export, usage-based ranking,
-  theme switching, right-click context menu — Phase 6. Until the settings screen exists, the tray's
-  **Settings…** item and a hotkey-failure balloon's click both just open config.json in the default editor
-  (`// Phase 6` marks the spot).
+Implemented (Phase 6 Part A — polish: theme, settings, import/export, usage, spec §2/§8.4/§10/§11):
+- **Theme** (`Services/ThemeService.cs`, `Themes/Dark.xaml` + `Themes/Light.xaml`): every color in the app
+  (panel background/tint, border, foreground, secondary text, accent, selection, hover, error, warning,
+  missing-target badge, input background) is a named brush key shared by both dictionaries; swapping which
+  one is merged into `Application.Resources` re-themes the whole panel through `DynamicResource` bindings
+  (or `SetResourceReference` for the handful of things set from code: `HighlightedText`'s match-accent runs,
+  `MainWindow.RootBorder`'s Mica/Acrylic tint, the tray context menu's styles, rebuilt fresh from the
+  current theme's resources on every open). `Theme.System` reads
+  `HKCU\...\Personalize\AppsUseLightTheme` (missing value = light, the Windows default); while System is
+  the configured setting, `MainWindow`'s existing `HwndSource` hook also watches for
+  `WM_SETTINGCHANGE`/`"ImmersiveColorSet"` and re-resolves live if the user flips Windows' own light/dark
+  mode. `DWMWA_USE_IMMERSIVE_DARK_MODE` is re-applied by `MainWindow.ApplyTheme(bool dark)` whenever the
+  effective theme changes (settings save, a config reload that changed `settings.theme`, or a live
+  System-mode OS change).
+- **Settings page** (`Ctrl+,`, `ViewModels/SettingsViewModel.cs` + `Views/SettingsView.xaml`, `PanelPage.
+  Settings`): every field from spec §11 (Hotkey, Theme, Start with Windows, Close after launch, Visible
+  rows, Default shell, Remember last location, Show hint bar, Open config folder/Export…/Import…), fully
+  keyboard-usable (Tab order top-to-bottom, Enter/Ctrl+S save unless a ComboBox dropdown is open, Esc
+  cancels, Space toggles the focused checkbox, ↑/↓ in Visible rows adjust with a 3-20 clamp). Opened by
+  `Ctrl+,`, the tray's **Settings…**, or a hotkey-registration failure (which also focuses the Hotkey box
+  with the error already showing). The **Hotkey** field is a capture box: focusing it unregisters the live
+  global hotkey (so `WM_HOTKEY` doesn't eat the combination being typed) via an App-level seam
+  (`MainViewModel`/`SettingsViewModel` stay Win32-free); the next key combination with ≥1 modifier
+  (Ctrl/Alt/Shift — Win is never offered, it's reserved by Windows) plus a non-modifier key is shown in the
+  same text form `HotkeyService.TryParse` accepts (e.g. `Ctrl+Alt+K`); Tab/Esc/Enter/Backspace keep their
+  normal page-level meaning instead of being captured (Backspace resets to the currently-saved value).
+  Saving re-registers the hotkey (restoring the old one on failure, same error text as the tray-balloon
+  path) *before* writing settings to config.json; StartWithWindows/theme are applied afterward through an
+  App-level `SettingsApplied` event, everything else (maxVisibleItems/showHintBar/closeAfterLaunch/
+  defaultShell) through the same `ApplySettings()` projection a config reload also uses. Read-only (corrupt
+  config) → the page still opens (with the read-only error already showing and Export/Import disabled),
+  but Save is refused.
+  - **§1.2 Remember last location**: when on, `ShowLauncher()` (via `MainViewModel.ResetToRoot()`) reopens
+    the folder that was current at the last hide, by id (falling back to root if it no longer exists,
+    exactly like a config reload's folder-stack rebuild), instead of always going to root. In-memory only —
+    not persisted across restarts.
+- **Usage statistics** (spec §8.4, `Core/Usage/` + `Services/UsageService.cs`): every successful launch
+  (all node types except folders — folders never reach `LaunchService.Launch`) bumps `useCount`/
+  `lastUsedUtc` for that node id in `<config dir>\usage.json`, a debounced (2 s) atomic write kept
+  completely separate from config.json (which stays hand-editable and clean). `UsageScorer.Score` is a
+  deterministic frecency (`useCount × ageWeight`, weight buckets ≤1 day ×4 / ≤7 days ×2 / ≤30 days ×1 /
+  older ×0.5) fed into `SearchEngine` as its existing usage tie-breaker parameter — it only ever breaks a
+  tie between two equally-scored search results, navigation-mode order is unaffected. Pruned (dropping
+  entries for ids no longer in the tree) once at startup and again after a delete or an import. A missing
+  or corrupt usage.json starts empty rather than crashing or blocking; a Windows shutdown that skips the
+  app's normal exit path can lose up to the last 2 seconds of unflushed usage (documented limitation, spec
+  §10 revision item 10).
+- **Import / Export** (spec §10/§11, `Core/Config/ConfigImport.cs` + the Settings page's Export…/Import…
+  buttons): **Export** writes the current config (settings + tree) with the existing serializer via a
+  `SaveFileDialog` (default name `your-launcher-export-yyyyMMdd.json`). **Import** parses the chosen file
+  with the existing tolerant loader; on success an inline panel prompt (`PanelPage.ConfirmImport`, the same
+  bottom-bar pattern as delete confirmation) offers **M**erge / **R**eplace / **Esc** cancel:
+  - **Merge** appends the imported root's children to the current root; any imported id that collides with
+    an id already in either tree (including a collision introduced earlier in the same merge) gets a fresh
+    one. No folder-name merging — an imported "Dev" becomes a second sibling "Dev", it does not fold into
+    an existing one.
+  - **Replace** swaps in the imported tree wholesale; **current settings are kept** (importing someone
+    else's hotkey/startup flag would be surprising) - only `Root` changes, `Settings` is untouched.
+  - Either way: normal post-edit refresh (save, rebuild the search index, prune usage.json, back to root),
+    with a status line ("Imported N items (merged|replaced).") reusing the same message row as errors/
+    warnings elsewhere. Read-only → refused; Export/Import are both disabled in read-only mode too.
+
+Deliberately not yet implemented (Phase 6 Part B, see `launcher-spec.md` §5-§9/§14 and `tasks/todo.md`):
+- The mouse prerequisite (click-to-select without stealing focus from the search box), a right-click
+  context menu, drag & drop of files/`.lnk`/`.url` from Explorer, and in-list drag to reorder/move into a
+  folder.
 
 ## Keyboard
 
@@ -250,6 +312,7 @@ Deliberately not yet implemented (see `// TODO Phase N` markers in code):
 | `Ctrl+Q` | Quit the app |
 | `Ctrl+R` | Reload config.json from disk now (Phase 5) |
 | `Ctrl+Shift+R` | Recover from a corrupt config.json — "keep current version" or "restore from backup", whichever applies (Phase 5) |
+| `Ctrl+,` | Open the settings page (Phase 6) |
 
 ### Search mode (search box non-blank) — spec §6.2
 
@@ -297,6 +360,27 @@ Deliberately not yet implemented (see `// TODO Phase N` markers in code):
 | `Alt+A` (or click) | Toggle the "Advanced ▸" section |
 | `Esc` | Cancel, back to the list with the previous selection |
 
+### Settings page (`Ctrl+,`, Phase 6)
+
+| Key | Behavior |
+|---|---|
+| `Tab` / `Shift+Tab` | Move between fields (normal WPF focus order) |
+| Any key with ≥1 modifier + a non-modifier key, while the Hotkey box has focus | Captures that combination as the new hotkey (Win is never offered as a modifier) |
+| `Backspace`, while the Hotkey box has focus | Resets the box back to the currently-saved hotkey |
+| `Space`, on a focused checkbox | Toggles it (normal WPF behavior) |
+| `↑` / `↓`, while the Visible rows box has focus | Adjusts the value by 1, clamped 3-20 |
+| `Enter` | Save, unless a ComboBox dropdown is currently open (lets it commit/close instead) |
+| `Ctrl+S` | Save, unconditionally |
+| `Esc` | Cancel, back to the list |
+
+### Import confirm bar (Settings page's Import…, Phase 6)
+
+| Key | Behavior |
+|---|---|
+| `M` | Merge - append the imported tree, renaming any colliding ids |
+| `R` | Replace - swap in the imported tree wholesale, keeping current settings |
+| Any other key (including `Esc`) | Cancel, nothing imported |
+
 ### Icon picker page (`Ctrl+I`, Phase 4)
 
 | Key | Behavior |
@@ -334,11 +418,12 @@ safe, it's only ever read from and copied into, never relied on for anything els
 - **Only one instance ever runs.** Launching a second copy asks the first one to show its panel (over a
   named pipe) and exits immediately without creating a window.
 - **Tray icon** (bottom-right, may be in the overflow flyout on Windows 11): left-click/double-click shows
-  the panel; right-click opens a menu — **Show**, **Settings…** (opens config.json until the Phase 6
-  settings screen exists), **Open config file**, **Open config folder**, **Reload config**, **Restore from
-  backup** / **Keep my current version** (only shown while config.json is corrupt), **Exit**.
-- **Start with Windows** follows `settings.startWithWindows` in config.json — flip it by hand and it takes
-  effect on the next startup or config reload (a real on/off switch lands in Phase 6's settings screen).
+  the panel; right-click opens a menu — **Show**, **Settings…** (opens the settings page, Phase 6),
+  **Open config file**, **Open config folder**, **Reload config**, **Restore from backup** / **Keep my
+  current version** (only shown while config.json is corrupt), **Exit**.
+- **Start with Windows** follows `settings.startWithWindows` in config.json, and is also a checkbox on the
+  settings page (Phase 6) — either way it takes effect immediately (settings page) or on the next startup/
+  config reload (hand-edited config.json).
 - **External edits to config.json are picked up live** — no restart needed. If you break the JSON while
   editing by hand, the panel keeps showing what it had before, goes read-only, and tells you exactly what
   to do next:
@@ -359,6 +444,17 @@ environment variable). Comments and trailing commas are accepted; unknown/missin
 defaulted, never fatal. See `config.example.json` for a populated example (nested folders, an app with
 an environment-variable path, a `path` node, visible/hidden commands, a URL).
 
+Usage statistics (Phase 6, spec §8.4) live in a separate `usage.json` next to config.json - never in
+config.json itself, so a hand-edited config stays free of frequently-changing data. It's keyed by node id
+(`{ "entries": { "<id>": { "useCount": 3, "lastUsedUtc": "..." } } }`), written debounced/atomically, and
+only ever consulted as a search-ranking tie-breaker (see "Search" below) - deleting it is always safe, it
+starts back at zero.
+
+**Import/export** (Phase 6, the settings page's Export…/Import… buttons): Export writes the exact shape
+below (settings + tree) to a `.json` file you choose. Import parses a chosen file the same tolerant way
+config.json itself is read, then asks Merge (append, renaming any colliding ids) or Replace (swap the tree,
+keep your current settings) - see the "Settings page" section above for the exact prompt and keys.
+
 Shape (spec §4.2–§4.5):
 
 ```jsonc
@@ -366,7 +462,7 @@ Shape (spec §4.2–§4.5):
   "version": 1,
   "settings": {
     "hotkey": "Alt+Space",
-    "theme": "system",           // system | light | dark (Phase 6)
+    "theme": "system",           // system | light | dark
     "startWithWindows": true,     // Phase 5
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,
@@ -406,8 +502,9 @@ deterministic tiers, best to worst:
 
 Each node is scored on `name` (weight 1.0), the best-matching `keywords` entry (0.8), `description`
 (0.6), and — for `command` nodes — the command text (0.5); the best weighted field wins and only that
-field's matched positions are highlighted. Ties break by: usage score (0 for everyone until Phase 6's
-`usage.json`), then tree depth (shallower first), then Turkish alphabetical order. The whole tree is
+field's matched positions are highlighted. Ties break by: usage score (frecency from `usage.json`, Phase
+6 — see "Usage statistics" under Config), then tree depth (shallower first), then Turkish alphabetical
+order. The whole tree is
 flattened once into a `FlatIndex` per config load, not re-walked per keystroke; 5,000 nodes stay well
 under the spec's 16 ms budget (median ~8 ms / p95 ~10 ms measured in `SearchPerformanceTests`).
 
@@ -471,20 +568,25 @@ src/Launcher.Core/               # net10.0, no UI references
   Search/                        # TextNormalizer, FuzzyScorer, FlatIndex, SearchEngine
   Icons/                         # IconKey, TargetCheck, PathResolver, IconFileStore (Phase 4)
   Startup/                       # StartupSync (pure Run-registry write/delete/none decision, Phase 5)
+  Usage/                         # UsageData, UsageScorer (frecency), UsageSerializer (Phase 6)
+  Config/ConfigImport.cs         # Merge (id-collision rename) / Replace tree logic for import (Phase 6)
 src/Launcher.App/                # net10.0-windows, WPF
   Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon,
                                   # Shell_NotifyIcon/NOTIFYICONDATA, DWM (Mica/rounded corners), named-pipe/mutex interop (Phase 5)
   Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs,
-                                  # SingleInstanceService, TrayService, StartupService, ConfigWatcherService (Phase 5)
-  ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel, IconPickerViewModel
-  Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView
+                                  # SingleInstanceService, TrayService, StartupService, ConfigWatcherService (Phase 5),
+                                  # ThemeService, UsageService (debounced atomic usage.json writer, Phase 6)
+  ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel,
+                                  # IconPickerViewModel, SettingsViewModel (Phase 6)
+  Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView, SettingsView (Phase 6)
   Converters/                    # StringEmptyToVisibilityConverter, StringNonEmptyToVisibilityConverter,
                                   # UrlOrTargetLabelConverter, AdvancedToggleTextConverter, NullToVisibilityConverter,
                                   # IconTierVisibilityConverter, MissingTargetTooltipConverter
   Controls/                      # HighlightedText (attached property for match highlighting)
+  Themes/                        # Dark.xaml, Light.xaml — DynamicResource brush dictionaries (Phase 6)
   app.ico                        # Multi-size (16/24/32/48/256) app + tray icon (Phase 5)
 tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps,
                                   # TargetNameHelper, Icons/ (IconKey, IconFileStore, TargetCheck, PathResolver),
-                                  # StartupSyncTests (Phase 5)
+                                  # StartupSyncTests (Phase 5), Usage/ (UsageScorerTests), Config/ (ConfigImportTests) (Phase 6)
 config.example.json
 ```

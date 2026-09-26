@@ -13,4 +13,6 @@ public enum PanelPage
     Editor,
     ConfirmDelete,
     IconPicker,
+    Settings,
+    ConfirmImport,
 }

@@ -11,122 +11,39 @@
         <conv:StringEmptyToVisibilityConverter x:Key="EmptyToVis" />
 
         <Style TargetType="TextBlock" x:Key="FieldLabel">
-            <Setter Property="Foreground" Value="#8A8A8A" />
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
             <Setter Property="Width" Value="112" />
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#2A2A2E" />
-            <Setter Property="Foreground" Value="#E6E6E6" />
-            <Setter Property="CaretBrush" Value="#E6E6E6" />
-            <Setter Property="BorderBrush" Value="#3B4048" />
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="6,4" />
         </Style>
 
         <!--
-            WPF's default ComboBox ControlTemplate hard-codes light-theme chrome for the closed box and
-            popup regardless of simple Background/Foreground Setters (they only reach the outer border),
-            which made the two ComboBoxes here (Shell, Window) render with washed-out, barely legible
-            text against this panel's dark background. A small custom template fixes that; everything
-            else (selection, keyboard, popup behavior) still comes from the base ComboBox/ComboBoxItem
-            control logic.
+            The Shell/Window ComboBoxes get their dark/light-aware chrome from the implicit ComboBox/
+            ComboBoxItem styles in Themes/Dark.xaml + Themes/Light.xaml (spec §10 item 3) - no local Style
+            needed here anymore; SettingsView's Theme/Default shell ComboBoxes share the exact same
+            template this way instead of duplicating it.
         -->
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Padding" Value="8,4" />
-            <Setter Property="Foreground" Value="#E6E6E6" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBoxItem">
-                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2D2D30" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#2A2A2E" />
-            <Setter Property="Foreground" Value="#E6E6E6" />
-            <Setter Property="BorderBrush" Value="#3B4048" />
-            <Setter Property="Padding" Value="6,4" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <ToggleButton x:Name="Toggle"
-                                          Background="{TemplateBinding Background}"
-                                          BorderBrush="{TemplateBinding BorderBrush}"
-                                          BorderThickness="1"
-                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                          Focusable="False"
-                                          ClickMode="Press">
-                                <ToggleButton.Template>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Border Background="{TemplateBinding Background}"
-                                                BorderBrush="{TemplateBinding BorderBrush}"
-                                                BorderThickness="{TemplateBinding BorderThickness}">
-                                            <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="20" />
-                                                </Grid.ColumnDefinitions>
-                                                <Path Grid.Column="1"
-                                                      Data="M0,0 L4,4 L8,0 Z"
-                                                      Fill="#8A8A8A"
-                                                      HorizontalAlignment="Center"
-                                                      VerticalAlignment="Center" />
-                                            </Grid>
-                                        </Border>
-                                    </ControlTemplate>
-                                </ToggleButton.Template>
-                            </ToggleButton>
-                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
-                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                               Margin="{TemplateBinding Padding}"
-                                               HorizontalAlignment="Left"
-                                               VerticalAlignment="Center"
-                                               IsHitTestVisible="False"
-                                               TextElement.Foreground="{TemplateBinding Foreground}" />
-                            <Popup x:Name="Popup"
-                                   IsOpen="{TemplateBinding IsDropDownOpen}"
-                                   Placement="Bottom"
-                                   AllowsTransparency="True"
-                                   PopupAnimation="None">
-                                <Border Background="#2A2A2E"
-                                        BorderBrush="#3B4048"
-                                        BorderThickness="1"
-                                        MinWidth="{TemplateBinding ActualWidth}">
-                                    <ScrollViewer Margin="0" SnapsToDevicePixels="True">
-                                        <ItemsPresenter />
-                                    </ScrollViewer>
-                                </Border>
-                            </Popup>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
 
         <Style TargetType="Button" x:Key="BrowseButton">
-            <Setter Property="Background" Value="#2A2A2E" />
-            <Setter Property="Foreground" Value="#E6E6E6" />
-            <Setter Property="BorderBrush" Value="#3B4048" />
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource PanelBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="Margin" Value="6,0,0,0" />
         </Style>
 
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
             <Setter Property="Margin" Value="0,6,0,0" />
         </Style>
     </UserControl.Resources>
@@ -143,7 +60,7 @@
             <StackPanel Grid.Column="1">
                 <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
                 <TextBlock Text="{Binding NameError}"
-                           Foreground="#E06C75"
+                           Foreground="{DynamicResource ErrorBrush}"
                            FontSize="12"
                            Margin="0,2,0,0"
                            Visibility="{Binding NameError, Converter={StaticResource NonEmptyToVis}}" />
@@ -227,7 +144,7 @@
         <!-- Advanced ▸ -->
         <StackPanel Visibility="{Binding ShowAdvancedSection, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
             <TextBlock x:Name="AdvancedToggle"
-                       Foreground="#8A8A8A"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        Cursor="Hand"
                        MouseLeftButtonUp="AdvancedToggle_OnMouseLeftButtonUp">
                 <TextBlock.Text>
@@ -328,14 +245,14 @@
                            FontSize="16"
                            VerticalAlignment="Center"
                            Visibility="{Binding IconPreviewEmoji, Converter={StaticResource EmptyToVis}}" />
-                <TextBlock Text="{Binding IconDescription}" Foreground="#8A8A8A" Margin="8,0,0,0" VerticalAlignment="Center" />
-                <TextBlock Text="— Ctrl+I in the list to change" Foreground="#8A8A8A" Margin="6,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding IconDescription}" Foreground="{DynamicResource SecondaryTextBrush}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="— Ctrl+I in the list to change" Foreground="{DynamicResource SecondaryTextBrush}" Margin="6,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
         </Grid>
 
         <!-- Warning (target not found) -->
         <TextBlock Text="{Binding WarningMessage}"
-                   Foreground="#E5C07B"
+                   Foreground="{DynamicResource WarningBrush}"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
                    Visibility="{Binding WarningMessage, Converter={StaticResource NonEmptyToVis}}" />

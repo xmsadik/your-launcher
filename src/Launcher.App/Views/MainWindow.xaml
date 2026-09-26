@@ -12,10 +12,10 @@
         ResizeMode="NoResize"
         SizeToContent="Height"
         Width="640"
-        Background="#1E1E1E"
+        Background="{DynamicResource PanelBackgroundBrush}"
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="14"
-        Foreground="#E6E6E6"
+        Foreground="{DynamicResource ForegroundBrush}"
         Deactivated="MainWindow_OnDeactivated">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
@@ -26,7 +26,7 @@
         <conv:MissingTargetTooltipConverter x:Key="MissingTargetTooltip" />
     </Window.Resources>
 
-    <Border x:Name="RootBorder" Background="#1E1E1E" BorderBrush="#3B4048" BorderThickness="1" CornerRadius="8">
+    <Border x:Name="RootBorder" Background="{DynamicResource PanelBackgroundBrush}" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="1" CornerRadius="8">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -36,7 +36,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Search box + breadcrumb (hidden on the TypePicker/Editor pages) -->
+            <!-- Search box + breadcrumb (hidden on the TypePicker/Editor/IconPicker/Settings pages) -->
             <Grid Grid.Row="0" Margin="12,10,12,10" Visibility="{Binding IsListPage, Converter={StaticResource BoolToVis}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -45,7 +45,7 @@
 
                 <Grid Grid.Column="0">
                     <TextBlock Text="Search…"
-                               Foreground="#8A8A8A"
+                               Foreground="{DynamicResource SecondaryTextBrush}"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"
                                Visibility="{Binding SearchText, Converter={StaticResource EmptyToVis}}" />
@@ -53,21 +53,21 @@
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                              Background="Transparent"
                              BorderThickness="0"
-                             Foreground="#E6E6E6"
-                             CaretBrush="#E6E6E6"
+                             Foreground="{DynamicResource ForegroundBrush}"
+                             CaretBrush="{DynamicResource ForegroundBrush}"
                              VerticalAlignment="Center"
-                             IsReadOnly="{Binding ShowConfirmBar}"
+                             IsReadOnly="{Binding IsConfirmBarActive}"
                              PreviewKeyDown="SearchBox_OnPreviewKeyDown" />
                 </Grid>
 
                 <TextBlock Grid.Column="1"
                            Text="{Binding Breadcrumb}"
-                           Foreground="#8A8A8A"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            VerticalAlignment="Center"
                            Margin="12,0,0,0" />
             </Grid>
 
-            <!-- Breadcrumb-only header for the TypePicker/Editor pages (search box hidden there) -->
+            <!-- Breadcrumb-only header for the TypePicker/Editor/IconPicker/Settings pages (search box hidden there) -->
             <Grid Grid.Row="0" Margin="12,10,12,10">
                 <Grid.Style>
                     <Style TargetType="Grid">
@@ -79,18 +79,18 @@
                         </Style.Triggers>
                     </Style>
                 </Grid.Style>
-                <TextBlock Text="{Binding Breadcrumb}" Foreground="#8A8A8A" />
+                <TextBlock Text="{Binding Breadcrumb}" Foreground="{DynamicResource SecondaryTextBrush}" />
             </Grid>
 
-            <Border Grid.Row="1" BorderBrush="#3B4048" BorderThickness="0,1,0,0" />
+            <Border Grid.Row="1" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0" />
 
-            <!-- Item list (List / ConfirmDelete pages) -->
+            <!-- Item list (List / ConfirmDelete / ConfirmImport pages) -->
             <ListBox x:Name="ItemsList"
                      Grid.Row="2"
                      ItemsSource="{Binding Items}"
                      SelectedIndex="{Binding SelectedIndex, Mode=OneWay}"
                      Focusable="False"
-                     Foreground="#E6E6E6"
+                     Foreground="{DynamicResource ForegroundBrush}"
                      Background="Transparent"
                      BorderThickness="0"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -126,8 +126,8 @@
                                     </Border>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="#2D2D30" />
-                                            <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6" />
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -191,7 +191,7 @@
                                 <TextBlock Text="&#xE7BA;"
                                            FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                                            FontSize="10"
-                                           Foreground="#E5A050"
+                                           Foreground="{DynamicResource MissingBadgeBrush}"
                                            HorizontalAlignment="Right"
                                            VerticalAlignment="Bottom"
                                            Visibility="{Binding IsTargetMissing, Converter={StaticResource BoolToVis}}" />
@@ -205,7 +205,7 @@
                                        TextTrimming="CharacterEllipsis" />
                             <TextBlock Grid.Column="2"
                                        Text="{Binding SecondaryText}"
-                                       Foreground="#8A8A8A"
+                                       Foreground="{DynamicResource SecondaryTextBrush}"
                                        VerticalAlignment="Center" />
                         </Grid>
                     </DataTemplate>
@@ -215,7 +215,7 @@
             <!-- Empty-folder message -->
             <TextBlock Grid.Row="2"
                        Text="{Binding EmptyMessage}"
-                       Foreground="#8A8A8A"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
                        Margin="12,10">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
@@ -253,29 +253,44 @@
                 <local:IconPickerView x:Name="IconPickerViewHost" DataContext="{Binding IconPicker}" />
             </Grid>
 
+            <!-- Settings page (Ctrl+,, Phase 6) - same reasoning as above. -->
+            <Grid Grid.Row="2" Visibility="{Binding ShowSettingsPage, Converter={StaticResource BoolToVis}}">
+                <local:SettingsView x:Name="SettingsViewHost" DataContext="{Binding Settings}" />
+            </Grid>
+
             <!-- Error line -->
             <TextBlock Grid.Row="3"
                        Text="{Binding ErrorMessage}"
-                       Foreground="#E06C75"
+                       Foreground="{DynamicResource ErrorBrush}"
                        Margin="12,6"
                        TextWrapping="Wrap"
                        Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
 
             <!-- Inline delete-confirm bar -->
-            <Border Grid.Row="4" BorderBrush="#3B4048" BorderThickness="0,1,0,0"
+            <Border Grid.Row="4" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0"
                     Visibility="{Binding ShowConfirmBar, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="{Binding DeleteConfirmMessage}"
-                           Foreground="#E5C07B"
+                           Foreground="{DynamicResource WarningBrush}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Margin="12,6" />
+            </Border>
+
+            <!-- Inline import-confirm bar (Ctrl+, > Import…, spec §10 revision item 9) -->
+            <Border Grid.Row="4" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0"
+                    Visibility="{Binding ShowConfirmImportBar, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="{Binding ImportConfirmMessage}"
+                           Foreground="{DynamicResource WarningBrush}"
                            FontSize="12"
                            TextWrapping="Wrap"
                            Margin="12,6" />
             </Border>
 
             <!-- Hint bar -->
-            <Border Grid.Row="4" BorderBrush="#3B4048" BorderThickness="0,1,0,0"
+            <Border Grid.Row="4" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0"
                     Visibility="{Binding ShowHintBarRow, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="{Binding HintText}"
-                           Foreground="#8A8A8A"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            FontSize="12"
                            Margin="12,6" />
             </Border>
