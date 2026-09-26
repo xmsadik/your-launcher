@@ -12,4 +12,5 @@ public enum PanelPage
     TypePicker,
     Editor,
     ConfirmDelete,
+    IconPicker,
 }

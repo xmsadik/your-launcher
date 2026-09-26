@@ -21,6 +21,9 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <conv:StringEmptyToVisibilityConverter x:Key="EmptyToVis" />
         <conv:StringNonEmptyToVisibilityConverter x:Key="NonEmptyToVis" />
+        <conv:NullToVisibilityConverter x:Key="NullToVis" />
+        <conv:IconTierVisibilityConverter x:Key="IconTierToVis" />
+        <conv:MissingTargetTooltipConverter x:Key="MissingTargetTooltip" />
     </Window.Resources>
 
     <Border BorderBrush="#3B4048" BorderThickness="1">
@@ -134,7 +137,7 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid>
+                        <Grid ToolTip="{Binding IsTargetMissing, Converter={StaticResource MissingTargetTooltip}}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
@@ -143,6 +146,9 @@
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsTargetMissing}" Value="True">
+                                            <Setter Property="Opacity" Value="0.55" />
+                                        </DataTrigger>
                                         <DataTrigger Binding="{Binding IsCut}" Value="True">
                                             <Setter Property="Opacity" Value="0.45" />
                                             <Setter Property="TextElement.FontStyle" Value="Italic" />
@@ -150,11 +156,47 @@
                                     </Style.Triggers>
                                 </Style>
                             </Grid.Style>
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding Glyph}"
-                                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                       FontSize="16"
-                                       VerticalAlignment="Center" />
+
+                            <!-- Icon cell: IconImage -> EmojiText -> Glyph (spec §4.3), plus a bottom-right
+                                 warning badge when the app/path target can't be found. -->
+                            <Grid Grid.Column="0" Width="24" Height="24">
+                                <Image Width="20" Height="20"
+                                       Source="{Binding IconImage}"
+                                       Visibility="{Binding IconImage, Converter={StaticResource NullToVis}}"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <TextBlock Text="{Binding EmojiText}"
+                                           FontFamily="Segoe UI Emoji"
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Visibility>
+                                        <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Emoji">
+                                            <Binding Path="IconImage" />
+                                            <Binding Path="EmojiText" />
+                                        </MultiBinding>
+                                    </TextBlock.Visibility>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Glyph}"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Visibility>
+                                        <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Glyph">
+                                            <Binding Path="IconImage" />
+                                            <Binding Path="EmojiText" />
+                                        </MultiBinding>
+                                    </TextBlock.Visibility>
+                                </TextBlock>
+                                <TextBlock Text="&#xE7BA;"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="10"
+                                           Foreground="#E5A050"
+                                           HorizontalAlignment="Right"
+                                           VerticalAlignment="Bottom"
+                                           Visibility="{Binding IsTargetMissing, Converter={StaticResource BoolToVis}}" />
+                            </Grid>
+
                             <TextBlock Grid.Column="1"
                                        controls:HighlightedText.Text="{Binding Name}"
                                        controls:HighlightedText.Positions="{Binding HighlightPositions}"
@@ -204,6 +246,11 @@
             <!-- Editor page - same reasoning as above. -->
             <Grid Grid.Row="2" Visibility="{Binding ShowEditorPage, Converter={StaticResource BoolToVis}}">
                 <local:EditorView x:Name="EditorViewHost" DataContext="{Binding Editor}" />
+            </Grid>
+
+            <!-- Icon picker page (Ctrl+I) - same reasoning as above. -->
+            <Grid Grid.Row="2" Visibility="{Binding ShowIconPickerPage, Converter={StaticResource BoolToVis}}">
+                <local:IconPickerView x:Name="IconPickerViewHost" DataContext="{Binding IconPicker}" />
             </Grid>
 
             <!-- Error line -->

@@ -78,12 +78,12 @@ Aşama 1 dışında bırakılanlar (bilerek, plana göre): arama yalnızca bulun
 - [x] Her değişiklik → atomik kayıt; kendi yazımımızı FileSystemWatcher'da yoksay (ConfigService.LastSelfWriteUtc, `// Phase 5` notu)
 - [x] Testler: TreeOps (+ TargetNameHelper)
 
-### Aşama 4 — İkonlar
-- [ ] IconService: `SHGetFileInfo` (sistem ikonu), `ExtractIconEx` (exe/dll + index), png/ico dosya, glyph (Segoe Fluent Icons → MDL2 fallback), emoji (Segoe UI Emoji)
-- [ ] Bellek önbelleği (anahtar: kind+value+index), BitmapSource `Freeze()`, arka planda async yükleme
-- [ ] Özel dosya ikonlarını `%APPDATA%\Your Launcher\icons\` altına kopyala (hash adlı) — AC4
-- [ ] Ctrl+I / IconPicker: dosya, exe/dll'den seç (ikon ızgarası), glyph ızgarası, emoji giriş, varsayılana dön
-- [ ] Hedefi olmayan app/path: soluk + uyarı rozeti
+### Aşama 4 — İkonlar (tamamlandı 2026-09-26)
+- [x] IconService: `SHGetFileInfo` (sistem ikonu), `SHDefExtractIconW`/`ExtractIconEx` (exe/dll + index), png/ico dosya, glyph (Segoe Fluent Icons → MDL2 fallback), emoji (Segoe UI Emoji)
+- [x] Bellek önbelleği (anahtar: `IconKey`), `Task<ImageSource?>` ile `GetOrAdd` (eşzamanlı istekleri birleştirir, başarısızlığı da önbelleğe alır), ayrıca shell ikon konumuna göre paylaşılan bitmap önbelleği; `BitmapSource.Freeze()`; arka planda `Task.Run` + `SemaphoreSlim(2)` (elle STA thread yerine, spec §7.3)
+- [x] Özel dosya ikonlarını `<config dizini>\icons\` altına kopyala (hash adlı, `IconFileStore`) — AC4; config'te **göreli** yol saklanır (taşınabilirlik, spec §7.5)
+- [x] Ctrl+I / IconPicker: Glyph (filtre + ~70 ikonluk ızgara), Emoji (tek grapheme doğrulaması), File (Gözat… → import), Exe/DLL (yol kutusu + Gözat…/Load + ızgara, 1024 sınırı, kademeli doldurma); sekmeler arası Ctrl+Tab/Ctrl+1..4, Ctrl+0 varsayılana dön
+- [x] Hedefi olmayan app/path: soluk (Opacity 0.55) + uyarı rozeti + tooltip; `TargetCheck`/`PathResolver` ile bare-name (`%PATH%`) çözümlemesi editör ve satır rozetinde aynı
 
 ### Aşama 5 — Sistem
 - [ ] Tek instance: named mutex + named pipe "show" mesajı
@@ -259,7 +259,69 @@ Build 0 uyarı, 114/114 test yeşil. Görsel test: tip seçici (ikon + F/A/P/C/U
 - URL şema kontrolü `://` arıyordu (`mailto:` bozuluyordu) → gerçek şema kontrolü; `host:port` ve düz alan adı `https://` alır.
 - config.json'da alan sırası okunaksızdı (id/name sonda) → `JsonPropertyOrder`: id, type, name, tipe özel, keywords, description, icon, children. Testi eklendi.
 
+### Aşama 4 — İkonlar (tamamlandı 2026-09-26)
+- Build: `dotnet build` (Debug, her iki proje) — 0 uyarı, 0 hata.
+- Test: `dotnet test` — **172/172 yeşil** (Aşama 1–3'ün 114'ü + ikonlar için 58 yeni, hepsi Core):
+  `IconKeyTests` (glyph/emoji → null, file/exe anahtar kararlılığı ve ayrışması, index null==0,
+  env-expand + case-insensitive normalize, auto app/path → `sys|...`, auto folder/command/url →
+  `glyph|default-*`), `IconFileStoreTests` (hash adlandırma, aynı içerik → tekilleştirme, farklı içerik →
+  ayrı dosya, izin verilen/verilmeyen uzantı matrisi, dizin otomatik oluşturma), `TargetCheckTests`
+  (`ShouldCheckExistence` matrisi: yerel tam yol/UNC/URI-şema/bare-name/boş/göreli; `IsMissing`: var olan
+  dosya/dizin, yok olan yerel yol, UNC/URL hiç kontrol edilmiyor, bare-name PATH'te var/yok, env expand),
+  `PathResolverTests` (uzantılı tam eşleşme, uzantısız + PATHEXT, çoklu dizin sırası, bulunamadı, gerçek
+  `notepad.exe` → System32 üzerinden PATH'te bulunuyor — canlı ortam sağlaması).
+- Canlı doğrulama (`YOURLAUNCHER_CONFIG_DIR` → `%TEMP%\YourLauncherPhase4Scratch`, `config.example.json`
+  kopyası + hedefi olmayan bir `app` node'u (`C:\nope\missing.exe`) + bare-name `notepad.exe` + özel glyph/
+  emoji ikonlu iki node eklendi): `SetProcessDPIAware` + tam ekran `System.Drawing` yakalama ile
+  ekran görüntüleri alındı ve incelendi — liste gerçek sistem ikonlarını gösteriyor (Documents → belge,
+  Haftalık Rapor → Excel, bare `notepad.exe` → doğru PATH çözümlemesiyle Notepad ikonu), hedefi olmayan
+  3 satır (`Şifre Yöneticisi`, `Missing App`, `Haftalık Rapor` — üçü de bu makinede gerçekten yok) soluk +
+  turuncu uyarı rozetiyle işaretlendi; IconPicker'ın Glyph sekmesi (filtre + ızgara + mevcut ikon
+  ön-seçili) ve Exe/DLL sekmesi (`shell32.dll`'den 335 ikon, kademeli dolan 10 sütunlu ızgara) görsel
+  olarak doğrulandı. Uçtan uca kayıt testi: Glyph sekmesinde farklı bir ikon seçilip Enter'a basıldı →
+  liste satırı anında güncellendi → `config.json`'da `icon: { "kind": "glyph", "value": "\uE8B7" }` olarak
+  atomik kaydedildi; Emoji sekmesinde metin değiştirilip Enter'a basıldı → aynı şekilde
+  `icon: { "kind": "emoji", "value": "★" }` olarak kaydedildi. `Esc` ile iptalde ikon değişmeden listeye
+  dönüldü, seçim korundu.
+- **Bulgu (spec §7.10'un istediği doğrulama): emoji render rengi.** .NET 10 WPF + Segoe UI Emoji,
+  gerçek resimsel emojileri (🚀 gibi) **tam renkli** çiziyor; ★ gibi sembol/dingbat karakterler ise
+  **tek renkli (mono)** çiziliyor — bu Windows'un emoji fontunun kendi ayrımı (hangi kod noktalarının
+  "renkli sunum" kümesinde olduğu), WPF'e özgü bir sınırlama değil. Kullanıcıya gösterilecek metinde
+  ("emoji girin") bu ayrım belirtilmedi; pratikte insanların "emoji" olarak seçtiği neredeyse her şey
+  (yüzler, nesneler, bayraklar) tam renkli çıkıyor.
+- Sapmalar / netleştirmeler:
+  - **Elle yapılan P/Invoke seçimi**: `SHGetFileInfo`/`ExtractIconEx`/`SHDefExtractIconW`, `SHFILEINFO`
+    struct'ının sabit uzunluklu string alanı (`szDisplayName`) yüzünden `LibraryImport` kaynak
+    üretecinin doğrudan desteklemediği bir marshalling istiyor; bunlar için mevcut dosyadaki diğer
+    P/Invoke'ların aksine klasik `DllImport` kullanıldı (`Win32.cs`'te not edildi) — build'i 0 uyarıda
+    tutmaya devam etti (SYSLIB1054 önerisi burada tetiklenmedi).
+  - **STA thread yerine Task.Run+Semaphore**: Görev metninin orijinal §2'si "tek adanmış STA thread"
+    istiyordu; §7.3 revizyonu bunu override edip `Task.Run` + `SemaphoreSlim(2)`'ye çevirdi — uygulandığı
+    gibi bu. `SHGetFileInfo`/`SHDefExtractIconW` genelde MTA thread pool thread'lerinden de çalışıyor;
+    canlı testte hiçbir ikon çıkarma hatası gözlenmedi, ancak nadir bir shell namespace uzantısının COM
+    STA gerektirebileceği teorik bir risk olarak not düşülüyor (spec'in kendi revizyonu tarafından kabul
+    edilmiş bir risk).
+  - **Editördeki salt-okunur "Icon" satırı** (spec §7.13): sadece glyph/emoji + kısa açıklama gösteriyor,
+    özel `file`/`exe` ikonları için gerçek bitmap'i göstermiyor — bunun için `IconService`'in
+    `EditorViewModel`'e bağlanması gerekirdi ve editörün başka hiçbir yeri buna ihtiyaç duymuyor; ayrıca
+    launcher-spec.md §9 adım 4'ün tarif ettiği tam inline ikon değiştirme arayüzü zaten Aşama 3'te Ctrl+I'a
+    ertelenmişti. Satır ayrıca Advanced bölümünün *dışına* alındı (spec metni "Advanced section" diyordu)
+    çünkü Advanced sadece App/Command tiplerinde var, ama ikon her tipte var — Folder/Path/URL'de de
+    görünmesi daha tutarlı.
+  - **Test otomasyonunda `SendKeys` Ctrl+harf sorunu (üründe değil, doğrulama script'inde)**: PowerShell
+    `System.Windows.Forms.SendKeys` ile `^i`/`^n` gönderimi bu paylaşımlı masaüstü oturumunda güvenilmez
+    çıktı (Ctrl basılı değilmiş gibi düz harf olarak "i"/"n" yazıldı, hatta bir seferinde odak Chrome'a
+    kayıp `Ctrl+N` yeni sekme açtı) — gerçek uygulama kodunda bir sorun değil; doğrulama script'i ham
+    `keybd_event` (VK_CONTROL + harf, ayrı basılı/bırakılmış olaylarla) kullanacak şekilde değiştirildi ve
+    güvenilir çalıştı. Bu bulgu ileride benzer otomasyon script'leri için not edildi.
+  - Uygulanmadı (bilerek, plana uygun): `IconService.Invalidate()` var ama hiçbir yerden çağrılmıyor —
+    kod içinde `// Phase 5` notu var (config dosya izleyicisi geldiğinde oradan çağrılacak);
+    `icons\` klasöründeki öksüz dosyalar (bir node özel dosya ikonundan başka bir şeye geçtiğinde) temizlenmiyor
+    (README'de belirtildi); Ayarlar ekranından "Change icon…" butonu gerekli değildi (spec zaten belirtmiyor).
+- Bilerek bırakılanlar (plana uygun): tray/tek-instance/dosya izleme/DPI manifest/Mica (Aşama 5),
+  sürükle-bırak/`.lnk`/ayarlar sayfası/import-export/kullanım istatistiği/tema (Aşama 6).
+
 ## Devam noktası (ara verildi 2026-09-26)
-- Aşama 1–3 tamam, 114 test yeşil; `main` → https://github.com/xmsadik/your-launcher (private), commit `99fb3ca`.
-- Sıradaki: **Aşama 4 — İkonlar** (yukarıdaki checklist). Sonra 5 (tray, tek instance, başlangıç, watcher, DPI, Mica) ve 6 (cila; ayarlarda "Start with Windows" anahtarı dahil).
-- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; Debug build ~147 MB (bellek hedefi Release'te Aşama 5'te ölçülecek); tray gelene kadar çıkış `Ctrl+Q`.
+- Aşama 1–4 tamam, 172 test yeşil; `main` → https://github.com/xmsadik/your-launcher (private), commit `99fb3ca` (Aşama 1-3; Aşama 4 henüz commit edilmedi — orkestratör commit etmeyecek şekilde talimat verdi).
+- Sıradaki: **Aşama 5 — Sistem** (tray, tek instance, Windows ile başlat, çoklu monitör/DPI manifest, dosya izleme — bu geldiğinde `IconService.Invalidate()`'i çağıracak yer burası). Sonra 6 (cila; ayarlarda "Start with Windows" anahtarı dahil).
+- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; Debug build ~147 MB (bellek hedefi Release'te Aşama 5'te ölçülecek); tray gelene kadar çıkış `Ctrl+Q`; `icons\` klasöründe öksüz dosya temizliği yok.

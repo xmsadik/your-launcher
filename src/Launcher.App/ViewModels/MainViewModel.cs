@@ -4,6 +4,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
 using YourLauncher.Core.Search;
 
@@ -27,20 +28,32 @@ public sealed partial class MainViewModel : ObservableObject
 {
     private const string EmptyFolderMessage = "This folder is empty — press Ctrl+N to add";
     private const string NoResultsMessage = "No results";
-    private const string NavHint = "↵ open  → enter  ← back  Ctrl+N add  F2 edit  Del delete";
+    private const string NavHint = "↵ open  → enter  ← back  Ctrl+N add  F2 edit  Ctrl+I icon  Del delete";
     private const string SearchHint = "↵ open  Ctrl+↵ show in folder  Esc clear";
     private const string EditorHint = "Enter save  Esc cancel  Alt+A advanced";
     private const string TypePickerHint = "↑↓ choose  ↵ select  Esc cancel";
+    private const string IconPickerHint = "Ctrl+Tab tab  ↑↓←→ move  ↵ apply  Ctrl+0 default  Esc cancel";
 
     private readonly LauncherConfig _config;
     private readonly ConfigService _configService;
     private readonly LaunchService _launchService;
     private readonly SearchService _searchService;
+    private readonly IconService _iconService;
     private readonly Func<string, string?> _fileDescriptionLookup;
     private readonly List<FolderNode> _folderStack = new();
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
     private Node? _pendingDeleteNode;
+    private Node? _iconPickerNode;
+
+    /// <summary>
+    /// Bumped every time <see cref="RefreshItems"/> rebuilds <see cref="Items"/> (folder change, search,
+    /// add/edit/delete/move/...). Each <see cref="ListItemViewModel"/> captures the value current at its
+    /// own creation and compares against this live counter when its background icon/missing-check
+    /// completes, so a result for a row that's no longer part of the current list is discarded instead of
+    /// updating a row nobody sees anymore (spec §7.4).
+    /// </summary>
+    private int _listGeneration;
 
     [ObservableProperty]
     private string _searchText = "";
@@ -70,6 +83,9 @@ public sealed partial class MainViewModel : ObservableObject
     private EditorViewModel? _editor;
 
     [ObservableProperty]
+    private IconPickerViewModel? _iconPicker;
+
+    [ObservableProperty]
     private Node? _cutNode;
 
     [ObservableProperty]
@@ -86,6 +102,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsListPage));
         OnPropertyChanged(nameof(ShowTypePickerPage));
         OnPropertyChanged(nameof(ShowEditorPage));
+        OnPropertyChanged(nameof(ShowIconPickerPage));
         OnPropertyChanged(nameof(ShowConfirmBar));
         OnPropertyChanged(nameof(ShowHintBarRow));
     }
@@ -106,6 +123,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         PanelPage.TypePicker => BreadcrumbPath + " · New item",
         PanelPage.Editor => BreadcrumbPath + (Editor?.Mode == EditorMode.Add ? " · New item" : " · Edit"),
+        PanelPage.IconPicker => BreadcrumbPath + " · Icon",
         _ => BreadcrumbPath,
     };
 
@@ -113,6 +131,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         PanelPage.Editor => EditorHint,
         PanelPage.TypePicker => TypePickerHint,
+        PanelPage.IconPicker => IconPickerHint,
         _ => IsSearchMode ? SearchHint : (CutNode is not null ? $"Cut: {CutNode.Name} — go to a folder and press Ctrl+V" : NavHint),
     };
 
@@ -130,6 +149,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     public bool ShowEditorPage => CurrentPage == PanelPage.Editor;
 
+    public bool ShowIconPickerPage => CurrentPage == PanelPage.IconPicker;
+
     public int MaxVisibleItems => _config.Settings.MaxVisibleItems;
 
     public bool CanNavigateUp => _folderStack.Count > 1;
@@ -144,12 +165,13 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Raised when a launch succeeds and settings.closeAfterLaunch is true.</summary>
     public event Action? RequestHide;
 
-    public MainViewModel(ConfigService configService, LaunchService launchService, SearchService searchService, Func<string, string?> fileDescriptionLookup)
+    public MainViewModel(ConfigService configService, LaunchService launchService, SearchService searchService, IconService iconService, Func<string, string?> fileDescriptionLookup)
     {
         _configService = configService;
         _config = configService.Config;
         _launchService = launchService;
         _searchService = searchService;
+        _iconService = iconService;
         _fileDescriptionLookup = fileDescriptionLookup;
         _folderStack.Add(_config.Root);
 
@@ -195,6 +217,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         DetachTypePicker();
         DetachEditor();
+        DetachIconPicker();
         _pendingDeleteNode = null;
         CurrentPage = PanelPage.List;
 
@@ -415,6 +438,71 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         AttachEditor(EditorViewModel.ForEdit(SelectedNode, _fileDescriptionLookup));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Phase 4: icon picker (Ctrl+I, spec §6.3/§4).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>Ctrl+I: open the icon picker for the selected node.</summary>
+    public void BeginChangeIcon()
+    {
+        if (BlockIfReadOnly() || SelectedNode is null)
+        {
+            return;
+        }
+
+        _iconPickerNode = SelectedNode;
+        var picker = new IconPickerViewModel(SelectedNode, _iconService, ConfigService.ResolveConfigDirectory());
+        picker.Applied += OnIconApplied;
+        picker.Cancelled += OnIconPickerCancelled;
+        IconPicker = picker;
+        CurrentPage = PanelPage.IconPicker;
+    }
+
+    private void OnIconApplied(IconSpec? spec)
+    {
+        var node = _iconPickerNode;
+        _iconPickerNode = null;
+        DetachIconPicker();
+        CurrentPage = PanelPage.List;
+
+        if (node is null)
+        {
+            return;
+        }
+
+        // The just-picked key never needs to show a stale bitmap under a coincidentally-identical key
+        // (spec §4 "Applying: ... invalidate that key") - harmless no-op the overwhelming majority of the
+        // time, since a genuinely new spec/value produces a fresh key that was never cached.
+        var newKey = IconKey.For(spec, node);
+        if (newKey is not null)
+        {
+            _iconService.InvalidateKey(newKey);
+        }
+
+        node.Icon = spec;
+        CommitChangeAndSelect(node);
+    }
+
+    private void OnIconPickerCancelled()
+    {
+        DetachIconPicker();
+        CurrentPage = PanelPage.List;
+    }
+
+    private void DetachIconPicker()
+    {
+        _iconPickerNode = null;
+
+        if (IconPicker is null)
+        {
+            return;
+        }
+
+        IconPicker.Applied -= OnIconApplied;
+        IconPicker.Cancelled -= OnIconPickerCancelled;
+        IconPicker = null;
     }
 
     private void OnTypePicked(NodeKind kind)
@@ -689,6 +777,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void RefreshItems()
     {
+        // Every row created below captures this value (spec §7.4) - bump it first so a background
+        // icon/missing-check that finishes after the *next* rebuild never touches a row that's no longer shown.
+        _listGeneration++;
+
         // Clearing Items resets the ListBox's own selection; force a change notification so the
         // OneWay SelectedIndex binding re-applies even when the new index equals the old one.
         SelectedIndex = -1;
@@ -723,14 +815,12 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedIndex = Items.Count > 0 ? 0 : -1;
     }
 
-    private static string GetGlyph(Node node) => node switch
+    /// <summary>Fallback glyph shown behind IconImage/EmojiText, and EmojiText itself (spec §4.3 display priority: IconImage -> EmojiText -> Glyph). A custom glyph value that isn't a valid curated code point (spec §7.12, e.g. a hand-edited config) falls back to the type default.</summary>
+    private static (string Glyph, string? EmojiText) GetIconDisplay(Node node) => node.Icon switch
     {
-        FolderNode => "",
-        AppNode => "",
-        PathNode => "",
-        CommandNode => "",
-        UrlNode => "",
-        _ => "",
+        { Kind: IconKind.Emoji } spec when spec.Value.Length > 0 => (IconGlyphs.DefaultFor(node), spec.Value),
+        { Kind: IconKind.Glyph } spec when IconGlyphs.IsValidCustomGlyph(spec.Value) => (spec.Value, null),
+        _ => (IconGlyphs.DefaultFor(node), null),
     };
 
     private ListItemViewModel ToListItem(Node node)
@@ -742,26 +832,37 @@ public sealed partial class MainViewModel : ObservableObject
             _ => "",
         };
 
-        return new ListItemViewModel
+        var (glyph, emoji) = GetIconDisplay(node);
+        var item = new ListItemViewModel
         {
             Node = node,
             Name = node.Name,
-            Glyph = GetGlyph(node),
+            Glyph = glyph,
+            EmojiText = emoji,
             SecondaryText = secondary,
             IsCut = ReferenceEquals(node, CutNode),
         };
+        item.ConfigureIconLoading(_iconService, node.Icon, _listGeneration, () => _listGeneration);
+        return item;
     }
 
-    private ListItemViewModel ToSearchListItem(SearchResult result) => new()
+    private ListItemViewModel ToSearchListItem(SearchResult result)
     {
-        Node = result.Node,
-        Name = result.Node.Name,
-        Glyph = GetGlyph(result.Node),
-        SecondaryText = result.Breadcrumb,
-        HighlightPositions = result.NamePositions,
-        ParentChain = result.ParentChain,
-        IsCut = ReferenceEquals(result.Node, CutNode),
-    };
+        var (glyph, emoji) = GetIconDisplay(result.Node);
+        var item = new ListItemViewModel
+        {
+            Node = result.Node,
+            Name = result.Node.Name,
+            Glyph = glyph,
+            EmojiText = emoji,
+            SecondaryText = result.Breadcrumb,
+            HighlightPositions = result.NamePositions,
+            ParentChain = result.ParentChain,
+            IsCut = ReferenceEquals(result.Node, CutNode),
+        };
+        item.ConfigureIconLoading(_iconService, result.Node.Icon, _listGeneration, () => _listGeneration);
+        return item;
+    }
 
     private static string Truncate(string text, int maxLength) =>
         text.Length <= maxLength ? text : text[..(maxLength - 1)] + "…";

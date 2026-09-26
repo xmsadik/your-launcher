@@ -119,6 +119,10 @@ public partial class MainWindow : Window
                 EditorViewHost.FocusFirstField();
                 break;
 
+            case PanelPage.IconPicker:
+                IconPickerViewHost.FocusFirstField();
+                break;
+
             case PanelPage.List:
             case PanelPage.ConfirmDelete:
                 SearchBox.Focus();
@@ -206,6 +210,10 @@ public partial class MainWindow : Window
                     return;
                 case Key.D:
                     _viewModel.DuplicateSelected();
+                    e.Handled = true;
+                    return;
+                case Key.I:
+                    _viewModel.BeginChangeIcon();
                     e.Handled = true;
                     return;
                 case Key.Up:

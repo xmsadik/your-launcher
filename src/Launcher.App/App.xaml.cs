@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
+using YourLauncher.App.Interop;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
@@ -26,7 +27,8 @@ public partial class App : Application
         var configService = new ConfigService();
         var launchService = new LaunchService();
         var searchService = new SearchService(configService.Config);
-        var viewModel = new MainViewModel(configService, launchService, searchService, LookUpExeDescription);
+        var iconService = new IconService(ConfigService.ResolveConfigDirectory(), Win32.GetDpiForSystem() / 96.0);
+        var viewModel = new MainViewModel(configService, launchService, searchService, iconService, LookUpExeDescription);
 
         _mainWindow = new MainWindow(viewModel);
         viewModel.RequestHide += () => _mainWindow?.HideLauncher();

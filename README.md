@@ -3,11 +3,12 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
-This is **Phase 3 (Editing)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
-fuzzy Turkish-aware whole-tree search, plus fully keyboard-driven add/edit/delete/move/cut-paste/duplicate
-of nodes from inside the panel, with an atomic save after every change. Custom icons, tray/single-instance,
-drag & drop and theming are later phases (see `launcher-spec.md` §14 and `tasks/todo.md`) — the code is
-structured so they slot in without reshaping what's here.
+This is **Phase 4 (Icons)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
+fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/cut-paste/
+duplicate of nodes, plus automatic system icons for `app`/`path` targets, a missing-target warning badge,
+and a `Ctrl+I` icon picker (glyph / emoji / file / exe-DLL). Tray/single-instance, drag & drop and theming
+are later phases (see `launcher-spec.md` §14 and `tasks/todo.md`) — the code is structured so they slot in
+without reshaping what's here.
 
 ## Build / run / test
 
@@ -124,10 +125,48 @@ Implemented (Phase 3 — editing, spec §6.3/§9):
   searching adds to the folder you searched from and then shows it there (clearing the search), while
   F2/Delete/Ctrl+D re-run the current search afterwards and keep the selection where possible.
 
+Implemented (Phase 4 — icons, spec §4.4/§9, revised per `tasks/phase4-spec.md` §7):
+- `IconKey`/`TargetCheck`/`PathResolver`/`IconFileStore` (Core, `Icons/`): a stable cache key per node/
+  custom-icon-spec (null for glyph/emoji, which are text, not images); whether an app/path target is
+  worth a disk existence check (never a UNC path or a URI/`shell:` target — only a fully-qualified local
+  path, or a bare name like `notepad.exe` resolved against `%PATH%`×`%PATHEXT%` first); copying a
+  user-picked icon file into `<config dir>\icons\` under a content hash so re-importing identical bytes
+  reuses the existing copy instead of duplicating it.
+- `IconService` (App): extraction runs on the thread pool (`Task.Run`, gated by a 2-wide semaphore, never
+  a dedicated thread), wrapped in try/catch → null on any failure. Two caches: one keyed by `IconKey`
+  (dedupes concurrent requests for the same node/spec and caches a failed lookup so it's never retried),
+  one keyed by the shell's own icon *location* (the file + index that actually holds the resource) so
+  e.g. every `.txt` row shares one bitmap. Auto icons use `SHGetFileInfo(SHGFI_ICONLOCATION)` →
+  `SHDefExtractIconW` at 32px (48px above 125% DPI); a missing/unreachable target falls back to
+  `SHGFI_USEFILEATTRIBUTES` (extension only, no disk/network access). Custom `exe`/`dll` icons use the
+  same extraction, capped at 1,024 icons and filled progressively for the picker's Exe/DLL tab; custom
+  `file` icons decode via `IconBitmapDecoder` (`.ico`, closest frame to the target size) or `BitmapImage`
+  (everything else), both over a `FileStream` so the file is never left locked.
+- Row icon (`ListItemViewModel`, `MainWindow`'s `ItemTemplate`): display priority `IconImage` →
+  `EmojiText` → `Glyph`. Both `IconImage` and the missing-target check are **lazy** — the fetch only
+  starts the first time the property is *read*, which for the virtualized `ListBox` means only realized
+  rows ever call into `IconService` or touch the filesystem; a `_listGeneration` counter on
+  `MainViewModel` discards a result that comes back after the list has since been rebuilt. A missing
+  `app`/`path` target dims the row (`Opacity 0.55`) and overlays a small orange warning glyph at the
+  icon's bottom-right, plus a "Target not found" tooltip.
+- Icon picker (`Ctrl+I`, `IconPickerViewModel`/`IconPickerView`): four tabs — **Glyph** (a curated ~70-icon
+  grid of Segoe MDL2 Assets glyphs actually present in the Windows 10 range `E700`–`E9FF`, with a filter
+  box), **Emoji** (a single grapheme, `System.Globalization.StringInfo`-validated), **File** (Browse… →
+  `IconFileStore.Import`), **Exe/DLL** (a path box, defaulting to the node's own target if it's an exe/dll
+  else `imageres.dll`, plus a Browse…/Load pair and the extracted-icon grid). Opens on the node's current
+  icon (tab + selection preselected) with a "Current: ..." preview in the header; `Ctrl+Tab`/
+  `Ctrl+Shift+Tab` or `Ctrl+1..4` switch tabs, arrow keys move a fixed 10-column grid (wrapping by row/
+  column) while focus stays in the tab's own filter/path/emoji box, `Ctrl+0` resets to automatic from any
+  tab, `Esc` cancels. Applying saves through the same atomic-save path as the editor, invalidates that
+  one cache key, and returns to the list with the same node selected.
+- `EditorViewModel` gains a read-only "Icon" line (glyph/emoji + a short description, not the real bitmap
+  for a custom file/exe icon — see the Phase 4 review in `tasks/todo.md` for why) plus "Ctrl+I in the list
+  to change"; its "Target not found — saved anyway" warning now shares `TargetCheck.IsMissing` with the
+  row badge so both always agree.
+
 Deliberately not yet implemented (see `// TODO Phase N` markers in code):
-- Custom icon picker (`Ctrl+I`) — the editor shows only the fixed per-type glyph as a static preview —
-  Phase 4.
-- Tray icon, single-instance guard, config file-watcher, Mica/Acrylic backdrop — Phase 5.
+- Tray icon, single-instance guard, config file-watcher (so `IconService.Invalidate()` has nothing to call
+  it yet), Mica/Acrylic backdrop — Phase 5.
 - Drag & drop, `.lnk` resolution, settings screen (`Ctrl+,`), import/export, usage-based ranking, theme
   switching, right-click context menu — Phase 6.
 
@@ -173,6 +212,7 @@ Deliberately not yet implemented (see `// TODO Phase N` markers in code):
 | `Ctrl+↑` / `Ctrl+↓` | Move the node within its display group (folders vs. others) — **nav mode only** |
 | `Ctrl+X` / `Ctrl+V` | Cut the node, then paste (move) it into the current folder |
 | `Ctrl+D` | Duplicate the node and select the copy |
+| `Ctrl+I` | Open the icon picker for the node (Phase 4) |
 
 ### Type picker page
 
@@ -192,6 +232,38 @@ Deliberately not yet implemented (see `// TODO Phase N` markers in code):
 | `Ctrl+Enter` | Save — works everywhere, including inside the Command field |
 | `Alt+A` (or click) | Toggle the "Advanced ▸" section |
 | `Esc` | Cancel, back to the list with the previous selection |
+
+### Icon picker page (`Ctrl+I`, Phase 4)
+
+| Key | Behavior |
+|---|---|
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` or `Ctrl+1`..`Ctrl+4` | Switch tabs (Glyph / Emoji / File / Exe/DLL) |
+| `↑`/`↓`/`←`/`→` (Glyph, Exe/DLL tabs) | Move within the 10-column grid, wrapping by row/column; `←`/`→` only move it when the tab's own text box is empty, otherwise they move the caret |
+| `PageUp` / `PageDown` | Jump 5 rows in the grid |
+| `Enter` | Glyph/Emoji: apply the selection. Exe/DLL: load icons from the path if it changed since the last load, else apply the selected icon. File: Browse… |
+| `Ctrl+0` | Reset to the automatic icon, from any tab |
+| `Esc` | Cancel, back to the list with the previous selection |
+
+## Icons (spec §4.4, Phase 4)
+
+- `icon: null` (the default) — automatic: `folder`/`command`/`url` get a fixed type glyph; `app`/`path`
+  get the target's real system icon (`SHGetFileInfo`), or a type-by-extension icon if the target can't be
+  found, or a bare name like `notepad.exe` doesn't resolve on `%PATH%`.
+- `icon: { "kind": "glyph", "value": "\uE8B7" }` — a Segoe MDL2 Assets glyph. Only code points the picker
+  itself curates (the Windows-10-safe `E700`–`E9FF` range) are accepted as valid; anything else in a
+  hand-edited config falls back to the type default.
+- `icon: { "kind": "emoji", "value": "🚀" }` — a single emoji/symbol, rendered with Segoe UI Emoji.
+- `icon: { "kind": "file", "value": "icons\\<16-hex-hash>.png" }` — a custom PNG/ICO/JPG/BMP/GIF, copied
+  into `<config dir>\icons\` (named by content hash, so re-picking the same file reuses the existing copy)
+  when chosen via the picker's File tab. The stored value is **relative to the config directory** so the
+  whole config folder stays portable; an absolute path (e.g. hand-edited) also still works.
+- `icon: { "kind": "exe", "value": "C:\\...\\a.exe", "index": 0 }` — one icon out of an exe/dll, picked
+  visually in the Exe/DLL tab (or typed by hand with a known index; negative indexes address a resource ID
+  directly, same as `ExtractIconEx`).
+
+Change any node's icon with `Ctrl+I` on it in the list. Orphaned files left behind in `icons\` (e.g. after
+switching a node away from a custom file icon) are not cleaned up automatically — deleting the folder is
+safe, it's only ever read from and copied into, never relied on for anything else.
 
 ## Config
 
@@ -228,9 +300,9 @@ Shape (spec §4.2–§4.5):
 }
 ```
 
-Every node also accepts optional `icon` (unused until Phase 4), `keywords` and `description` fields —
-both are searched (weighted below name, see "Search" below). `config.example.json` has a few populated
-to demonstrate keyword search.
+Every node also accepts optional `icon` (see "Icons" above), `keywords` and `description` fields — the
+latter two are searched (weighted below name, see "Search" below). `config.example.json` has a few
+populated to demonstrate keyword search.
 
 ## Search (spec §7, Phase 2)
 
@@ -284,14 +356,17 @@ src/Launcher.Core/               # net10.0, no UI references
   Config/                        # ConfigSerializer, ConfigStore (atomic save + backup), TreeOps, TargetNameHelper
   Launch/                        # EnvExpander, LaunchPlan, CommandLineBuilder
   Search/                        # TextNormalizer, FuzzyScorer, FlatIndex, SearchEngine
+  Icons/                         # IconKey, TargetCheck, PathResolver, IconFileStore (Phase 4)
 src/Launcher.App/                # net10.0-windows, WPF
-  Interop/Win32.cs               # RegisterHotKey, cursor/monitor Win32 calls
-  Services/                      # HotkeyService, ConfigService (Save/IsReadOnly/LastSelfWriteUtc), LaunchService, SearchService
-  ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel
-  Views/                         # MainWindow (the panel), TypePickerView, EditorView
+  Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon
+  Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs
+  ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel, IconPickerViewModel
+  Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView
   Converters/                    # StringEmptyToVisibilityConverter, StringNonEmptyToVisibilityConverter,
-                                  # UrlOrTargetLabelConverter, AdvancedToggleTextConverter
+                                  # UrlOrTargetLabelConverter, AdvancedToggleTextConverter, NullToVisibilityConverter,
+                                  # IconTierVisibilityConverter, MissingTargetTooltipConverter
   Controls/                      # HighlightedText (attached property for match highlighting)
-tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps, TargetNameHelper
+tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps,
+                                  # TargetNameHelper, Icons/ (IconKey, IconFileStore, TargetCheck, PathResolver)
 config.example.json
 ```

@@ -1,7 +1,7 @@
-using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Services;
 using YourLauncher.Core.Config;
-using YourLauncher.Core.Launch;
+using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.App.ViewModels;
@@ -39,6 +39,19 @@ public sealed partial class EditorViewModel : ObservableObject
 
     public EditorMode Mode { get; }
     public NodeKind Kind { get; }
+
+    /// <summary>
+    /// Read-only icon preview for the Advanced section (spec §7.13 - a narrower affordance than
+    /// launcher-spec.md §9 step 4's full inline icon editor, which Phase 3 already deferred to Ctrl+I;
+    /// see tasks/todo.md's Phase 4 review for why). Shows a glyph/emoji, not the actual bitmap for a
+    /// custom File/Exe icon - rendering that would need <see cref="Services.IconService"/> wired into the
+    /// editor, which nothing else here needs.
+    /// </summary>
+    public string IconPreviewGlyph { get; }
+
+    public string? IconPreviewEmoji { get; }
+
+    public string IconDescription { get; }
 
     [ObservableProperty]
     private string _name = "";
@@ -98,6 +111,8 @@ public sealed partial class EditorViewModel : ObservableObject
         Kind = kind;
         _originalNode = originalNode;
         _fileDescriptionLookup = fileDescriptionLookup;
+
+        (IconPreviewGlyph, IconPreviewEmoji, IconDescription) = DescribeIcon(kind, originalNode?.Icon);
 
         if (originalNode is null)
         {
@@ -165,6 +180,29 @@ public sealed partial class EditorViewModel : ObservableObject
         UrlNode => NodeKind.Url,
         _ => throw new InvalidOperationException($"Unknown node type '{node.GetType()}'."),
     };
+
+    private static string DefaultGlyphFor(NodeKind kind) => kind switch
+    {
+        NodeKind.Folder => IconGlyphs.Folder,
+        NodeKind.App => IconGlyphs.App,
+        NodeKind.Path => IconGlyphs.Path,
+        NodeKind.Command => IconGlyphs.Command,
+        NodeKind.Url => IconGlyphs.Url,
+        _ => IconGlyphs.Folder,
+    };
+
+    private static (string Glyph, string? Emoji, string Description) DescribeIcon(NodeKind kind, IconSpec? icon)
+    {
+        var defaultGlyph = DefaultGlyphFor(kind);
+        return icon?.Kind switch
+        {
+            IconKind.Emoji when icon.Value.Length > 0 => (defaultGlyph, icon.Value, "Custom emoji"),
+            IconKind.Glyph when IconGlyphs.IsValidCustomGlyph(icon.Value) => (icon.Value, null, "Custom glyph"),
+            IconKind.File => (defaultGlyph, null, "Custom file icon"),
+            IconKind.Exe => (defaultGlyph, null, "Custom exe icon"),
+            _ => (defaultGlyph, null, "Automatic"),
+        };
+    }
 
     public bool IsFolder => Kind == NodeKind.Folder;
     public bool IsApp => Kind == NodeKind.App;
@@ -330,10 +368,15 @@ public sealed partial class EditorViewModel : ObservableObject
         return hasScheme ? target : "https://" + target;
     }
 
+    /// <summary>
+    /// Uses <see cref="TargetCheck.IsMissing"/> (spec §7.14) rather than a plain File/Directory.Exists
+    /// check, so this warning and the row's missing-target badge (<see cref="ListItemViewModel"/>) always
+    /// agree - including resolving a bare name like "notepad.exe" via %PATH% before deciding it's missing,
+    /// and never flagging a UNC/URL target that's simply not worth a network round trip to check.
+    /// </summary>
     private void WarnIfTargetMissing(string target)
     {
-        var expanded = EnvExpander.Expand(target) ?? "";
-        if (expanded.Length == 0 || (!File.Exists(expanded) && !Directory.Exists(expanded)))
+        if (TargetCheck.IsMissing(target))
         {
             WarningMessage = "Target not found — saved anyway.";
         }

@@ -8,6 +8,7 @@
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <conv:StringNonEmptyToVisibilityConverter x:Key="NonEmptyToVis" />
+        <conv:StringEmptyToVisibilityConverter x:Key="EmptyToVis" />
 
         <Style TargetType="TextBlock" x:Key="FieldLabel">
             <Setter Property="Foreground" Value="#8A8A8A" />
@@ -307,6 +308,29 @@
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="Description" Style="{StaticResource FieldLabel}" />
             <TextBox Grid.Column="1" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <!-- Icon (read-only preview; spec §7.13 - actual change happens via Ctrl+I on the list, not here) -->
+        <Grid Margin="0,4,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Icon" Style="{StaticResource FieldLabel}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="{Binding IconPreviewEmoji}"
+                           FontFamily="Segoe UI Emoji"
+                           FontSize="16"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding IconPreviewEmoji, Converter={StaticResource NonEmptyToVis}}" />
+                <TextBlock Text="{Binding IconPreviewGlyph}"
+                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                           FontSize="16"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding IconPreviewEmoji, Converter={StaticResource EmptyToVis}}" />
+                <TextBlock Text="{Binding IconDescription}" Foreground="#8A8A8A" Margin="8,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="— Ctrl+I in the list to change" Foreground="#8A8A8A" Margin="6,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
         </Grid>
 
         <!-- Warning (target not found) -->
