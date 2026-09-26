@@ -3,12 +3,14 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
-This is **Phase 4 (Icons)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
-fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/cut-paste/
-duplicate of nodes, plus automatic system icons for `app`/`path` targets, a missing-target warning badge,
-and a `Ctrl+I` icon picker (glyph / emoji / file / exe-DLL). Tray/single-instance, drag & drop and theming
-are later phases (see `launcher-spec.md` §14 and `tasks/todo.md`) — the code is structured so they slot in
-without reshaping what's here.
+This is **Phase 5 (System integration)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching,
+Phase 2's fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/
+cut-paste/duplicate of nodes, Phase 4's automatic system icons + `Ctrl+I` icon picker, plus a single-instance
+guard, a tray icon (own `Shell_NotifyIcon` interop, no WinForms — see decisions below), "Start with
+Windows", live config file watching with reload/recovery, DPI-correct cursor-monitor positioning, and a
+Mica/Acrylic panel with rounded corners on Windows 11. Drag & drop, a settings screen and theming are
+Phase 6 (see `launcher-spec.md` §14 and `tasks/todo.md`) — the code is structured so they slot in without
+reshaping what's here.
 
 ## Build / run / test
 
@@ -21,14 +23,17 @@ dotnet run --project src/Launcher.App
 Requires .NET SDK 10.0.401+ (Windows). The solution is `YourLauncher.sln`.
 
 To point the app at a different config directory (used for the corrupt-config smoke test, or to keep a
-throwaway config while developing), set `YOURLAUNCHER_CONFIG_DIR` before launching:
+throwaway config while developing), set `YOURLAUNCHER_CONFIG_DIR` before launching. This also disables the
+"Start with Windows" registry sync for that run (so a scratch/test run never touches the real
+`HKCU\...\Run` value); `YOURLAUNCHER_NO_STARTUP_REG=1` disables just that sync without redirecting the
+config directory. Registry sync is also always off in Debug builds.
 
 ```powershell
 $env:YOURLAUNCHER_CONFIG_DIR = "C:\scratch\yl-config"
 dotnet run --project src/Launcher.App
 ```
 
-## Phase 1–3 status
+## Phase 1–5 status
 
 Implemented (Phase 1):
 - Global hotkey (default `Alt+Space`, `settings.hotkey`), toggling the panel.
@@ -42,7 +47,7 @@ Implemented (Phase 1):
 - Launching `app` / `path` / `command` / `url` nodes (`LaunchService` + Core's `CommandLineBuilder`),
   including `pwsh`/`powershell`/`cmd`, visible/hidden, keep-open, admin elevation, and environment
   variable expansion.
-- A single-keystroke-away exit (`Ctrl+Q`) since there's no tray icon yet (Phase 5).
+- A single-keystroke-away exit (`Ctrl+Q`), also available from the tray icon's **Exit** item (Phase 5).
 
 Implemented (Phase 2 — search, spec §7):
 - `TextNormalizer` (Core): Turkish-aware, 1:1 length-preserving case/diacritic folding
@@ -164,11 +169,68 @@ Implemented (Phase 4 — icons, spec §4.4/§9, revised per `tasks/phase4-spec.m
   to change"; its "Target not found — saved anyway" warning now shares `TargetCheck.IsMissing` with the
   row badge so both always agree.
 
+Implemented (Phase 5 — system integration, spec §1–§8/§9, revised per `tasks/phase5-spec.md` §10):
+- **Single instance** (`Services/SingleInstanceService.cs`): a named mutex keyed by a SHA-256 hash of the
+  config directory (`Local\YourLauncher-<12 hex>`), so a `YOURLAUNCHER_CONFIG_DIR` test run never collides
+  with the real instance. The first instance also runs a `NamedPipeServerStream` (`PipeOptions.
+  CurrentUserOnly`) loop; a second instance connects, sends `"show"`, and exits before ever creating a
+  window. `MainWindow.RequestShow()` re-foregrounds an already-visible panel without resetting it to root
+  (only a from-hidden show does); foreground is force-taken via `SetForegroundWindow` + an Alt key-press
+  fallback for the foreground-lock timeout, and the panel hides again rather than sit unfocused if even
+  that fails.
+- **Tray icon** (`Services/TrayService.cs`): **own hand-written `Shell_NotifyIcon` interop**, not WinForms
+  `NotifyIcon` — see decision D4 below for why. Tooltip shows the current hotkey; left-click/double-click
+  shows the panel; right-click opens a dark-styled WPF `ContextMenu` at the cursor (Show, Settings…, Open
+  config file, Open config folder, Reload config, Restore from backup/Keep my current version when
+  applicable, Exit). Balloon notifications (`NIF_INFO`) for a non-zero hidden-command exit code, a hotkey
+  registration failure, and a failed config reload. Re-adds itself on Explorer restart
+  (`TaskbarCreated`); `NIM_DELETE` on exit so no ghost icon is left behind.
+- **Start with Windows** (`Services/StartupService.cs` + Core's `Startup/StartupSync.cs`): syncs
+  `HKCU\...\Run` value `"Your Launcher"` to `settings.startWithWindows` on every startup and after a
+  config reload — writes (or rewrites, if the exe moved) when enabled, deletes when disabled, no-ops
+  otherwise. The registry write/delete/none *decision* is pure Core logic, unit tested including quoting
+  and case-insensitive path comparison; the actual registry IO is skipped entirely in Debug builds, when
+  `YOURLAUNCHER_CONFIG_DIR` is set, or when `YOURLAUNCHER_NO_STARTUP_REG=1` — the real Run value is never
+  touched by a dev/test run.
+- **Config file watching + reload + recovery** (`Services/ConfigWatcherService.cs`, AC10/AC11): a
+  `FileSystemWatcher` on config.json, debounced 200 ms, with a byte-hash check against the last write this
+  instance itself made (not a timestamp guess) so our own saves never trigger a spurious reload. A reload
+  applies onto the *existing* config instance in place — the folder stack stays in the same folder if it
+  still exists, the search index and icon cache are rebuilt/invalidated, cut state clears. If the file
+  can't be parsed, it's re-read once more after 500 ms (Notepad-style truncate-then-write tolerance)
+  before being declared genuinely corrupt: the in-memory tree is kept, the panel goes read-only with an
+  error line, and a tray balloon fires. Recovery is one keystroke away (`Ctrl+Shift+R`, or the matching
+  tray menu item):
+  - **Reload found a corrupt file, but we already had good data** → **"Keep my current version"**:
+    archives the corrupt file as `config.corrupt-<yyyyMMdd-HHmmss>.json` and re-saves the in-memory tree
+    over it.
+  - **The file was already corrupt at startup** (no good in-memory data yet) → **"Restore from backup"**:
+    archives the corrupt file the same way, then copies `config.backup.json` over it and reloads.
+  - A reload that arrives while the Editor/TypePicker/IconPicker is open is deferred until you return to
+    the list (or hide the panel); attempting to save at that point is refused ("your edit was not saved;
+    reopen and redo it") rather than silently overwriting the external change.
+  - `Ctrl+R` (or the tray's "Reload config") re-reads config.json on demand, same path as the watcher.
+- **Hotkey failure**: a tray balloon ("Hotkey X is already in use..." or "...is not a valid key
+  combination") in addition to the existing panel error line; re-registering on a config reload
+  unregisters the old hotkey first and restores it if the new one fails to register.
+- **DPI-correct positioning**: the panel centers on the monitor under the cursor using *that* monitor's own
+  DPI (`GetDpiForMonitor`) rather than the window's current DPI, so a hotkey press with the cursor on a
+  differently-scaled monitor no longer mis-centers the panel; re-runs on `OnDpiChanged`. Verified by code
+  review only (this development machine has a single monitor).
+- **Mica/Acrylic + rounded corners** (Windows 11 build ≥ 22000, backdrop needs ≥ 22621): applied via
+  `WindowChrome` + `DwmSetWindowAttribute` (`DWMWA_WINDOW_CORNER_PREFERENCE`, `DWMWA_SYSTEMBACKDROP_TYPE
+  = DWMSBT_TRANSIENTWINDOW`, `DWMWA_USE_IMMERSIVE_DARK_MODE`) once the HWND exists. Any failure along the
+  way (Windows 10, or a DWM call not returning `S_OK`) leaves the original solid `#1E1E1E` panel background
+  and square corners untouched — readability over effect.
+- **Idle memory** (Release only): `ConcurrentGarbageCollection=false`, `TieredPGO=false`,
+  `UseSystemResourceKeys=true`, `SatelliteResourceLanguages=en` in `Launcher.App.csproj`. No working-set
+  trimming hack — see "Memory" below for measured numbers.
+
 Deliberately not yet implemented (see `// TODO Phase N` markers in code):
-- Tray icon, single-instance guard, config file-watcher (so `IconService.Invalidate()` has nothing to call
-  it yet), Mica/Acrylic backdrop — Phase 5.
-- Drag & drop, `.lnk` resolution, settings screen (`Ctrl+,`), import/export, usage-based ranking, theme
-  switching, right-click context menu — Phase 6.
+- Drag & drop, `.lnk` resolution, a real settings screen (`Ctrl+,`), import/export, usage-based ranking,
+  theme switching, right-click context menu — Phase 6. Until the settings screen exists, the tray's
+  **Settings…** item and a hotkey-failure balloon's click both just open config.json in the default editor
+  (`// Phase 6` marks the spot).
 
 ## Keyboard
 
@@ -186,6 +248,8 @@ Deliberately not yet implemented (see `// TODO Phase N` markers in code):
 | `PageUp` / `PageDown` | Move by `settings.maxVisibleItems` |
 | Any printable character | Typed into the search box, switches to search mode |
 | `Ctrl+Q` | Quit the app |
+| `Ctrl+R` | Reload config.json from disk now (Phase 5) |
+| `Ctrl+Shift+R` | Recover from a corrupt config.json — "keep current version" or "restore from backup", whichever applies (Phase 5) |
 
 ### Search mode (search box non-blank) — spec §6.2
 
@@ -265,6 +329,29 @@ Change any node's icon with `Ctrl+I` on it in the list. Orphaned files left behi
 switching a node away from a custom file icon) are not cleaned up automatically — deleting the folder is
 safe, it's only ever read from and copied into, never relied on for anything else.
 
+## Tray, single instance, startup, and file watching (Phase 5)
+
+- **Only one instance ever runs.** Launching a second copy asks the first one to show its panel (over a
+  named pipe) and exits immediately without creating a window.
+- **Tray icon** (bottom-right, may be in the overflow flyout on Windows 11): left-click/double-click shows
+  the panel; right-click opens a menu — **Show**, **Settings…** (opens config.json until the Phase 6
+  settings screen exists), **Open config file**, **Open config folder**, **Reload config**, **Restore from
+  backup** / **Keep my current version** (only shown while config.json is corrupt), **Exit**.
+- **Start with Windows** follows `settings.startWithWindows` in config.json — flip it by hand and it takes
+  effect on the next startup or config reload (a real on/off switch lands in Phase 6's settings screen).
+- **External edits to config.json are picked up live** — no restart needed. If you break the JSON while
+  editing by hand, the panel keeps showing what it had before, goes read-only, and tells you exactly what
+  to do next:
+  - Corrupted config.json while the app already had a good tree loaded → error line says "kept the
+    previous version"; `Ctrl+Shift+R` (or the tray's **Keep my current version**) archives the broken file
+    as `config.corrupt-<timestamp>.json` next to it and writes your last-known-good tree back out.
+  - Corrupted config.json already at startup → error line says the file couldn't be read; `Ctrl+Shift+R`
+    (or the tray's **Restore from backup**) archives the broken file the same way and restores
+    `config.backup.json` instead (present once you've saved at least once before).
+  - `Ctrl+R` (or the tray's **Reload config**) re-reads config.json on demand at any time.
+- A hidden (`window: hidden`) command that exits with a non-zero code pops a tray balloon naming it and the
+  exit code, since there's no visible window to show the failure otherwise.
+
 ## Config
 
 Location: `%APPDATA%\Your Launcher\config.json` (override with the `YOURLAUNCHER_CONFIG_DIR`
@@ -324,14 +411,40 @@ field's matched positions are highlighted. Ties break by: usage score (0 for eve
 flattened once into a `FlatIndex` per config load, not re-walked per keystroke; 5,000 nodes stay well
 under the spec's 16 ms budget (median ~8 ms / p95 ~10 ms measured in `SearchPerformanceTests`).
 
+## Memory (Phase 5, spec §8)
+
+Measured on a self-contained, single-file, ReadyToRun Release publish
+(`dotnet publish src/Launcher.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+-p:PublishReadyToRun=true`), idle (shown once, then hidden, after a 5 s settle):
+
+| Metric | Measured | Target |
+|---|---|---|
+| Working Set | ~148 MB | < 80 MB |
+| Private Bytes | ~85 MB | (not separately targeted) |
+
+**Target missed.** No working-set-trimming hack was applied to game this number (`SetProcessWorkingSetSize`
+was deliberately left out — see spec §8's own risk note and `tasks/todo.md`'s Phase 5 review); the Release
+build only turns off concurrent GC/TieredPGO and satellite resource languages
+(`Launcher.App.csproj`). A self-contained WPF app carries its own CLR + WPF renderer regardless of app
+size, and that baseline is well above 80 MB in practice — the original plan flagged this as a tight-to-miss
+target back at the start (`tasks/todo.md` §0 risks: "WPF boşta bellek ~50–70 MB; hedef sınırda"). Shrinking
+this further (e.g. trimming, a non-self-contained/framework-dependent publish, or a non-WPF UI stack) is a
+larger change than Phase 5's scope and is left as a known limitation.
+
 ## Key decisions (D1–D8, see `tasks/todo.md` §0 for full rationale)
 
 - **D1** — .NET 10 (not the spec's .NET 8): only SDK 10.0.401 is installed, and .NET 8 support ends
   2026-11-10.
 - **D2** — App name "Your Launcher"; project/namespace names are the boxed `YourLauncher`.
 - **D3** — CommunityToolkit.Mvvm for MVVM (source-generated, no reflection cost).
-- **D4** — Tray will use WinForms `NotifyIcon` when it's built in Phase 5 (not added yet — see the note
-  in `Launcher.App.csproj` about why `UseWindowsForms` is deliberately left off for now).
+- **D4** — **Changed in Phase 5.** Originally planned as WinForms `NotifyIcon` (`UseWindowsForms=true`);
+  built instead as a **hand-written `Shell_NotifyIcon` interop** (`Services/TrayService.cs`), so
+  `UseWindowsForms` never has to go on alongside `UseWPF` at all. Reasons: (1) memory — WinForms drags in
+  its own runtime pieces alongside WPF's for no real benefit here; (2) a dark-themed context menu is just a
+  normal WPF `ContextMenu` with an explicit `Style`/`ControlTemplate` this way, whereas WinForms'
+  `ContextMenuStrip` would need a separate, uglier renderer to look right next to the rest of the app; (3)
+  it avoids the exact ambiguous-type collision (`Application`, `KeyEventArgs`, `MessageBox`, ...) the
+  original plan flagged as a risk in the first place.
 - **D5** — System.Text.Json with a source-generated context; polymorphic node reading is done with a
   small hand-written converter (`NodeJsonConverter`) rather than STJ's built-in
   `[JsonPolymorphic]`/`[JsonDerivedType]`, because that built-in mechanism's source-generated path only
@@ -357,16 +470,21 @@ src/Launcher.Core/               # net10.0, no UI references
   Launch/                        # EnvExpander, LaunchPlan, CommandLineBuilder
   Search/                        # TextNormalizer, FuzzyScorer, FlatIndex, SearchEngine
   Icons/                         # IconKey, TargetCheck, PathResolver, IconFileStore (Phase 4)
+  Startup/                       # StartupSync (pure Run-registry write/delete/none decision, Phase 5)
 src/Launcher.App/                # net10.0-windows, WPF
-  Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon
-  Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs
+  Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon,
+                                  # Shell_NotifyIcon/NOTIFYICONDATA, DWM (Mica/rounded corners), named-pipe/mutex interop (Phase 5)
+  Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs,
+                                  # SingleInstanceService, TrayService, StartupService, ConfigWatcherService (Phase 5)
   ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel, IconPickerViewModel
   Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView
   Converters/                    # StringEmptyToVisibilityConverter, StringNonEmptyToVisibilityConverter,
                                   # UrlOrTargetLabelConverter, AdvancedToggleTextConverter, NullToVisibilityConverter,
                                   # IconTierVisibilityConverter, MissingTargetTooltipConverter
   Controls/                      # HighlightedText (attached property for match highlighting)
+  app.ico                        # Multi-size (16/24/32/48/256) app + tray icon (Phase 5)
 tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps,
-                                  # TargetNameHelper, Icons/ (IconKey, IconFileStore, TargetCheck, PathResolver)
+                                  # TargetNameHelper, Icons/ (IconKey, IconFileStore, TargetCheck, PathResolver),
+                                  # StartupSyncTests (Phase 5)
 config.example.json
 ```

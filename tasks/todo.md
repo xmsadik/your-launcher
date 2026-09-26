@@ -85,14 +85,14 @@ Aşama 1 dışında bırakılanlar (bilerek, plana göre): arama yalnızca bulun
 - [x] Ctrl+I / IconPicker: Glyph (filtre + ~70 ikonluk ızgara), Emoji (tek grapheme doğrulaması), File (Gözat… → import), Exe/DLL (yol kutusu + Gözat…/Load + ızgara, 1024 sınırı, kademeli doldurma); sekmeler arası Ctrl+Tab/Ctrl+1..4, Ctrl+0 varsayılana dön
 - [x] Hedefi olmayan app/path: soluk (Opacity 0.55) + uyarı rozeti + tooltip; `TargetCheck`/`PathResolver` ile bare-name (`%PATH%`) çözümlemesi editör ve satır rozetinde aynı
 
-### Aşama 5 — Sistem
-- [ ] Tek instance: named mutex + named pipe "show" mesajı
-- [ ] Tray: Göster, Ayarlar, Config dosyasını aç, Config klasörünü aç, Yeniden yükle, Çıkış; gizli komut hata kodu bildirimi
-- [ ] Windows ile başlat (HKCU Run, değer adı "Your Launcher", exe yolu tırnaklı): `settings.startWithWindows` ile senkron; açılışta registry durumu ayarla eşitlenir (exe taşındıysa yol güncellenir)
-- [ ] Per-monitor DPI v2 manifest; açılışta imlecin monitörü, üst üçte bir konum
-- [ ] FileSystemWatcher (debounce ~200 ms, kilitli dosyaya retry) → yeniden yükle (AC10); bozuksa uyarı + "yedekten yükle" (AC11)
-- [ ] Hotkey başarısızsa tray uyarısı + ayarları aç
-- [ ] Mica/Acrylic + köşe yuvarlama (Win11), fallback düz renk
+### Aşama 5 — Sistem (tamamlandı 2026-09-26)
+- [x] Tek instance: named mutex + named pipe "show" mesajı
+- [x] Tray: Göster, Ayarlar, Config dosyasını aç, Config klasörünü aç, Yeniden yükle, Çıkış; gizli komut hata kodu bildirimi
+- [x] Windows ile başlat (HKCU Run, değer adı "Your Launcher", exe yolu tırnaklı): `settings.startWithWindows` ile senkron; açılışta registry durumu ayarla eşitlenir (exe taşındıysa yol güncellenir)
+- [x] Per-monitor DPI v2 manifest; açılışta imlecin monitörü, üst üçte bir konum
+- [x] FileSystemWatcher (debounce ~200 ms, kilitli dosyaya retry) → yeniden yükle (AC10); bozuksa uyarı + "yedekten yükle" (AC11)
+- [x] Hotkey başarısızsa tray uyarısı + ayarları aç
+- [x] Mica/Acrylic + köşe yuvarlama (Win11), fallback düz renk
 
 ### Aşama 6 — Cila
 - [ ] Drag&drop Explorer'dan: `.exe/.lnk` → app, diğerleri → path; `.lnk` çözümleme (IShellLinkW: hedef, argüman, çalışma dizini, ikon) — AC12
@@ -321,7 +321,111 @@ Build 0 uyarı, 114/114 test yeşil. Görsel test: tip seçici (ikon + F/A/P/C/U
 - Bilerek bırakılanlar (plana uygun): tray/tek-instance/dosya izleme/DPI manifest/Mica (Aşama 5),
   sürükle-bırak/`.lnk`/ayarlar sayfası/import-export/kullanım istatistiği/tema (Aşama 6).
 
-## Devam noktası (ara verildi 2026-09-26)
-- Aşama 1–4 tamam, 172 test yeşil; `main` → https://github.com/xmsadik/your-launcher (private), commit `99fb3ca` (Aşama 1-3; Aşama 4 henüz commit edilmedi — orkestratör commit etmeyecek şekilde talimat verdi).
-- Sıradaki: **Aşama 5 — Sistem** (tray, tek instance, Windows ile başlat, çoklu monitör/DPI manifest, dosya izleme — bu geldiğinde `IconService.Invalidate()`'i çağıracak yer burası). Sonra 6 (cila; ayarlarda "Start with Windows" anahtarı dahil).
-- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; Debug build ~147 MB (bellek hedefi Release'te Aşama 5'te ölçülecek); tray gelene kadar çıkış `Ctrl+Q`; `icons\` klasöründe öksüz dosya temizliği yok.
+### Aşama 5 — Sistem (tamamlandı 2026-09-26)
+
+Bu aşamanın kodu önceki bir oturumda tam olarak yazılmıştı ama doğrulama yarım kalmıştı; bu oturum sadece
+doğrulama, iki gerçek hatanın düzeltilmesi ve dokümantasyon içindi — kod yeniden yazılmadı.
+
+- Build: `dotnet build` (Debug **ve** Release) — 0 uyarı, 0 hata. Test: `dotnet test` — **180/180 yeşil**
+  (Aşama 1–4'ün 172'si + Aşama 5 için `StartupSyncTests` 8 yeni: Core'un saf registry write/delete/none
+  kararı — enabled+eksik→Write, enabled+aynı yol (tırnaklı/tırnaksız/büyük-küçük harf farklı)→None,
+  enabled+farklı yol→Write, disabled+mevcut→Delete, disabled+eksik→None, `Quote`).
+- Canlı doğrulama, `YOURLAUNCHER_CONFIG_DIR` → `%TEMP%\YLPhase5VerifyCfg` (gerçek `%APPDATA%\Your Launcher`
+  ve gerçek `HKCU\...\Run\Your Launcher` değerine hiç dokunulmadı — ikisi de önce kontrol edilip boş
+  olduğu doğrulandı):
+  1. **Tek instance + tray + dış düzenlemeden yeniden yükleme + bozuk JSON** zaten önceki oturumda canlı
+     doğrulanmıştı (ekran görüntüleri mevcut) — bu oturumda tekrarlanmadı.
+  2. **Ctrl+Shift+R kurtarma (iki yol da)**: (a) Uygulama açıkken config.json dışarıdan bozuldu →
+     panelde "config.json has errors — kept the previous version. Ctrl+Shift+R: keep current version"
+     anında görüldü (panel gerçekten ön plandayken ekran görüntüsü alındı, `GetForegroundWindow`ile
+     doğrulandı) → Ctrl+Shift+R → `config.corrupt-<ts>.json` doğru içerikle arşivlendi, config.json
+     bellekteki ağaçla (MyFolder dahil) geri yazıldı, hata satırı temizlendi. (b) Uygulama **açılışta**
+     zaten bozuk bir config.json ile başlatıldı → panel bu kez **açılış anında** "Config could not be
+     read: ... Ctrl+Shift+R: restore backup" gösterdi (aşağıdaki Hata 2'ye bakın) → Ctrl+Shift+R →
+     corrupt dosya arşivlendi, config.json `config.backup.json`'dan birebir geri yüklendi (`diff` ile
+     doğrulandı), panel boş root'a döndü, hata satırı temiz.
+  3. **Uygulama içinden kayıt → gereksiz yeniden yükleme yok**: Root'ta Ctrl+Shift+N ile "MyFolder"
+     eklendi, içine girildi (breadcrumb "Root › MyFolder"), tekrar Ctrl+Shift+N ile "SubItem" eklendi —
+     her iki kayıttan sonra da panel **aynı klasörde** kaldı (breadcrumb resetlenmedi, hata satırı
+     çıkmadı). Kod incelemesiyle de doğrulandı: `ConfigService.Save()` `LastWrittenHash`'i
+     `ConfigStore.Save()`'in diske yazdığı **aynı** `ConfigSerializer.Serialize` çıktısından hesaplıyor,
+     bu yüzden `ConfigWatcherService`'in kendi-yazımı algılaması bit-bit eşleşiyor (zamanlama tahminine
+     gerek yok).
+  4. **Gizli komut çıkış kodu → tray balonu**: `command` node'u `command: "exit 3"`, `shell: "pwsh"`,
+     `window: "hidden"` ile eklendi, Enter ile çalıştırıldı. Hem `Debug.WriteLine` izinin (geçici olarak
+     aynı satıra bir dosyaya da yazdırıldı, doğrulama bitince kaldırıldı) `Shell_NotifyIcon NIM_MODIFY
+     ok=True` döndürdüğü, hem de gerçek bir Windows bildirimi ("Your Launcher — 'ExitTest' exited with
+     code 3.") ekran görüntüsüyle doğrulandı.
+  5. **StartupService gerçek registry karşı testi**: Release derlemesindeki `YourLauncher.dll`
+     reflection ile yüklenip atma değer adı **"Your Launcher TEST"** ile `StartupService` örneklendi (bu
+     ad Debug derlemesinde `#if DEBUG` her zaman atlıyor, bu yüzden Release kullanıldı) — sync(true) eksik
+     değeri yazdı, tekrar sync(true) değişiklik yapmadı (None), değeri elle eski bir yola değiştirip
+     sync(true) doğru yolla üzerine yazdı (exe taşınması senaryosu), sync(false) değeri sildi. Test sonunda
+     değer silindi; gerçek "Your Launcher" değeri baştan sona hiç var olmadı (kontrol edildi).
+  6. **Publish + bellek**: `dotnet publish -c Release -r win-x64 --self-contained
+     -p:PublishSingleFile=true -p:PublishReadyToRun=true` başarılı; scratch config dizini ile çalıştırıldı,
+     bir kez gösterilip gizlendi, 5 sn (ve ek 5 sn daha, kararlılık için) beklendi:
+     **Working Set ≈ 148 MB, Private Bytes ≈ 85 MB** (hedef: Working Set < 80 MB). **Hedef tutmadı** —
+     spec'in kendi riski zaten bunu işaret ediyordu (§0: "WPF boşta bellek ~50–70 MB; hedef sınırda");
+     `SetProcessWorkingSetSize` gibi bir hack bilerek uygulanmadı (spec §8, §10 madde 14 açıkça
+     yasaklıyor), sadece Release'te `ConcurrentGarbageCollection=false`/`TieredPGO=false`/
+     `UseSystemResourceKeys=true`/`SatelliteResourceLanguages=en` var. Self-contained WPF'nin kendi
+     CLR+renderer'ı taşıması bu tabanı zaten 80 MB'ın üzerine çıkarıyor; daha fazla küçültme (trimming,
+     framework-dependent yayın, WPF dışı bir UI) Aşama 5'in kapsamı dışında — README'de not edildi.
+  7. **DPI/çoklu monitör**: bu makinede tek monitör olduğu için `PositionOnCursorMonitor`/`OnDpiChanged`
+     yalnızca **kod incelemesiyle** doğrulandı, canlı test edilmedi (README'de açıkça belirtildi).
+
+- **Bulunan ve düzeltilen 2 gerçek hata** (ikisi de bu doğrulama sırasında canlı testte ortaya çıktı,
+  önceki oturumun ekran görüntülerinde görünmüyordu çünkü ilgili senaryolar hiç tetiklenmemişti):
+  1. **`ConfigService.KeepCurrentVersion()` yedeği bozuyordu** (`src/Launcher.App/Services/
+     ConfigService.cs`, `KeepCurrentVersion()`): Kurtarma "corrupt dosyayı arşivle, sonra bellekteki
+     ağacı kaydet" sırasıyla çalışıyordu, ama `Save()`'in çağırdığı `ConfigStore.Save()` atomik
+     `File.Replace(temp, configPath, backupPath)` kullanıyor — bu API, `configPath`'teki **o anki**
+     içeriği `backupPath`'e taşıyor. `Save()` çağrıldığı anda `configPath` hâlâ az önce arşivlenen bozuk
+     JSON'du, yani her "Keep my current version" kurtarması `config.backup.json`'ı geçersiz JSON ile
+     eziyordu — bir sonraki gerçek ihtiyaçta "Restore from backup" bozuk bir dosya geri yüklerdi. Canlı
+     testte doğrudan yakalandı (`config.backup.json` 38 byte'lık çöp metin oldu). Düzeltme:
+     `ArchiveCorruptFile()`'dan sonra, `Save()`'den önce `configPath`'i sil — böylece `ConfigStore.Save()`
+     `File.Move` dalına düşüyor (yedeklenecek bir "eski" dosya yok), gerçek yedek dokunulmadan kalıyor.
+     Silme başarısız olursa (best-effort, aynı try/catch stiliyle) davranış öncekiyle aynı kalır, kurtarma
+     yine de başarılı olur.
+  2. **Açılışta bozuk config mesajı hiç görünmüyordu** (`src/Launcher.App/ViewModels/MainViewModel.cs`,
+     `ClearErrorMessage()`): Constructor, `configService.LoadError` doluysa doğru mesajı ayarlıyordu, ama
+     `App.OnStartup`'ın en sonunda çağrılan `MainWindow.ShowLauncher()` her zaman
+     `_viewModel.ClearErrorMessage()`'ı **koşulsuz** çağırıyor — bu da mesajı panel hiç gösterilmeden
+     sildi. Sonuç: açılışta config.json zaten bozuksa kullanıcı boş bir root görüyordu, hiçbir ipucu
+     olmadan (sadece tray menüsünü açar veya bir düzenleme dener ise fark ederdi). `SetCorruptErrorMessage`
+     zaten var olan bir yardımcıydı (reload-corrupt ve BlockIfReadOnly aynı deseni kullanıyor); düzeltme
+     `ClearErrorMessage()`'ı `_configService.IsReadOnly` iken mesajı boşaltmak yerine
+     `SetCorruptErrorMessage(_configService.LoadError!)` ile yeniden kurup geri koyacak şekilde değiştirdi
+     — böylece her show/hide döngüsünde ve her tuş vuruşunda (ki `ClearErrorMessage` ikisinde de
+     çağrılıyor) kalıcı bir salt-okunur durum artık silinmiyor, sadece geçici uyarılar (launch hatası,
+     "target not found" vb.) siliniyor. Canlı testle önce-sonra karşılaştırmalı doğrulandı (düzeltmeden
+     önce panel boş açılıyordu, düzeltmeden sonra hata satırı açılış anında görünüyor).
+  - Her iki düzeltme sonrası `dotnet build`/`dotnet test` tekrar 0 uyarı/180 yeşil kaldı.
+- **D4 kararı değişti** (README'de detaylı gerekçe var): planlanan WinForms `NotifyIcon` yerine elle
+  yazılmış `Shell_NotifyIcon` interop'u (`TrayService.cs`) kullanıldı — bellek (WPF yanında WinForms
+  runtime parçalarını da taşımamak), koyu temalı context menü (WPF `ContextMenu` + özel `ControlTemplate`,
+  WinForms `ContextMenuStrip`'in kendi renderer'ına göre daha temiz), ve zaten plan aşamasında risk olarak
+  işaretlenen `UseWindowsForms`+`UseWPF` tip çakışmasını (Application, KeyEventArgs, MessageBox, ...) baştan
+  hiç yaşamamak.
+- Sapmalar/netleştirmeler: Yok — kod zaten spec'in §10 revizyonlarını (foreground/Alt-key kurtarma, reload
+  in-place, watcher debounce/hash, corrupt semantiği, deferred reload, Shell_NotifyIcon, app.ico, hidden
+  exit event, startup registry gate'leri, DPI, Mica/Acrylic, tek instance detayları, hotkey, bellek
+  ayarları, doğrulama notları) satır satır uyguluyordu; bu oturum sadece yukarıdaki 2 hatayı buldu ve
+  düzeltti.
+- Bilerek bırakılanlar (plana uygun): sürükle-bırak/`.lnk`/ayarlar sayfası/import-export/kullanım
+  istatistiği/tema/sağ tık menüsü (Aşama 6). "Settings…" tray öğesi ve hotkey-hatası balonunun tıklaması
+  şimdilik config.json'ı varsayılan düzenleyicide açıyor (`// Phase 6` notu).
+
+## Devam noktası (güncellendi 2026-09-26, Aşama 5 sonrası)
+- Aşama 1–5 tamam, 180 test yeşil (Debug+Release, 0 uyarı); `main` → https://github.com/xmsadik/your-launcher
+  (private), commit `224bd09`'a kadar (Aşama 1-4; Aşama 5 henüz commit edilmedi — orkestratör commit
+  etmeyecek şekilde talimat verdi).
+- Sıradaki: **Aşama 6 — Cila** (sürükle-bırak/`.lnk`, sağ tık menüsü, ayarlar sayfası — "Start with Windows"
+  anahtarı dahil, `StartupService.SetEnabled` zaten hazır —, import/export, kullanım istatistiği, tema).
+- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek Release/R2R yayında
+  ~148 MB Working Set / ~85 MB Private Bytes, 80 MB hedefinin üzerinde (Aşama 5 review'ına bakın — bilerek
+  hack'lenmedi); `icons\` klasöründe öksüz dosya temizliği yok; DPI/çoklu monitör pozisyonlaması sadece kod
+  incelemesiyle doğrulandı (geliştirme makinesinde tek monitör var); "Settings…" ve hotkey-hatası balonu
+  şimdilik config.json'ı açıyor, gerçek ayarlar sayfası Aşama 6'da.

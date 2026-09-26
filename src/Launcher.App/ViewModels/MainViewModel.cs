@@ -47,6 +47,16 @@ public sealed partial class MainViewModel : ObservableObject
     private Node? _iconPickerNode;
 
     /// <summary>
+    /// Set by <see cref="RequestReload"/> while the Editor/TypePicker/IconPicker page is open (spec §10
+    /// item 5): applying a reload right then would swap <see cref="_config"/>'s Root out from under a
+    /// still-in-progress edit (the Editor/IconPicker hold direct references into the *old* tree). Flushed
+    /// the moment the page returns to List (Cancel, or a completed Save/Apply) or the panel is hidden.
+    /// </summary>
+    private bool _reloadPending;
+
+    private DispatcherTimer? _reloadRetryTimer;
+
+    /// <summary>
     /// Bumped every time <see cref="RefreshItems"/> rebuilds <see cref="Items"/> (folder change, search,
     /// add/edit/delete/move/...). Each <see cref="ListItemViewModel"/> captures the value current at its
     /// own creation and compares against this live counter when its background icon/missing-check
@@ -105,6 +115,14 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowIconPickerPage));
         OnPropertyChanged(nameof(ShowConfirmBar));
         OnPropertyChanged(nameof(ShowHintBarRow));
+
+        // A reload deferred while Editor/TypePicker/IconPicker was open (spec §10 item 5) is safe to apply
+        // the moment we're back on the list - whether that's via Cancel or a completed Save/Apply.
+        if (value == PanelPage.List && _reloadPending)
+        {
+            _reloadPending = false;
+            ApplyExternalReload();
+        }
     }
 
     partial void OnCutNodeChanged(Node? value) => OnPropertyChanged(nameof(HintText));
@@ -165,6 +183,21 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Raised when a launch succeeds and settings.closeAfterLaunch is true.</summary>
     public event Action? RequestHide;
 
+    /// <summary>Raised when an external config.json change turns out to be genuinely unparsable even after the Notepad-style truncate-then-write retry (spec §10 item 3) - App.xaml.cs shows a tray balloon for this.</summary>
+    public event Action<string>? ReloadFailed;
+
+    /// <summary>True while config.json is corrupt (startup or reload) *and* some recovery action exists - either "keep current" (there's good in-memory data) or "restore backup" (there is one).</summary>
+    public bool CanRecoverFromCorruption => _configService.IsReadOnly && (_configService.HasEverLoadedSuccessfully || _configService.HasBackup);
+
+    /// <summary>Menu/shortcut label: "keep current" once there's real in-memory data to keep, otherwise "restore backup" (spec §10 item 4).</summary>
+    public string RecoveryMenuText => _configService.HasEverLoadedSuccessfully ? "Keep my current version" : "Restore from backup";
+
+    private string? RecoveryHint => !CanRecoverFromCorruption
+        ? null
+        : _configService.HasEverLoadedSuccessfully
+            ? "Ctrl+Shift+R: keep current version"
+            : "Ctrl+Shift+R: restore backup";
+
     public MainViewModel(ConfigService configService, LaunchService launchService, SearchService searchService, IconService iconService, Func<string, string?> fileDescriptionLookup)
     {
         _configService = configService;
@@ -177,7 +210,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         if (!string.IsNullOrEmpty(configService.LoadError))
         {
-            ErrorMessage = configService.LoadError;
+            SetCorruptErrorMessage(configService.LoadError);
         }
 
         _launchService.ErrorOccurred += OnLaunchServiceError;
@@ -210,7 +243,25 @@ public sealed partial class MainViewModel : ObservableObject
 
     partial void OnErrorMessageChanged(string value) => HasError = !string.IsNullOrEmpty(value);
 
-    public void ClearErrorMessage() => ErrorMessage = "";
+    /// <summary>
+    /// Clears a one-off error/warning (launch failure, "target not found", ...). A read-only/corrupt
+    /// config is a standing state rather than a one-off message, though (spec §10 item 4) - it must
+    /// survive every show/hide cycle and keystroke until the user actually fixes or recovers it, so this
+    /// re-derives it instead of blanking it. Without this, <see cref="MainWindow.ShowLauncher"/>'s
+    /// unconditional clear-on-show wiped the startup "config could not be read" message before the panel
+    /// was ever shown, leaving a silently-empty root with no clue anything was wrong (bug found in Phase 5
+    /// verification).
+    /// </summary>
+    public void ClearErrorMessage()
+    {
+        if (_configService.IsReadOnly)
+        {
+            SetCorruptErrorMessage(_configService.LoadError!);
+            return;
+        }
+
+        ErrorMessage = "";
+    }
 
     /// <summary>Called every time the panel is shown (spec: always starts at root) and whenever it's hidden - resets to a clean List page so a half-finished edit never lingers across show/hide.</summary>
     public void ResetToRoot()
@@ -399,8 +450,15 @@ public sealed partial class MainViewModel : ObservableObject
             return false;
         }
 
-        ErrorMessage = "Config is read-only because config.json could not be read. Fix or restore it first.";
+        SetCorruptErrorMessage("Config is read-only because config.json could not be read. Fix or restore it first.");
         return true;
+    }
+
+    /// <summary>Appends the applicable Ctrl+Shift+R recovery hint (spec §10 item 4) to a read-only/corrupt error line, when one applies.</summary>
+    private void SetCorruptErrorMessage(string baseMessage)
+    {
+        var hint = RecoveryHint;
+        ErrorMessage = hint is null ? baseMessage : $"{baseMessage} {hint}";
     }
 
     /// <summary>Ctrl+N: open the type picker for the current folder (works in nav and search mode - CurrentFolder doesn't change while searching).</summary>
@@ -462,6 +520,14 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnIconApplied(IconSpec? spec)
     {
+        if (RefuseSaveIfReloadPending())
+        {
+            _iconPickerNode = null;
+            DetachIconPicker();
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
         var node = _iconPickerNode;
         _iconPickerNode = null;
         DetachIconPicker();
@@ -559,6 +625,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void OnEditorSaved(Node node)
     {
+        if (RefuseSaveIfReloadPending())
+        {
+            DetachEditor();
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
         var wasAdd = Editor!.Mode == EditorMode.Add;
         var warning = Editor.WarningMessage;
         DetachEditor();
@@ -745,6 +818,148 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshItems();
         SelectNode(clone);
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Phase 5: config reload / recovery (spec §4, revised §10 items 2-5). Ctrl+R, Ctrl+Shift+R, and the
+    // tray's "Reload config"/"Restore from backup"/"Keep my current version" items all funnel through here.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>Ctrl+R / tray "Reload config", and the config file watcher's own external-change signal.</summary>
+    public void RequestReload()
+    {
+        if (CurrentPage is PanelPage.Editor or PanelPage.TypePicker or PanelPage.IconPicker)
+        {
+            _reloadPending = true;
+            ErrorMessage = "config.json changed — will reload once you finish this.";
+            return;
+        }
+
+        ApplyExternalReload();
+    }
+
+    /// <summary>Spec §10 item 5: a save/apply attempted while a reload is pending is refused - never silently overwriting the external change - and the reload is applied right afterwards instead.</summary>
+    private bool RefuseSaveIfReloadPending()
+    {
+        if (!_reloadPending)
+        {
+            return false;
+        }
+
+        _reloadPending = false;
+        ApplyExternalReload();
+        ErrorMessage = "config.json changed on disk — your edit was not saved; reopen and redo it.";
+        return true;
+    }
+
+    private void ApplyExternalReload()
+    {
+        var result = _configService.Reload();
+        if (result.Success)
+        {
+            OnConfigReloadedSuccess();
+            return;
+        }
+
+        // Notepad-style truncate-then-write: the file may have been mid-write when we first read it.
+        // Re-read once more shortly before declaring it genuinely corrupt (spec §10 item 3).
+        _reloadRetryTimer?.Stop();
+        _reloadRetryTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _reloadRetryTimer.Tick += (_, _) =>
+        {
+            _reloadRetryTimer!.Stop();
+            var retry = _configService.Reload();
+            if (retry.Success)
+            {
+                OnConfigReloadedSuccess();
+                return;
+            }
+
+            SetCorruptErrorMessage("config.json has errors — kept the previous version.");
+            ReloadFailed?.Invoke(retry.Error ?? "config.json has errors.");
+        };
+        _reloadRetryTimer.Start();
+    }
+
+    /// <summary>Ctrl+Shift+R / the tray's "Restore from backup"/"Keep my current version" item - whichever <see cref="RecoveryMenuText"/> currently says applies.</summary>
+    public void RecoverFromCorruption()
+    {
+        if (!CanRecoverFromCorruption)
+        {
+            return;
+        }
+
+        var result = _configService.HasEverLoadedSuccessfully
+            ? _configService.KeepCurrentVersion()
+            : _configService.RestoreFromBackup();
+
+        if (result.Success)
+        {
+            OnConfigReloadedSuccess();
+        }
+        else
+        {
+            ErrorMessage = result.Error ?? "Could not recover config.";
+        }
+    }
+
+    /// <summary>Called by MainWindow.HideLauncher() so a reload deferred by a still-open editor is applied once the panel is hidden, even without an explicit Cancel/Save (spec §10 item 5).</summary>
+    public void FlushPendingReloadIfAny()
+    {
+        if (!_reloadPending)
+        {
+            return;
+        }
+
+        _reloadPending = false;
+        ApplyExternalReload();
+    }
+
+    /// <summary>
+    /// Applies a just-reloaded/-recovered config.json onto the already-live <see cref="_config"/> instance
+    /// (spec §10 item 2): rebuilds the folder stack by id (stays in the same folder if it still exists,
+    /// else falls back to root), rebuilds the search index, invalidates every cached icon (the whole tree
+    /// is new), clears cut/pending-delete state, re-applies maxVisibleItems/hint-bar (both bindable
+    /// properties MainWindow also reacts to directly), and returns to List if a delete confirmation was
+    /// mid-flight against a now-gone node.
+    /// </summary>
+    private void OnConfigReloadedSuccess()
+    {
+        ErrorMessage = "";
+
+        var keptIds = _folderStack.Select(f => f.Id).ToList();
+        _folderStack.Clear();
+        _folderStack.Add(_config.Root);
+        for (var i = 1; i < keptIds.Count; i++)
+        {
+            var found = FindChildFolderById(_folderStack[^1], keptIds[i]);
+            if (found is null)
+            {
+                break;
+            }
+
+            _folderStack.Add(found);
+        }
+
+        _searchService.Rebuild(_config);
+        _iconService.Invalidate();
+        CutNode = null;
+        _pendingDeleteNode = null;
+
+        if (CurrentPage == PanelPage.ConfirmDelete)
+        {
+            CurrentPage = PanelPage.List;
+        }
+
+        OnPropertyChanged(nameof(MaxVisibleItems));
+        OnPropertyChanged(nameof(ShowHintBar));
+        OnPropertyChanged(nameof(ShowHintBarRow));
+
+        UpdateBreadcrumb();
+        RefreshItems();
+    }
+
+    private static FolderNode? FindChildFolderById(FolderNode parent, string id) =>
+        parent.Children.OfType<FolderNode>().FirstOrDefault(f => f.Id == id);
 
     // ---------------------------------------------------------------------------------------------
     // Save pipeline (spec: atomic save after every change, then rebuild the search index, refresh the

@@ -26,7 +26,7 @@
         <conv:MissingTargetTooltipConverter x:Key="MissingTargetTooltip" />
     </Window.Resources>
 
-    <Border BorderBrush="#3B4048" BorderThickness="1">
+    <Border x:Name="RootBorder" Background="#1E1E1E" BorderBrush="#3B4048" BorderThickness="1" CornerRadius="8">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

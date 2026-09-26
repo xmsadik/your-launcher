@@ -1,5 +1,10 @@
 <Application x:Class="YourLauncher.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The tray context menu (Phase 5, spec §10 item 6) builds and applies its own dark Style objects
+         entirely in code (see Services/TrayService.cs) rather than relying on implicit Application-level
+         TargetType styles here: a ContextMenu opened standalone (IsOpen=true, no PlacementTarget/owner in
+         the logical tree) didn't reliably pick up an implicit style for its own chrome in hands-on testing
+         - it kept the default light Aero2/Fluent look even with a matching style present in this file. -->
     <Application.Resources />
 </Application>

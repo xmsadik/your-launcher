@@ -12,8 +12,11 @@ namespace YourLauncher.App.Services;
 /// </summary>
 public sealed class LaunchService
 {
-    /// <summary>Fired from a background thread for hidden-command exit-code monitoring; subscribers must marshal to the UI thread themselves.</summary>
+    /// <summary>Panel-visible launch failures only (spec §8.1). Hidden-command non-zero exit codes go through <see cref="HiddenCommandExited"/> instead (spec §10 item 8) so they surface as a tray balloon rather than a panel error line the user may never see.</summary>
     public event Action<string>? ErrorOccurred;
+
+    /// <summary>Fired from a background thread when a <c>window: hidden</c> command finishes with a non-zero exit code (spec §8.2/§10 item 8); subscribers must marshal to the UI thread themselves.</summary>
+    public event Action<string, int>? HiddenCommandExited;
 
     /// <summary>Returns true if a process was started. Folders are not launchable and return false without side effects.</summary>
     public bool Launch(Node node, Settings settings)
@@ -107,10 +110,8 @@ public sealed class LaunchService
         await process.WaitForExitAsync().ConfigureAwait(false);
         if (process.ExitCode != 0)
         {
-            // TODO Phase 5: surface this via a tray notification instead. For now, log and (if the
-            // launcher happens to still be visible) surface it through the panel's error line.
             Debug.WriteLine($"Hidden command '{displayName}' exited with code {process.ExitCode}.");
-            ErrorOccurred?.Invoke($"'{displayName}' exited with code {process.ExitCode}.");
+            HiddenCommandExited?.Invoke(displayName, process.ExitCode);
         }
     }
 }

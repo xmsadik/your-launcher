@@ -15,6 +15,17 @@ internal static partial class Win32
 
     public const uint MONITOR_DEFAULTTONEAREST = 2;
 
+    public const uint WM_APP = 0x8000;
+    public const uint WM_NULL = 0x0000;
+    public const uint WM_LBUTTONUP = 0x0202;
+    public const uint WM_LBUTTONDBLCLK = 0x0203;
+    public const uint WM_RBUTTONUP = 0x0205;
+    public const uint NIN_BALLOONUSERCLICK = 0x0400 + 5; // WM_USER + 5
+
+    public const uint ASFW_ANY = 0xFFFFFFFF;
+    public const byte VK_MENU = 0x12;
+    public const uint KEYEVENTF_KEYUP = 0x0002;
+
     // ---- Icons (Phase 4): SHGetFileInfo/ExtractIconEx/SHDefExtractIconW pull in a fixed-size string
     // field (SHFILEINFO.szDisplayName) that the LibraryImport source generator can't marshal on its own,
     // so these use the classic DllImport rather than the LibraryImport style used above.
@@ -77,6 +88,97 @@ internal static partial class Win32
     /// <summary>System DPI (Windows 10 1607+), used once at startup to size icon extraction (spec §7.1) before any window/HWND exists to ask <c>VisualTreeHelper.GetDpi</c> instead.</summary>
     [LibraryImport("user32.dll")]
     public static partial uint GetDpiForSystem();
+
+    // ---- Tray icon (Phase 5, own Shell_NotifyIcon interop rather than WinForms - spec §10 item 6). The
+    // fixed-size string fields in NOTIFYICONDATAW need the classic DllImport marshaller, same reasoning as
+    // SHFILEINFO above. ----
+    public const uint NIM_ADD = 0x00000000;
+    public const uint NIM_MODIFY = 0x00000001;
+    public const uint NIM_DELETE = 0x00000002;
+
+    public const uint NIF_MESSAGE = 0x00000001;
+    public const uint NIF_ICON = 0x00000002;
+    public const uint NIF_TIP = 0x00000004;
+    public const uint NIF_INFO = 0x00000010;
+
+    public const uint NIIF_INFO = 0x00000001;
+    public const uint NIIF_WARNING = 0x00000002;
+    public const uint NIIF_NOSOUND = 0x00000010;
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct NOTIFYICONDATA
+    {
+        public int cbSize;
+        public IntPtr hWnd;
+        public uint uID;
+        public uint uFlags;
+        public uint uCallbackMessage;
+        public IntPtr hIcon;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string szTip;
+
+        public uint dwState;
+        public uint dwStateMask;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string szInfo;
+
+        public uint uVersionOrTimeout;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string szInfoTitle;
+
+        public uint dwInfoFlags;
+        public Guid guidItem;
+        public IntPtr hBalloonIcon;
+    }
+
+    [DllImport("shell32.dll", EntryPoint = "Shell_NotifyIconW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern bool Shell_NotifyIcon(uint dwMessage, ref NOTIFYICONDATA lpData);
+
+    [DllImport("user32.dll", EntryPoint = "RegisterWindowMessageW", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern uint RegisterWindowMessage(string lpString);
+
+    [LibraryImport("user32.dll", EntryPoint = "PostMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PostMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr GetForegroundWindow();
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AllowSetForegroundWindow(uint dwProcessId);
+
+    [LibraryImport("user32.dll")]
+    public static partial void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+    [LibraryImport("user32.dll")]
+    public static partial uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr lpdwProcessId);
+
+    [LibraryImport("kernel32.dll")]
+    public static partial uint GetCurrentThreadId();
+
+    // ---- Per-monitor DPI (spec §10 item 10: fix only the centering term) and DWM window chrome (§10 item 11). ----
+    public const int MDT_EFFECTIVE_DPI = 0;
+
+    [LibraryImport("Shcore.dll")]
+    public static partial int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    public const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+    public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    public const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+
+    public const int DWMWCP_ROUND = 2;
+    public const int DWMSBT_TRANSIENTWINDOW = 3;
+
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT

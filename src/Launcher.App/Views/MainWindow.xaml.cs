@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shell;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
 using YourLauncher.App.ViewModels;
@@ -48,6 +49,12 @@ public partial class MainWindow : Window
                 // Let the Visibility bindings for the new page apply before moving focus into it.
                 Dispatcher.BeginInvoke(DispatcherPriority.Input, MoveFocusToCurrentPage);
             }
+            else if (e.PropertyName == nameof(MainViewModel.MaxVisibleItems))
+            {
+                // settings.maxVisibleItems can change via a config reload (spec §10 item 2) - MaxHeight
+                // isn't bound (it's a fixed-row-count computation, not a simple value), so re-apply it here.
+                ItemsList.MaxHeight = RowHeight * Math.Max(1, _viewModel.MaxVisibleItems);
+            }
         };
     }
 
@@ -56,6 +63,7 @@ public partial class MainWindow : Window
 
     public void EndSuppressAutoHide() => _suppressAutoHideCount = Math.Max(0, _suppressAutoHideCount - 1);
 
+    /// <summary>Hotkey path: always resets to root first (spec: launcher always opens at root).</summary>
     public void ShowLauncher()
     {
         var stopwatch = Stopwatch.StartNew();
@@ -66,22 +74,36 @@ public partial class MainWindow : Window
 
         Show();
         Activate();
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd != IntPtr.Zero)
-        {
-            Win32.SetForegroundWindow(hwnd);
-        }
+        ForceForeground();
 
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
 
         stopwatch.Stop();
-        Debug.WriteLine($"[YourLauncher] Show latency: {stopwatch.ElapsedMilliseconds} ms");
+        Debug.WriteLine($"[YourLauncher] Show latency (WM_HOTKEY/pipe/tray -> Activated): {stopwatch.ElapsedMilliseconds} ms");
+    }
+
+    /// <summary>
+    /// Tray/pipe "show" path (spec §10 item 1): if the panel is already visible (or a Browse… dialog is
+    /// open), just re-foreground it - no <see cref="MainViewModel.ResetToRoot"/>, so a request from another
+    /// instance/the tray icon never throws away where the user currently is. Only shows-from-hidden goes
+    /// through the same reset-to-root path as the hotkey.
+    /// </summary>
+    public void RequestShow()
+    {
+        if (IsVisible || _suppressAutoHideCount > 0)
+        {
+            ForceForeground();
+            return;
+        }
+
+        ShowLauncher();
     }
 
     public void HideLauncher()
     {
         _viewModel.ClearCutState();
+        _viewModel.FlushPendingReloadIfAny();
         Hide();
     }
 
@@ -95,6 +117,38 @@ public partial class MainWindow : Window
         {
             ShowLauncher();
         }
+    }
+
+    /// <summary>
+    /// Spec §10 item 1: after asking for the foreground, if it wasn't granted (foreground-lock timeout -
+    /// most likely when a different process, e.g. a second app instance via the pipe, requested the show),
+    /// simulate an Alt key press/release (a well-known way to defeat that lock) and try once more. If it's
+    /// still refused, hide again rather than leave an unfocused Topmost panel that can't auto-hide.
+    /// </summary>
+    private void ForceForeground()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        Win32.SetForegroundWindow(hwnd);
+        if (Win32.GetForegroundWindow() != hwnd)
+        {
+            Win32.keybd_event(Win32.VK_MENU, 0, 0, UIntPtr.Zero);
+            Win32.keybd_event(Win32.VK_MENU, 0, Win32.KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Win32.SetForegroundWindow(hwnd);
+        }
+
+        if (Win32.GetForegroundWindow() != hwnd)
+        {
+            Hide();
+            return;
+        }
+
+        SearchBox.Focus();
+        Keyboard.Focus(SearchBox);
     }
 
     private void MainWindow_OnDeactivated(object? sender, EventArgs e)
@@ -131,6 +185,15 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Spec §10 item 10 (replaces the original §6 approach): keeps WPF Left/Top (no raw SetWindowPos) and
+    /// fixes only the centering term. The original code divided the *target* monitor's work area by the
+    /// *window's current* DPI, which is wrong whenever the two differ (e.g. hotkey pressed with the cursor
+    /// on a monitor at a different scale than the one the window last lived on) - work-area pixels must be
+    /// converted using the target monitor's own DPI (<c>GetDpiForMonitor</c>), while the window's DIP
+    /// <see cref="Width"/> is scaled by targetScale/currentScale so its actual on-screen footprint is
+    /// centered correctly once WPF renders it at whichever DPI the window ends up on.
+    /// </summary>
     private void PositionOnCursorMonitor()
     {
         if (!Win32.GetCursorPos(out var cursor))
@@ -145,15 +208,103 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dpi = VisualTreeHelper.GetDpi(this);
+        var currentScale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        var targetScale = currentScale;
+        if (Win32.GetDpiForMonitor(hMonitor, Win32.MDT_EFFECTIVE_DPI, out var dpiX, out _) == 0)
+        {
+            targetScale = dpiX / 96.0;
+        }
 
-        var workLeft = info.rcWork.Left / dpi.DpiScaleX;
-        var workTop = info.rcWork.Top / dpi.DpiScaleY;
-        var workWidth = (info.rcWork.Right - info.rcWork.Left) / dpi.DpiScaleX;
-        var workHeight = (info.rcWork.Bottom - info.rcWork.Top) / dpi.DpiScaleY;
+        var workLeft = info.rcWork.Left / targetScale;
+        var workTop = info.rcWork.Top / targetScale;
+        var workWidth = (info.rcWork.Right - info.rcWork.Left) / targetScale;
+        var workHeight = (info.rcWork.Bottom - info.rcWork.Top) / targetScale;
 
-        Left = workLeft + (workWidth - Width) / 2.0;
+        var effectiveWidth = Width * targetScale / currentScale;
+
+        Left = workLeft + (workWidth - effectiveWidth) / 2.0;
         Top = workTop + workHeight / 3.0;
+    }
+
+    /// <summary>Spec §10 item 10: re-run the fixed centering whenever the window's own DPI changes (e.g. dragged/moved across monitors of different scale - not expected for this cursor-monitor-only panel, but cheap to keep correct).</summary>
+    protected override void OnDpiChanged(DpiScale oldDpiScaleInfo, DpiScale newDpiScaleInfo)
+    {
+        base.OnDpiChanged(oldDpiScaleInfo, newDpiScaleInfo);
+        PositionOnCursorMonitor();
+    }
+
+    /// <summary>
+    /// Spec §10 item 11: Mica/Acrylic + rounded corners on Windows 11, applied once the HWND exists. Any
+    /// failure along the way (Win10, or a DWM call failing) leaves the window exactly as XAML compiled it -
+    /// solid #1E1E1E background, square corners, <see cref="AllowsTransparency"/> stays false throughout
+    /// (a layered/transparent window breaks the DWM backdrop entirely).
+    /// </summary>
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        ApplyWindowChromeAndBackdrop();
+    }
+
+    private void ApplyWindowChromeAndBackdrop()
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var build = Environment.OSVersion.Version.Build;
+            if (build < 22000)
+            {
+                return; // Win10 or older: keep the compiled solid look.
+            }
+
+            var darkMode = 1; // Phase 6: a theme switch flips this.
+            Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_USE_IMMERSIVE_DARK_MODE, ref darkMode, sizeof(int));
+
+            var corner = Win32.DWMWCP_ROUND;
+            Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
+
+            if (build < 22621)
+            {
+                return; // Corners still round on 22000-22620; the backdrop itself needs 22H2+.
+            }
+
+            var backdrop = Win32.DWMSBT_TRANSIENTWINDOW;
+            var hr = Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_SYSTEMBACKDROP_TYPE, ref backdrop, sizeof(int));
+            if (hr != 0)
+            {
+                return; // HRESULT != S_OK: keep the solid background (readability over effect).
+            }
+
+            // The window itself must go fully transparent (composition-target level, not
+            // AllowsTransparency) for the DWM backdrop to actually show through; the visible tint comes
+            // from RootBorder's own background instead. ResizeMode must allow resizing for DWM to treat
+            // the window as round-corner/backdrop eligible - WindowChrome's zeroed resize border keeps it
+            // effectively non-resizable to the user.
+            ResizeMode = ResizeMode.CanResize;
+            WindowChrome.SetWindowChrome(this, new WindowChrome
+            {
+                CaptionHeight = 0,
+                ResizeBorderThickness = new Thickness(0),
+                GlassFrameThickness = new Thickness(-1),
+                UseAeroCaptionButtons = false,
+            });
+
+            if (HwndSource.FromHwnd(hwnd)?.CompositionTarget is { } compositionTarget)
+            {
+                compositionTarget.BackgroundColor = Colors.Transparent;
+            }
+
+            Background = Brushes.Transparent;
+            RootBorder.Background = new SolidColorBrush(Color.FromArgb(0xE6, 0x1E, 0x1E, 0x1E));
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            Debug.WriteLine($"[YourLauncher] Mica/Acrylic setup failed, keeping the solid fallback look: {ex.Message}");
+        }
     }
 
     private void SearchBox_OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -180,6 +331,21 @@ public partial class MainWindow : Window
         if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.Q)
         {
             Application.Current.Shutdown();
+            e.Handled = true;
+            return;
+        }
+
+        // ---- Config reload / recovery (spec §4, revised §10 items 3-4). ----
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.R)
+        {
+            _viewModel.RecoverFromCorruption();
+            e.Handled = true;
+            return;
+        }
+
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.R)
+        {
+            _viewModel.RequestReload();
             e.Handled = true;
             return;
         }
