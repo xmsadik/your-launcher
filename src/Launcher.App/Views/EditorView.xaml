@@ -1,0 +1,319 @@
+<UserControl x:Class="YourLauncher.App.Views.EditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:YourLauncher.App.Converters"
+             Focusable="True"
+             FocusVisualStyle="{x:Null}"
+             PreviewKeyDown="EditorView_OnPreviewKeyDown">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <conv:StringNonEmptyToVisibilityConverter x:Key="NonEmptyToVis" />
+
+        <Style TargetType="TextBlock" x:Key="FieldLabel">
+            <Setter Property="Foreground" Value="#8A8A8A" />
+            <Setter Property="Width" Value="112" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#2A2A2E" />
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="CaretBrush" Value="#E6E6E6" />
+            <Setter Property="BorderBrush" Value="#3B4048" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+
+        <!--
+            WPF's default ComboBox ControlTemplate hard-codes light-theme chrome for the closed box and
+            popup regardless of simple Background/Foreground Setters (they only reach the outer border),
+            which made the two ComboBoxes here (Shell, Window) render with washed-out, barely legible
+            text against this panel's dark background. A small custom template fixes that; everything
+            else (selection, keyboard, popup behavior) still comes from the base ComboBox/ComboBoxItem
+            control logic.
+        -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2D2D30" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#2A2A2E" />
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="BorderBrush" Value="#3B4048" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="Toggle"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="1"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          Focusable="False"
+                                          ClickMode="Press">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="20" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path Grid.Column="1"
+                                                      Data="M0,0 L4,4 L8,0 Z"
+                                                      Fill="#8A8A8A"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                               ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                               Margin="{TemplateBinding Padding}"
+                                               HorizontalAlignment="Left"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False"
+                                               TextElement.Foreground="{TemplateBinding Foreground}" />
+                            <Popup x:Name="Popup"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   PopupAnimation="None">
+                                <Border Background="#2A2A2E"
+                                        BorderBrush="#3B4048"
+                                        BorderThickness="1"
+                                        MinWidth="{TemplateBinding ActualWidth}">
+                                    <ScrollViewer Margin="0" SnapsToDevicePixels="True">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="BrowseButton">
+            <Setter Property="Background" Value="#2A2A2E" />
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="BorderBrush" Value="#3B4048" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E6E6E6" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Margin="12,10,12,10">
+
+        <!-- Name -->
+        <Grid Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Name" Style="{StaticResource FieldLabel}" />
+            <StackPanel Grid.Column="1">
+                <TextBox x:Name="NameBox" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Text="{Binding NameError}"
+                           Foreground="#E06C75"
+                           FontSize="12"
+                           Margin="0,2,0,0"
+                           Visibility="{Binding NameError, Converter={StaticResource NonEmptyToVis}}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Target (app / path / url) -->
+        <Grid Margin="0,4,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsFolder}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsCommand}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <TextBlock Grid.Column="0" Style="{StaticResource FieldLabel}">
+                <TextBlock.Text>
+                    <Binding Path="IsUrl">
+                        <Binding.Converter>
+                            <conv:UrlOrTargetLabelConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </TextBlock.Text>
+            </TextBlock>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBox x:Name="TargetBox"
+                         Width="360"
+                         Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}"
+                         LostFocus="TargetBox_OnLostFocus" />
+                <Button Content="Browse…"
+                        Style="{StaticResource BrowseButton}"
+                        Click="BrowseFile_OnClick"
+                        Visibility="{Binding ShowTargetBrowse, Converter={StaticResource BoolToVis}}" />
+                <Button Content="Folder…"
+                        Style="{StaticResource BrowseButton}"
+                        Click="BrowseFolder_OnClick"
+                        Visibility="{Binding IsPath, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Command (multi-line) + Shell -->
+        <StackPanel Visibility="{Binding IsCommand, Converter={StaticResource BoolToVis}}">
+            <Grid Margin="0,4,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Command" Style="{StaticResource FieldLabel}" />
+                <TextBox x:Name="CommandBox"
+                         Grid.Column="1"
+                         Text="{Binding Command, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"
+                         Height="60"
+                         VerticalScrollBarVisibility="Auto" />
+            </Grid>
+            <Grid Margin="0,4,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Shell" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" />
+                <ComboBox x:Name="ShellCombo" Grid.Column="1" Width="160" HorizontalAlignment="Left" SelectionChanged="ShellCombo_OnSelectionChanged">
+                    <ComboBoxItem Content="Default" />
+                    <ComboBoxItem Content="pwsh" />
+                    <ComboBoxItem Content="powershell" />
+                    <ComboBoxItem Content="cmd" />
+                </ComboBox>
+            </Grid>
+        </StackPanel>
+
+        <!-- Advanced ▸ -->
+        <StackPanel Visibility="{Binding ShowAdvancedSection, Converter={StaticResource BoolToVis}}" Margin="0,6,0,0">
+            <TextBlock x:Name="AdvancedToggle"
+                       Foreground="#8A8A8A"
+                       Cursor="Hand"
+                       MouseLeftButtonUp="AdvancedToggle_OnMouseLeftButtonUp">
+                <TextBlock.Text>
+                    <Binding Path="IsAdvancedExpanded">
+                        <Binding.Converter>
+                            <conv:AdvancedToggleTextConverter />
+                        </Binding.Converter>
+                    </Binding>
+                </TextBlock.Text>
+            </TextBlock>
+
+            <StackPanel Visibility="{Binding IsAdvancedExpanded, Converter={StaticResource BoolToVis}}" Margin="0,4,0,0">
+
+                <!-- app: Arguments -->
+                <Grid Margin="0,4,0,4" Visibility="{Binding IsApp, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Arguments" Style="{StaticResource FieldLabel}" />
+                    <TextBox Grid.Column="1" Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+
+                <!-- app + command: Working directory -->
+                <Grid Margin="0,4,0,4" Visibility="{Binding ShowWorkingDirectory, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Working directory" Style="{StaticResource FieldLabel}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBox x:Name="WorkingDirectoryBox" Width="300" Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Content="Browse…" Style="{StaticResource BrowseButton}" Click="BrowseWorkingDirectory_OnClick" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- command: Window -->
+                <Grid Margin="0,4,0,4" Visibility="{Binding IsCommand, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Window" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" />
+                    <ComboBox x:Name="WindowCombo" Grid.Column="1" Width="160" HorizontalAlignment="Left" SelectionChanged="WindowCombo_OnSelectionChanged">
+                        <ComboBoxItem Content="Visible" />
+                        <ComboBoxItem Content="Hidden" />
+                    </ComboBox>
+                </Grid>
+
+                <!-- command: Keep open -->
+                <CheckBox Content="Keep open"
+                          IsChecked="{Binding KeepOpen}"
+                          IsEnabled="{Binding KeepOpenEnabled}"
+                          Visibility="{Binding IsCommand, Converter={StaticResource BoolToVis}}" />
+
+                <!-- app + command: Run as administrator -->
+                <CheckBox Content="Run as administrator"
+                          IsChecked="{Binding RunAsAdmin}"
+                          Visibility="{Binding ShowRunAsAdmin, Converter={StaticResource BoolToVis}}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Keywords -->
+        <Grid Margin="0,10,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Keywords" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Column="1" Text="{Binding KeywordsText, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <!-- Description -->
+        <Grid Margin="0,4,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Description" Style="{StaticResource FieldLabel}" />
+            <TextBox Grid.Column="1" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <!-- Warning (target not found) -->
+        <TextBlock Text="{Binding WarningMessage}"
+                   Foreground="#E5C07B"
+                   Margin="0,8,0,0"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding WarningMessage, Converter={StaticResource NonEmptyToVis}}" />
+    </StackPanel>
+</UserControl>

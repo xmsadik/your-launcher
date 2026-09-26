@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <!-- UseWindowsForms is intentionally omitted for Phase 1 (not needed until the Phase 3 file picker /
+         Phase 5 tray icon); enabling it alongside UseWPF pulls in ambiguous System.Windows.Forms types
+         (Application, KeyEventArgs, ...) that collide with WPF's. Add it back only when actually needed. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>YourLauncher.App</RootNamespace>
+    <AssemblyName>YourLauncher</AssemblyName>
+    <Product>Your Launcher</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('app.ico')">app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Launcher.Core\Launcher.Core.csproj" />
+  </ItemGroup>
+
+</Project>
