@@ -258,3 +258,8 @@ Build 0 uyarı, 114/114 test yeşil. Görsel test: tip seçici (ikon + F/A/P/C/U
 - "Target not found — saved anyway." uyarısı editör kapanınca kayboluyordu → listedeki mesaj satırında gösteriliyor.
 - URL şema kontrolü `://` arıyordu (`mailto:` bozuluyordu) → gerçek şema kontrolü; `host:port` ve düz alan adı `https://` alır.
 - config.json'da alan sırası okunaksızdı (id/name sonda) → `JsonPropertyOrder`: id, type, name, tipe özel, keywords, description, icon, children. Testi eklendi.
+
+## Devam noktası (ara verildi 2026-09-26)
+- Aşama 1–3 tamam, 114 test yeşil; `main` → https://github.com/xmsadik/your-launcher (private), commit `99fb3ca`.
+- Sıradaki: **Aşama 4 — İkonlar** (yukarıdaki checklist). Sonra 5 (tray, tek instance, başlangıç, watcher, DPI, Mica) ve 6 (cila; ayarlarda "Start with Windows" anahtarı dahil).
+- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; Debug build ~147 MB (bellek hedefi Release'te Aşama 5'te ölçülecek); tray gelene kadar çıkış `Ctrl+Q`.
