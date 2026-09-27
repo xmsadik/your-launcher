@@ -478,4 +478,17 @@ public class TreeOpsTests
         Assert.NotEqual(id1, id2);
         Assert.True(Guid.TryParse(id1, out _));
     }
+
+    [Fact]
+    public void Duplicate_Separator_KeepsNameWithoutCopySuffix()
+    {
+        var original = new SeparatorNode { Id = "sep" };
+        var root = Folder("root", "Root", App("a", "A"), original);
+
+        var clone = TreeOps.Duplicate(root, original);
+
+        Assert.IsType<SeparatorNode>(clone);
+        Assert.Equal("", clone!.Name);
+        Assert.Equal(new[] { "a", "sep", clone.Id }, root.Children.Select(n => n.Id));
+    }
 }

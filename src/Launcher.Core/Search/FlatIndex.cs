@@ -31,7 +31,7 @@ public sealed class FlatIndexEntry
 
 /// <summary>
 /// Flattened, pre-normalized view of the whole config tree (spec §7): one entry per node, excluding the
-/// root itself. Cheap to rebuild - call <see cref="Build"/> again whenever the config is (re)loaded.
+/// root itself and separators. Cheap to rebuild - call <see cref="Build"/> again whenever the config is (re)loaded.
 /// </summary>
 public sealed class FlatIndex
 {
@@ -51,6 +51,11 @@ public sealed class FlatIndex
     {
         foreach (var child in folder.Children)
         {
+            if (child is SeparatorNode)
+            {
+                continue; // a divider line, never a search result.
+            }
+
             entries.Add(CreateEntry(child, chain));
 
             if (child is FolderNode childFolder)

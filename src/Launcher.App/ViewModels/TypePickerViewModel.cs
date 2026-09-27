@@ -10,14 +10,15 @@ public enum NodeKind
     Path,
     Command,
     Url,
+    Separator,
 }
 
 /// <summary>One row of the type picker: glyph (same Segoe Fluent icons as the list), display name, key hint letter.</summary>
 public sealed record TypePickerOption(NodeKind Kind, string Glyph, string Name, string KeyHint);
 
 /// <summary>
-/// Drives the Ctrl+N type picker (spec §9 step 1 / D6): vertical list of the 5 node kinds. ↑/↓ wrap,
-/// Enter confirms the current selection, a key hint letter (F/A/P/C/U) selects immediately. Owned by
+/// Drives the Ctrl+N type picker (spec §9 step 1 / D6): vertical list of the 6 node kinds. ↑/↓ wrap,
+/// Enter confirms the current selection, a key hint letter (F/A/P/C/U/S) selects immediately. Owned by
 /// MainViewModel while <see cref="PanelPage.TypePicker"/> is the current page.
 /// </summary>
 public sealed partial class TypePickerViewModel : ObservableObject
@@ -29,6 +30,7 @@ public sealed partial class TypePickerViewModel : ObservableObject
         new TypePickerOption(NodeKind.Path, "", "File or folder", "P"),
         new TypePickerOption(NodeKind.Command, "", "Command", "C"),
         new TypePickerOption(NodeKind.Url, "", "URL", "U"),
+        new TypePickerOption(NodeKind.Separator, "", "Separator", "S"),
     };
 
     [ObservableProperty]

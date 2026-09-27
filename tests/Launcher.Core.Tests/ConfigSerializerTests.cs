@@ -190,4 +190,21 @@ public class ConfigSerializerTests
         Assert.Null(result.Config);
         Assert.NotNull(result.Error);
     }
+
+    [Fact]
+    public void RoundTrip_Separator_KeepsTypeAndPosition()
+    {
+        var config = new LauncherConfig();
+        config.Root.Children.Add(new AppNode { Id = "a", Name = "A", Target = "a.exe" });
+        config.Root.Children.Add(new SeparatorNode { Id = "sep" });
+        config.Root.Children.Add(new AppNode { Id = "b", Name = "B", Target = "b.exe" });
+
+        var json = ConfigSerializer.Serialize(config);
+        var result = ConfigSerializer.Deserialize(json);
+
+        Assert.Contains("\"type\": \"separator\"", json);
+        Assert.True(result.Success, result.Error);
+        var separator = Assert.IsType<SeparatorNode>(result.Config!.Root.Children[1]);
+        Assert.Equal("sep", separator.Id);
+    }
 }

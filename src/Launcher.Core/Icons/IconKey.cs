@@ -36,6 +36,7 @@ public static class IconKey
             FolderNode => "glyph|default-folder",
             CommandNode => "glyph|default-command",
             UrlNode => "glyph|default-url",
+            SeparatorNode => null,
             _ => "glyph|default-folder",
         };
     }

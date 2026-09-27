@@ -792,9 +792,10 @@ public partial class MainWindow : Window
         var style = ThemedMenuFactory.CreateMenuItemStyle();
         var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
 
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly));
+        var isSeparator = item.IsSeparator;
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected(), enabled: !isSeparator));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly && !isSeparator));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly && !isSeparator));
         menu.Items.Add(ThemedMenuFactory.CreateItem("Cut", style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly));
         menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
         menu.Items.Add(ThemedMenuFactory.CreateItem("Duplicate", style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly));

@@ -154,4 +154,15 @@ public class SearchEngineTests
         var root = Root(new AppNode { Id = "1", Name = "Anything", Target = "x.exe" });
         Assert.Empty(new SearchEngine().Search(BuildIndex(root), "   "));
     }
+
+    [Fact]
+    public void FlatIndex_ExcludesSeparators()
+    {
+        var root = Root(
+            new AppNode { Id = "1", Name = "Anything", Target = "x.exe" },
+            new SeparatorNode { Id = "sep" },
+            new FolderNode { Id = "f", Name = "F", Children = { new SeparatorNode { Id = "sep2" } } });
+
+        Assert.Equal(new[] { "1", "f" }, BuildIndex(root).Entries.Select(e => e.Node.Id));
+    }
 }

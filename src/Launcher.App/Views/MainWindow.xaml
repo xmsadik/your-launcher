@@ -177,77 +177,98 @@
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid ToolTip="{Binding IsTargetMissing, Converter={StaticResource MissingTargetTooltip}}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="24" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.Style>
-                                <Style TargetType="Grid">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsTargetMissing}" Value="True">
-                                            <Setter Property="Opacity" Value="0.55" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsCut}" Value="True">
-                                            <Setter Property="Opacity" Value="0.45" />
-                                            <Setter Property="TextElement.FontStyle" Value="Italic" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Grid.Style>
+                        <Grid>
+                            <!-- Separator row: just a divider line (still selectable, so it can be moved/deleted). -->
+                            <Border Height="1"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource SecondaryTextBrush}"
+                                    Visibility="{Binding IsSeparator, Converter={StaticResource BoolToVis}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Opacity" Value="0.5" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCut}" Value="True">
+                                                <Setter Property="Opacity" Value="0.2" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+                            <Grid ToolTip="{Binding IsTargetMissing, Converter={StaticResource MissingTargetTooltip}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="24" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTargetMissing}" Value="True">
+                                                <Setter Property="Opacity" Value="0.55" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsCut}" Value="True">
+                                                <Setter Property="Opacity" Value="0.45" />
+                                                <Setter Property="TextElement.FontStyle" Value="Italic" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
 
-                            <!-- Icon cell: IconImage -> EmojiText -> Glyph (spec §4.3), plus a bottom-right
-                                 warning badge when the app/path target can't be found. -->
-                            <Grid Grid.Column="0" Width="24" Height="24">
-                                <Image Width="20" Height="20"
-                                       Source="{Binding IconImage}"
-                                       Visibility="{Binding IconImage, Converter={StaticResource NullToVis}}"
-                                       RenderOptions.BitmapScalingMode="HighQuality" />
-                                <TextBlock Text="{Binding EmojiText}"
-                                           FontFamily="Segoe UI Emoji"
-                                           FontSize="16"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Visibility>
-                                        <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Emoji">
-                                            <Binding Path="IconImage" />
-                                            <Binding Path="EmojiText" />
-                                        </MultiBinding>
-                                    </TextBlock.Visibility>
-                                </TextBlock>
-                                <TextBlock Text="{Binding Glyph}"
-                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                           FontSize="16"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Visibility>
-                                        <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Glyph">
-                                            <Binding Path="IconImage" />
-                                            <Binding Path="EmojiText" />
-                                        </MultiBinding>
-                                    </TextBlock.Visibility>
-                                </TextBlock>
-                                <TextBlock Text="&#xE7BA;"
-                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                                           FontSize="10"
-                                           Foreground="{DynamicResource MissingBadgeBrush}"
-                                           HorizontalAlignment="Right"
-                                           VerticalAlignment="Bottom"
-                                           Visibility="{Binding IsTargetMissing, Converter={StaticResource BoolToVis}}" />
+                                <!-- Icon cell: IconImage -> EmojiText -> Glyph (spec §4.3), plus a bottom-right
+                                     warning badge when the app/path target can't be found. -->
+                                <Grid Grid.Column="0" Width="24" Height="24">
+                                    <Image Width="20" Height="20"
+                                           Source="{Binding IconImage}"
+                                           Visibility="{Binding IconImage, Converter={StaticResource NullToVis}}"
+                                           RenderOptions.BitmapScalingMode="HighQuality" />
+                                    <TextBlock Text="{Binding EmojiText}"
+                                               FontFamily="Segoe UI Emoji"
+                                               FontSize="16"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Visibility>
+                                            <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Emoji">
+                                                <Binding Path="IconImage" />
+                                                <Binding Path="EmojiText" />
+                                            </MultiBinding>
+                                        </TextBlock.Visibility>
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding Glyph}"
+                                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                               FontSize="16"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Visibility>
+                                            <MultiBinding Converter="{StaticResource IconTierToVis}" ConverterParameter="Glyph">
+                                                <Binding Path="IconImage" />
+                                                <Binding Path="EmojiText" />
+                                            </MultiBinding>
+                                        </TextBlock.Visibility>
+                                    </TextBlock>
+                                    <TextBlock Text="&#xE7BA;"
+                                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                               FontSize="10"
+                                               Foreground="{DynamicResource MissingBadgeBrush}"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Bottom"
+                                               Visibility="{Binding IsTargetMissing, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+
+                                <!-- Name has priority over the secondary text (a search result's folder path
+                                     can be long); the path is shortened from its start, full text in its tooltip. -->
+                                <controls:NameAndPathPanel Grid.Column="1" Grid.ColumnSpan="2" Margin="8,0,0,0">
+                                    <TextBlock controls:HighlightedText.Text="{Binding Name}"
+                                               controls:HighlightedText.Positions="{Binding HighlightPositions}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <controls:PathText Text="{Binding SecondaryText}"
+                                                       Foreground="{DynamicResource SecondaryTextBrush}"
+                                                       VerticalAlignment="Center" />
+                                </controls:NameAndPathPanel>
                             </Grid>
-
-                            <!-- Name has priority over the secondary text (a search result's folder path
-                                 can be long); the path is shortened from its start, full text in its tooltip. -->
-                            <controls:NameAndPathPanel Grid.Column="1" Grid.ColumnSpan="2" Margin="8,0,0,0">
-                                <TextBlock controls:HighlightedText.Text="{Binding Name}"
-                                           controls:HighlightedText.Positions="{Binding HighlightPositions}"
-                                           VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis" />
-                                <controls:PathText Text="{Binding SecondaryText}"
-                                                   Foreground="{DynamicResource SecondaryTextBrush}"
-                                                   VerticalAlignment="Center" />
-                            </controls:NameAndPathPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

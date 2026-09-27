@@ -44,6 +44,9 @@ public sealed partial class ListItemViewModel : ObservableObject
 
     public bool IsFolder => Node is FolderNode;
 
+    /// <summary>Rendered as a plain divider line instead of icon + name.</summary>
+    public bool IsSeparator => Node is SeparatorNode;
+
     /// <summary>True while this node is the current Ctrl+X target (spec §6.3) - shown dimmed/italic until paste/another cut/hide clears it.</summary>
     public bool IsCut { get; init; }
 

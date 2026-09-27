@@ -434,7 +434,7 @@ public sealed partial class MainViewModel : ObservableObject
     public void EnterSelected()
     {
         var item = SelectedItem;
-        if (item is null)
+        if (item is null || item.IsSeparator)
         {
             return;
         }
@@ -640,7 +640,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>F2: edit the selected node.</summary>
     public void BeginEditSelected()
     {
-        if (BlockIfReadOnly() || SelectedNode is null)
+        if (BlockIfReadOnly() || SelectedNode is null or SeparatorNode)
         {
             return;
         }
@@ -655,7 +655,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Ctrl+I: open the icon picker for the selected node.</summary>
     public void BeginChangeIcon()
     {
-        if (BlockIfReadOnly() || SelectedNode is null)
+        if (BlockIfReadOnly() || SelectedNode is null or SeparatorNode)
         {
             return;
         }
@@ -724,7 +724,37 @@ public sealed partial class MainViewModel : ObservableObject
     private void OnTypePicked(NodeKind kind)
     {
         DetachTypePicker();
+        if (kind == NodeKind.Separator)
+        {
+            CurrentPage = PanelPage.List;
+            AddSeparator();
+            return;
+        }
+
         OpenEditorForAdd(kind);
+    }
+
+    /// <summary>A separator has nothing to edit, so it skips the editor: inserted right below the selected item (nav mode), else appended to the current folder.</summary>
+    private void AddSeparator()
+    {
+        // Leaving the picker already applied any deferred reload, so this inserts into the fresh tree -
+        // unless that reload left the config read-only.
+        if (BlockIfReadOnly())
+        {
+            return;
+        }
+
+        var selected = IsSearchMode ? null : SelectedNode;
+        int? index = selected is null or FolderNode ? null : CurrentFolder.Children.IndexOf(selected) + 1;
+        var separator = new SeparatorNode { Id = TreeOps.NewId() };
+        TreeOps.Add(CurrentFolder, separator, index);
+
+        if (IsSearchMode)
+        {
+            SearchText = "";
+        }
+
+        CommitChangeAndSelect(separator);
     }
 
     private void OnTypePickerCancelled()
@@ -1041,7 +1071,9 @@ public sealed partial class MainViewModel : ObservableObject
 
         _pendingDeleteNode = SelectedNode;
         var descendantCount = CountDescendants(_pendingDeleteNode);
-        ConfirmMessage = _pendingDeleteNode is FolderNode && descendantCount > 0
+        ConfirmMessage = _pendingDeleteNode is SeparatorNode
+            ? "Delete separator? Enter = delete, Esc = cancel"
+            : _pendingDeleteNode is FolderNode && descendantCount > 0
             ? $"Delete folder '{_pendingDeleteNode.Name}' and its {descendantCount} item{(descendantCount == 1 ? "" : "s")}? Enter = delete, Esc = cancel"
             : $"Delete '{_pendingDeleteNode.Name}'? Enter = delete, Esc = cancel";
         CurrentPage = PanelPage.ConfirmDelete;
@@ -1518,7 +1550,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var secondary = node switch
         {
-            FolderNode folder => $"{folder.Children.Count} item{(folder.Children.Count == 1 ? "" : "s")}",
+            FolderNode folder => FormatItemCount(folder.Children.Count(n => n is not SeparatorNode)),
             CommandNode command => Truncate(command.Command, 40),
             _ => "",
         };
@@ -1554,6 +1586,8 @@ public sealed partial class MainViewModel : ObservableObject
         item.ConfigureIconLoading(_iconService, result.Node.Icon, _listGeneration, () => _listGeneration);
         return item;
     }
+
+    private static string FormatItemCount(int count) => $"{count} item{(count == 1 ? "" : "s")}";
 
     private static string Truncate(string text, int maxLength) =>
         text.Length <= maxLength ? text : text[..(maxLength - 1)] + "…";

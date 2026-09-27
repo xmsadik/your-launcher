@@ -33,6 +33,7 @@ public sealed class NodeJsonConverter : JsonConverter<Node>
             "path" => JsonSerializer.Deserialize(raw, LauncherJsonContext.Default.PathNode),
             "command" => JsonSerializer.Deserialize(raw, LauncherJsonContext.Default.CommandNode),
             "url" => JsonSerializer.Deserialize(raw, LauncherJsonContext.Default.UrlNode),
+            "separator" => JsonSerializer.Deserialize(raw, LauncherJsonContext.Default.SeparatorNode),
             var other => throw new JsonException($"Unknown node type '{other}'."),
         };
     }
@@ -55,6 +56,9 @@ public sealed class NodeJsonConverter : JsonConverter<Node>
                 break;
             case UrlNode url:
                 JsonSerializer.Serialize(writer, url, LauncherJsonContext.Default.UrlNode);
+                break;
+            case SeparatorNode separator:
+                JsonSerializer.Serialize(writer, separator, LauncherJsonContext.Default.SeparatorNode);
                 break;
             default:
                 throw new JsonException($"Unknown node type '{value.GetType()}'.");

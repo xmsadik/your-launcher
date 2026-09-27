@@ -21,6 +21,7 @@ namespace YourLauncher.Core.Json;
 [JsonSerializable(typeof(PathNode))]
 [JsonSerializable(typeof(CommandNode))]
 [JsonSerializable(typeof(UrlNode))]
+[JsonSerializable(typeof(SeparatorNode))]
 [JsonSerializable(typeof(UsageData))]
 public partial class LauncherJsonContext : JsonSerializerContext
 {

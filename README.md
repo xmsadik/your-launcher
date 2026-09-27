@@ -127,9 +127,13 @@ Implemented (Phase 3 — editing, spec §6.3/§9):
   `ConfirmDelete` (an inline bar at the bottom of the still-visible List page, not a separate view).
   Esc always returns to List with the previous selection intact; the breadcrumb grows a page suffix
   (`Root › Dev · New item` / `· Edit`) and the search box is hidden on TypePicker/Editor.
-- Type picker (`Ctrl+N`, decision D6): 5 rows (Folder/App/File or folder/Command/URL), glyph + name + dim
-  key-hint letter (F/A/P/C/U); ↑/↓ wrap, Enter or the letter selects, Esc cancels. `Ctrl+Shift+N` skips it
-  and opens the editor directly for a new folder.
+- Type picker (`Ctrl+N`, decision D6): 6 rows (Folder/App/File or folder/Command/URL/Separator), glyph + name
+  + dim key-hint letter (F/A/P/C/U/S); ↑/↓ wrap, Enter or the letter selects, Esc cancels. `Ctrl+Shift+N`
+  skips it and opens the editor directly for a new folder.
+- Separator (`"type": "separator"`): picked from the type picker, it skips the editor and is inserted right
+  below the selected item (appended when a folder or nothing is selected). Shown as a divider line; it can
+  be selected, moved, cut/pasted and deleted, but not launched, edited or given an icon, and it never
+  appears in search results.
 - Editor (`Ctrl+N` after a type, or `F2` on the selection): one `EditorViewModel` built from a node copy
   (Add: a blank node of the chosen kind; Edit: field values read out of the real node) — nothing touches
   the tree until Enter validates and saves. Fields follow spec §4.3 per type, with an "Advanced ▸"

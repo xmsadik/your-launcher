@@ -266,7 +266,7 @@ public static class TreeOps
         }
 
         var clone = DeepClone(node);
-        clone.Name = node.Name + " (copy)";
+        clone.Name = node is SeparatorNode ? node.Name : node.Name + " (copy)";
         AssignNewIds(clone);
 
         var index = parent.Children.IndexOf(node);
