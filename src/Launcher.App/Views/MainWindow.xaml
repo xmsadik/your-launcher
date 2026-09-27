@@ -237,16 +237,17 @@
                                            Visibility="{Binding IsTargetMissing, Converter={StaticResource BoolToVis}}" />
                             </Grid>
 
-                            <TextBlock Grid.Column="1"
-                                       controls:HighlightedText.Text="{Binding Name}"
-                                       controls:HighlightedText.Positions="{Binding HighlightPositions}"
-                                       VerticalAlignment="Center"
-                                       Margin="8,0,8,0"
-                                       TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="2"
-                                       Text="{Binding SecondaryText}"
-                                       Foreground="{DynamicResource SecondaryTextBrush}"
-                                       VerticalAlignment="Center" />
+                            <!-- Name has priority over the secondary text (a search result's folder path
+                                 can be long); the path is shortened from its start, full text in its tooltip. -->
+                            <controls:NameAndPathPanel Grid.Column="1" Grid.ColumnSpan="2" Margin="8,0,0,0">
+                                <TextBlock controls:HighlightedText.Text="{Binding Name}"
+                                           controls:HighlightedText.Positions="{Binding HighlightPositions}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                                <controls:PathText Text="{Binding SecondaryText}"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   VerticalAlignment="Center" />
+                            </controls:NameAndPathPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
