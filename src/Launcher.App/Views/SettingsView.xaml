@@ -146,6 +146,7 @@
             <Button Content="Open config folder" Style="{StaticResource ActionButton}" Click="OpenConfigFolderButton_OnClick" />
             <Button Content="Export…" Style="{StaticResource ActionButton}" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
             <Button Content="Import…" Style="{StaticResource ActionButton}" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button x:Name="ImportBookmarksButton" Content="Import bookmarks…" Style="{StaticResource ActionButton}" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />
         </StackPanel>
 
         <!-- Status / error line -->

@@ -1,5 +1,6 @@
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Model;
 
@@ -73,6 +74,16 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Raised when Import… successfully parses a file - MainViewModel owns the Merge/Replace/cancel prompt (spec §10 item 9), since that mutates the tree, not just Settings.</summary>
     public event Action<LauncherConfig>? ImportParsed;
+
+    /// <summary>
+    /// Raised when "Import bookmarks…" successfully parses a source (browser profile or HTML file).
+    /// Unlike <see cref="ImportParsed"/> there is no Merge/Replace prompt - MainViewModel applies this
+    /// immediately (bookmark spec §2: "MainViewModel applies it immediately... no Merge/Replace prompt"),
+    /// since <see cref="Bookmarks.BookmarkImport.Apply"/> already knows on its own whether this source was
+    /// imported before (replace in place) or not (append as a new folder). Args: the imported folder, its
+    /// stable source key, and the human-readable source label for the status line.
+    /// </summary>
+    public event Action<FolderNode, string, string>? BookmarksParsed;
 
     public SettingsViewModel(
         Settings current,
@@ -228,5 +239,81 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         ImportParsed?.Invoke(result.Config!);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Bookmark import ("Import bookmarks…" button, bookmark spec §2) - discovery + parsing happen here,
+    // same shape as RequestImport above; applying the result to the tree is MainViewModel's job
+    // (BookmarksParsed), since only it can touch the current folder / save / rebuild the search index.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>Every Chromium-family browser profile (+ Opera/Opera GX) with a readable <c>Bookmarks</c> file on this machine, for the button's menu (bookmark spec §2).</summary>
+    public IReadOnlyList<BookmarkSource> DiscoverBookmarkSources() => ChromiumBookmarkLocator.Discover(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+
+    /// <summary>One menu item's click: read + parse the chosen browser's <c>Bookmarks</c> file. Errors go on this page's own error line, nothing changes (bookmark spec §2).</summary>
+    public void RequestImportBookmarksFromSource(BookmarkSource source)
+    {
+        string json;
+        try
+        {
+            json = ReadAllTextSharingWithBrowser(source.BookmarksPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorMessage = $"Could not read {source.DisplayName} bookmarks: {ex.Message}";
+            return;
+        }
+
+        FolderNode imported;
+        try
+        {
+            imported = ChromiumBookmarkParser.Parse(json, $"{source.DisplayName} bookmarks");
+        }
+        catch (BookmarkImportException ex)
+        {
+            ErrorMessage = ex.Message;
+            return;
+        }
+
+        BookmarksParsed?.Invoke(imported, source.SourceKey, source.DisplayName);
+    }
+
+    /// <summary>"From HTML file…": read + parse an exported Netscape-format bookmarks HTML file (bookmark spec §1.3/§2).</summary>
+    public void RequestImportBookmarksFromHtml(string path)
+    {
+        string html;
+        try
+        {
+            html = ReadAllTextSharingWithBrowser(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ErrorMessage = $"Could not read file: {ex.Message}";
+            return;
+        }
+
+        var folderName = $"Bookmarks ({Path.GetFileNameWithoutExtension(path)})";
+        FolderNode imported;
+        try
+        {
+            imported = NetscapeBookmarkParser.Parse(html, folderName);
+        }
+        catch (BookmarkImportException ex)
+        {
+            ErrorMessage = ex.Message;
+            return;
+        }
+
+        BookmarksParsed?.Invoke(imported, BookmarkImport.HtmlSourceKey(path), Path.GetFileName(path));
+    }
+
+    /// <summary>Bookmark spec §2: "the browser may have this file open" - <see cref="File.ReadAllText(string)"/> defaults to a share mode that would fail against that, so open the stream explicitly instead.</summary>
+    private static string ReadAllTextSharingWithBrowser(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 }

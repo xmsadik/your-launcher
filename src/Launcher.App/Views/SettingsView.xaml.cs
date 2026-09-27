@@ -3,9 +3,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Microsoft.Win32;
+using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
+using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.App.Views;
@@ -234,6 +237,72 @@ public partial class SettingsView : UserControl
                 vm.RequestImport(dialog.FileName);
             }
         });
+    }
+
+    /// <summary>
+    /// "Import bookmarks…" (bookmark spec §2): opens a themed <see cref="ContextMenu"/> below the button
+    /// (reusing <see cref="ThemedMenuFactory"/>, the same look the list's right-click menu uses) listing
+    /// every discovered browser source by <see cref="BookmarkSource.DisplayName"/>, then a separator, then
+    /// "From HTML file…" - no separator (and no sources above it) when nothing was discovered.
+    /// </summary>
+    private void ImportBookmarksButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var vm = ViewModel;
+        if (vm is null)
+        {
+            return;
+        }
+
+        var sources = vm.DiscoverBookmarkSources();
+        var style = ThemedMenuFactory.CreateMenuItemStyle();
+        var menu = new ContextMenu
+        {
+            Style = ThemedMenuFactory.CreateMenuStyle(),
+            OverridesDefaultStyle = true,
+            PlacementTarget = ImportBookmarksButton,
+            Placement = PlacementMode.Bottom,
+        };
+
+        foreach (var source in sources)
+        {
+            var captured = source; // avoid capturing the loop variable itself, though C# 5+ already scopes foreach per-iteration.
+            menu.Items.Add(ThemedMenuFactory.CreateItem(captured.DisplayName, style, () => vm.RequestImportBookmarksFromSource(captured)));
+        }
+
+        if (sources.Count > 0)
+        {
+            menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
+        }
+
+        menu.Items.Add(ThemedMenuFactory.CreateItem("From HTML file…", style, () => ImportBookmarksFromHtml(vm)));
+
+        OpenThemedContextMenu(menu);
+    }
+
+    private void ImportBookmarksFromHtml(SettingsViewModel vm)
+    {
+        WithAutoHideSuppressed(owner =>
+        {
+            var dialog = new OpenFileDialog { Title = "Import bookmarks", Filter = "HTML bookmarks (*.html;*.htm)|*.html;*.htm|All files (*.*)|*.*" };
+            if (dialog.ShowDialog(owner) == true)
+            {
+                vm.RequestImportBookmarksFromHtml(dialog.FileName);
+            }
+        });
+    }
+
+    /// <summary>Same auto-hide suppression MainWindow's list context menu uses (spec §5 there) - opening this menu must not hide the panel either.</summary>
+    private void OpenThemedContextMenu(ContextMenu menu)
+    {
+        if (Window.GetWindow(this) is not MainWindow owner)
+        {
+            menu.IsOpen = true;
+            return;
+        }
+
+        owner.BeginSuppressAutoHide();
+        menu.Closed += (_, _) => owner.EndSuppressAutoHide();
+        menu.IsOpen = true;
     }
 
     /// <summary>The panel hides itself on Deactivated (spec §5.1), which would otherwise fire the instant a dialog takes focus - same suppression pattern as EditorView's Browse… buttons.</summary>

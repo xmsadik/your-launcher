@@ -269,7 +269,8 @@ Implemented (Phase 6 Part A — polish: theme, settings, import/export, usage, s
   System-mode OS change).
 - **Settings page** (`Ctrl+,`, `ViewModels/SettingsViewModel.cs` + `Views/SettingsView.xaml`, `PanelPage.
   Settings`): every field from spec §11 (Hotkey, Theme, Start with Windows, Close after launch, Visible
-  rows, Default shell, Remember last location, Show hint bar, Open config folder/Export…/Import…), fully
+  rows, Default shell, Remember last location, Show hint bar, Open config folder/Export…/Import…/Import
+  bookmarks… — see "Bookmark import" below), fully
   keyboard-usable (Tab order top-to-bottom, Enter/Ctrl+S save unless a ComboBox dropdown is open, Esc
   cancels, Space toggles the focused checkbox, ↑/↓ in Visible rows adjust with a 3-20 clamp). Opened by
   `Ctrl+,`, the tray's **Settings…**, or a hotkey-registration failure (which also focuses the Hotkey box
@@ -580,6 +581,34 @@ such a node — Enter, double-click or the context menu's Open — first shows a
 "Launch '<name>'? Enter = launch, Esc = cancel"; any key other than Enter cancels. Meant for items like
 shut down / restart / log out. The field is omitted from config.json while false.
 
+## Bookmark import
+
+The settings page's **Import bookmarks…** button (next to Export…/Import…, same read-only rule) imports
+bookmarks from a real browser into the tree, as a new folder. One-time import — there's no ongoing sync
+back to the browser, and nothing is ever written to the browser's own files (they're only ever read).
+
+Clicking it opens a menu:
+
+- Every Chromium-family profile with bookmarks found on this machine, auto-detected: **Chrome**, **Edge**,
+  **Brave**, **Vivaldi**, **Chromium** (each profile under `%LOCALAPPDATA%\<browser>\User Data\`), plus
+  **Opera**/**Opera GX** (`%APPDATA%\Opera Software\Opera <Stable|GX Stable>`, single profile). A browser
+  with more than one profile shows each as e.g. "Chrome (Work)"; a single-profile browser just shows
+  "Chrome". Browsers that aren't installed, or whose profile can't be read, are silently left off the list.
+- **From HTML file…** — any browser's own "export bookmarks to HTML" file (Netscape bookmark format),
+  which covers browsers the auto-detection above doesn't reach, most notably **Firefox**: in Firefox,
+  Library (`Ctrl+Shift+O`) → Import and Backup → **Export Bookmarks to HTML…**, then pick that file here.
+  Chrome/Edge/Safari can export the same way if you'd rather point at a file than use the profile menu.
+
+Either way, the browser's bookmark folders become a new folder named "`<Browser>` bookmarks" (or
+"Bookmarks (`<file name>`)" for an HTML import), placed in whatever folder the panel was showing when you
+opened Settings — no Merge/Replace prompt, it's applied immediately. `javascript:` bookmarklets are
+skipped, and any folder that ends up with nothing in it (recursively) is dropped rather than imported empty.
+
+**Re-importing the same source replaces the previous import** in place — it finds its own previously
+imported folder (even if you've since renamed or moved it) and swaps just its contents, keeping the name/
+icon/position you gave it; it does not create a second copy. Importing a *different* source (a different
+browser, profile, or HTML file) always adds a new folder alongside whatever's already there.
+
 ## Search (spec §7, Phase 2)
 
 Typing into the search box searches the **whole tree**, not just the current folder. Matching is
@@ -701,6 +730,8 @@ src/Launcher.Core/               # net10.0, no UI references
   Config/ConfigImport.cs         # Merge (id-collision rename) / Replace tree logic for import (Phase 6A)
   Config/DropMapper.cs           # Explorer/Start-menu drop path -> Node mapping (Phase 6B)
                                   # TreeOps also gained MoveToGroupIndex (in-list drag, Phase 6B)
+  Bookmarks/                     # ChromiumBookmarkLocator, ChromiumBookmarkParser, NetscapeBookmarkParser
+                                  # (HTML export), BookmarkImport (add/replace-in-place), BookmarkImportException
 src/Launcher.App/                # net10.0-windows, WPF
   Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon,
                                   # Shell_NotifyIcon/NOTIFYICONDATA, DWM (Mica/rounded corners), named-pipe/mutex interop (Phase 5)
@@ -722,6 +753,7 @@ src/Launcher.App/                # net10.0-windows, WPF
 tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps
                                   # (incl. MoveToGroupIndex, Phase 6B), TargetNameHelper, Icons/ (IconKey, IconFileStore,
                                   # TargetCheck, PathResolver), StartupSyncTests (Phase 5), Usage/ (UsageScorerTests),
-                                  # Config/ (ConfigImportTests (Phase 6A), DropMapperTests (Phase 6B))
+                                  # Config/ (ConfigImportTests (Phase 6A), DropMapperTests (Phase 6B)),
+                                  # Bookmarks/ (locator/Chromium+Netscape parsers/BookmarkImport)
 config.example.json
 ```

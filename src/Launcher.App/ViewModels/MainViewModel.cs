@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using YourLauncher.App.Services;
+using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
@@ -834,6 +835,7 @@ public sealed partial class MainViewModel : ObservableObject
         vm.Saved += OnSettingsSaved;
         vm.Cancelled += OnSettingsCancelled;
         vm.ImportParsed += OnImportParsed;
+        vm.BookmarksParsed += OnBookmarksParsed;
         Settings = vm;
         CurrentPage = PanelPage.Settings;
     }
@@ -848,6 +850,7 @@ public sealed partial class MainViewModel : ObservableObject
         Settings.Saved -= OnSettingsSaved;
         Settings.Cancelled -= OnSettingsCancelled;
         Settings.ImportParsed -= OnImportParsed;
+        Settings.BookmarksParsed -= OnBookmarksParsed;
         Settings = null;
     }
 
@@ -950,6 +953,78 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshItems();
 
         ErrorMessage = $"Imported {count} item{(count == 1 ? "" : "s")} ({(merge ? "merged" : "replaced")}).";
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Bookmark import (Settings page's "Import bookmarks…" button) - unlike config import above, there's
+    // no Merge/Replace prompt: BookmarkImport.Apply already knows whether this is a fresh append (into the
+    // folder that was current when Settings opened) or an in-place replace of a previous import with the
+    // same source key, wherever in the tree the user has since moved that folder to.
+    // ---------------------------------------------------------------------------------------------
+
+    private void OnBookmarksParsed(FolderNode imported, string sourceKey, string sourceLabel)
+    {
+        var targetFolder = CurrentFolder; // still the folder shown when Settings was opened - unaffected by the Settings page being up.
+        DetachSettings();
+
+        if (BlockIfReadOnly())
+        {
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
+        var (folder, replaced, count) = BookmarkImport.Apply(_config.Root, targetFolder, imported, sourceKey);
+
+        SaveAndRebuildIndex();
+        _pruneUsage(); // a replace may have dropped ids a previous import's children no longer include.
+
+        // A replace detaches the previous import's children - a cut node among them no longer exists.
+        if (CutNode is not null && TreeOps.FindParent(_config.Root, CutNode) is null)
+        {
+            CutNode = null;
+        }
+
+        // Navigate to wherever the resulting folder now lives - almost always still targetFolder (a fresh
+        // append, or a replace that was never moved), but a replace can land anywhere if the user relocated
+        // that folder since the last import.
+        var parentFolder = TreeOps.FindParent(_config.Root, folder) ?? _config.Root;
+        var chain = FindFolderChain(_config.Root, parentFolder, new List<FolderNode>());
+        if (chain is not null)
+        {
+            _folderStack.Clear();
+            _folderStack.AddRange(chain);
+        }
+
+        CurrentPage = PanelPage.List;
+        SearchText = ""; // Settings may have been opened from search mode - show the folder, not stale results.
+        UpdateBreadcrumb();
+        RefreshItems();
+        SelectNode(folder);
+
+        ErrorMessage = replaced
+            ? $"Imported {count} bookmarks from {sourceLabel} (replaced the previous import)."
+            : $"Imported {count} bookmarks into '{folder.Name}'.";
+    }
+
+    /// <summary>Root-to-<paramref name="target"/> chain of folders (inclusive), or null if target isn't reachable from current - used to point <see cref="_folderStack"/> at wherever a bookmark import's resulting folder now lives.</summary>
+    private static List<FolderNode>? FindFolderChain(FolderNode current, FolderNode target, List<FolderNode> chain)
+    {
+        chain.Add(current);
+        if (ReferenceEquals(current, target))
+        {
+            return chain;
+        }
+
+        foreach (var child in current.Children.OfType<FolderNode>())
+        {
+            var found = FindFolderChain(child, target, new List<FolderNode>(chain));
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     // ---------------------------------------------------------------------------------------------

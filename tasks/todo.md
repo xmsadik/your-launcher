@@ -541,12 +541,101 @@ gereği bu oturumda **bilerek yapılmadı**.
   Explorer'dan gerçek sürükle-bırak (`.lnk`/`.url`/`.exe`/klasör/txt), liste içi sıralama/klasöre taşıma,
   drop sonrası panelin önde kalması. Bunlar kullanıcının son manuel testine kaldı.
 
-## Devam noktası (güncellendi 2026-09-27, Aşama 6B tamamlandı, onay bekliyor)
+## Devam noktası (güncellendi 2026-09-27, tüm aşamalar + ek özellikler push edildi)
 - Aşama 1–5 commit+push: `94454b6`. Aşama 6A **yerel commit** `0597745` (push edilmedi).
-- Aşama 6B working tree'de, **commit edilmedi**; build 0 uyarı, 242 test yeşil, README/publish tamam.
-- Sıradaki: kullanıcı onayı → 6B commit → 6A+6B push → kullanıcının tüm aşamalar için manuel testi
+- Aşama 6B `7925d86`; sonrasında: Esc paneli kapatır (`ebedc11`), öğe başına "Ask before launching" onayı (`d3155aa`), yer imi içe aktarma (bu commit).
+- Sıradaki: kullanıcının tüm aşamalar için manuel testi
   (özellikle sağ tık, sürükle-bırak, gerçek Alt+Space hotkey).
 - Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek 80 MB hedefinin üzerinde (bilerek
   hack'lenmedi); `icons\` öksüz dosya temizliği yok; DPI/çoklu monitör sadece kod incelemesiyle doğrulandı;
   MSI "advertised" kısayollarda `GetPath` bazen `C:\Windows\Installer\…` ikon yolu dönebilir (MSI API'si
   kullanılmadı) — manuel testte Start menüsünden birkaç kısayol denenmeli.
+
+### Ek özellik: yer imi içe aktarma (tamamlandı 2026-09-27)
+
+`tasks/bookmarks-spec.md` esas alındı — tek seferlik yer imi içe aktarma (Chromium ailesi otomatik keşif +
+herhangi bir tarayıcının HTML dışa aktarma dosyası), aynı kaynağın yeniden içe aktarılması önceki içe
+aktarmanın yerine geçiyor (Merge/Replace sorusu yok, doğrudan uygulanıyor).
+
+- **Ne eklendi**:
+  - `src/Launcher.Core/Bookmarks/`: `ChromiumBookmarkLocator` (Chrome/Edge/Brave/Vivaldi/Chromium
+    `%LOCALAPPDATA%\...\User Data\{Default,Profile *}`, Opera/Opera GX `%APPDATA%\Opera Software\...`,
+    `Local State`'ten profil adı, eksik/bozuk dizin/JSON'da sessizce atlama), `ChromiumBookmarkParser`
+    (ham JSON, `JsonDocument`, sabit kök adları "Bookmarks bar"/"Other bookmarks"/"Mobile bookmarks"),
+    `NetscapeBookmarkParser` (HTML dışa aktarma — Firefox/Chrome/Edge/Safari ortak formatı, tolere edici
+    regex tokenizer, `<H3>`+`<DL>`=klasör/`<A HREF>`=yer imi/`</DL>`=kapanış, HTML entity decode),
+    `BookmarkImport` (`Apply`: aynı `sourceKey`'e ait önceki içe aktarmayı ağaçta her nerede olursa olsun
+    bulup sadece içeriğini değiştirir — ad/ikon/konum korunur; yoksa hedef klasöre yeni klasör olarak
+    ekler), `BookmarkImportException`, `BookmarkTreeHelpers` (boş klasör budama, javascript:/boş
+    başlık/boş klasör adı kuralları — her iki ayrıştırıcı da paylaşıyor).
+  - App: `SettingsViewModel`'e `DiscoverBookmarkSources`/`RequestImportBookmarksFromSource`/
+    `RequestImportBookmarksFromHtml` (dosya okumaları `FileShare.ReadWrite|Delete` ile — tarayıcı dosyayı
+    açık tutabilir) + `BookmarksParsed` event'i; `SettingsView.xaml`'a Export…/Import…'ün yanına üçüncü
+    buton **"Import bookmarks…"** (aynı `CanExportImport` kuralı); tıklanınca `ThemedMenuFactory` ile
+    temaya uygun, butonun altına açılan bir `ContextMenu` (bulunan her kaynak + ayraç + "From HTML
+    file…"; hiç kaynak yoksa sadece HTML seçeneği). `MainViewModel.OnBookmarksParsed`: config-import'un
+    Merge/Replace sorusunun aksine **hemen uygular** — Ayarlar açılırken gösterilen klasöre ekler ya da
+    (yeniden içe aktarmaysa) önceki içe aktarmanın şu an gerçekte bulunduğu klasöre gidip onu seçili
+    gösterir; `BlockIfReadOnly()` ile salt-okunur koruması; `_pruneUsage()` çağrısı (replace eski id'leri
+    düşürebilir).
+  - README: yeni "Bookmark import" bölümü (kaynaklar, Firefox HTML dışa aktarma ipucu, değiştirme
+    semantiği, javascript: bookmarklet'lerin atlanması, boş klasörlerin düşürülmesi, tek seferlik/senkron
+    yok) + Ayarlar sayfası açıklamasına buton eklendi.
+- **Testler**: `dotnet test` — **289/289 yeşil** (var olan 243'ün hepsi + `Bookmarks/` altında 46 yeni:
+  `ChromiumBookmarkLocatorTests` 10 — tek/çoklu profil, `Local State`'ten ad okuma, bozuk/eksik `Local
+  State` sessizce dizin adına düşme, `Bookmarks` dosyası olmayan profilin atlanması, Opera/Opera GX tek
+  profil, birden çok tarayıcı birlikte; `ChromiumBookmarkParserTests` 14 — basit/iç içe yapı, sıralama,
+  üç kök, javascript: atlama, boş başlık→host, boş klasör adı→"(unnamed)", iç içe boş klasörün özyinelemeli
+  budanması, hedefsiz/bilinmeyen node atlama, bozuk JSON/eksik "roots"→`BookmarkImportException`, her
+  node'a taze id; `NetscapeBookmarkParserTests` 13 — üst düzey/iç içe yapı, sıra korunumu, `<H1>` yok
+  sayma, büyük/küçük harf duyarsız etiketler, HTML entity decode, javascript:/href'siz atlama, boş
+  başlık/boş klasör adı, iç içe boş klasör budaması → sonuçta hiç yer imi kalmayınca istisna, kapatılmamış
+  `<DT>`/`<p>` toleransı; `BookmarkImportTests` 9 — ilk içe aktarma (hedef klasöre ekleme, kök olması
+  şart değil), yeniden içe aktarma (yerinde değiştirme — ad/id/konum korunur), taşınmış klasörü bulma,
+  farklı `sourceKey`'in eşleşmemesi, sayımın sadece `UrlNode` sayması, deterministik id/HTML anahtarı.
+- **Build**: `dotnet build` Debug **ve** Release — **0 uyarı, 0 hata**.
+- **Canlı doğrulama (salt-okunur, sadece okuma — spec §4 kısıtları)**: Uygulama hiç başlatılmadı, fare/
+  klavye otomasyonu yapılmadı, ekran görüntüsü alınmadı, `%APPDATA%\Your Launcher\` hiç dokunulmadı.
+  Bunun yerine scratch dizininde ayrı bir konsol projesi (`Launcher.Core`'a `ProjectReference`) ile gerçek
+  makinedeki dosyalar salt-okunur okunup ayrıştırıldı:
+  - `ChromiumBookmarkLocator.Discover` gerçek `%LOCALAPPDATA%`/`%APPDATA%` ile çalıştırıldı: **Chrome**
+    (`Default`, 1 profil) ve **Edge** (`Default` + `Profile 1`, ikisi de "Person 1" adıyla — Local State'te
+    ikisine de aynı ad verilmiş, kodun kendi hatası değil) olmak üzere **3 kaynak** bulundu; Brave/Vivaldi/
+    Chromium/Opera/Opera GX bu makinede kurulu değil, sessizce atlandı (hata yok).
+  - `ChromiumBookmarkParser` ile okundu: Chrome'un `Bookmarks` dosyası var ama üç kök de boş (**0 yer imi**
+    — kullanıcı Chrome'u yer imi için hiç kullanmamış, kod tarafında sorun değil, boş kökler doğru şekilde
+    düşürüldü). Edge `Default`: **218 yer imi** (Bookmarks bar 212 + Other 1 + Mobile 5, iç içe 14 alt
+    klasör) doğru sayıldı. Edge `Profile 1`: **0 yer imi** (kullanılmayan ikincil profil).
+  - `NetscapeBookmarkParser` ile, kullanıcının `Downloads` klasöründe zaten duran gerçek bir HTML dışa
+    aktarma dosyası (`bookmarks_9_27_26.html`, oluşturulmadı — sadece okundu) ayrıştırıldı: **232 yer imi**,
+    çok seviyeli iç içe klasörler (Work › Müşteri Sistem › ClientA/ClientB/ClientC/... , SAP › Yararlı/
+    Okunacak/RAP, Development › Frontend, vb.), Türkçe karakterli klasör/yer imi adları (Işıklı,
+    Gümüşlük, e-donüşüm, İstanbul, Eğitim) doğru decode edildi, en az bir gerçekten boş klasör
+    ("Eski VPN") beklendiği gibi sessizce budandı (çıktıda görünmüyor).
+- **Sapmalar / netleştirmeler**:
+  - Spec'in verdiği imza `NetscapeBookmarkParser.Parse(string html, string folderName)` sadece iki
+    parametre aldığından, "No bookmarks found in `<file>`." mesajındaki `<file>` gerçek dosya yolu değil,
+    çağıranın geçtiği `folderName` (HTML importunda zaten "Bookmarks (`<dosya adı>`)" şeklinde) —
+    fonksiyonun dosya yolunu bilmesi için imzayı genişletmek gerekirdi, spec'in imzasına sadık kalındı.
+  - Durum satırındaki "Imported N bookmarks from `<source>`..." ifadesindeki `<source>` tarayıcı
+    kaynakları için `DisplayName` ("Chrome", "Edge (Work)"), HTML dosyası için dosya adı (uzantılı) —
+    spec bunu tam olarak belirtmiyordu, en okunaklı seçenek uygulandı.
+  - "returns to the List page at that folder" ifadesi, yeniden içe aktarmada önceki içe aktarmanın
+    kullanıcı tarafından başka bir klasöre taşınmış olabileceği durumu da kapsayacak şekilde genelleştirildi:
+    panel her zaman sonuç klasörünün **gerçek o anki ebeveynine** gider (yeni ekleme için bu zaten Ayarlar
+    açılırkenki klasörle aynı; taşınmış bir yeniden içe aktarma için taşındığı yere gider), spec metni
+    tam olarak bunu ayırt etmiyordu ama `BookmarkImport.Apply`'ın "anywhere under root" ifadesiyle tutarlı.
+  - `SettingsViewModel`/`MainViewModel` gibi App katmanı sınıfları için (mevcut projede zaten kural)
+    birim testi yazılmadı — pure Core mantığı (`Bookmarks/` klasörünün tamamı) %100 test edildi, App
+    katmanındaki akış sadece kod incelemesi + build ile doğrulandı (var olan `SettingsViewModel`/
+    `MainViewModel` de test edilmiyor, aynı kod tabanı kuralı).
+- **Canlı doğrulanmadı** (kullanıcı tercihi ve spec §4 kısıtı: uygulama başlatılmadı, otomasyon/ekran
+  görüntüsü yok): "Import bookmarks…" butonunun gerçek UI'da tıklanması, açılan `ContextMenu`'nün
+  konumlanması/teması, OpenFileDialog akışı, `MainViewModel`'in ayarlar sayfasından gelen olayı işleyip
+  panelin doğru klasöre dönmesi — bunlar kullanıcının kendi manuel testine kalıyor (`test-at-end` kuralı).
+- Do not commit talimatına uyuldu — hiçbir değişiklik commit edilmedi.
+- Orkestratör + Fable incelemesi sonrası düzeltmeler: arama modundayken açılan Ayarlar'dan içe aktarmada liste eski
+  arama sonuçlarını gösteriyordu (arama temizleniyor); yeniden içe aktarma kesilmiş (Ctrl+X) bir yer imini ağaçtan
+  koparınca `CutNode` asılı kalıyordu (temizleniyor); nesne olmayan JSON kökü/`children` öğesi veya bozuk `Local State`
+  `InvalidOperationException` ile UI'ı çökertebiliyordu (atlanıyor / `BookmarkImportException`); `bookmarks:<kaynak>` id'si
+  elle bir klasör-olmayan öğeye verilmişse aynı id'li ikinci düğüm oluşuyordu (yeni id). +5 regresyon testi → 294 test.
