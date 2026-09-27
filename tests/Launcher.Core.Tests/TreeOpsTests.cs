@@ -196,6 +196,105 @@ public class TreeOpsTests
         Assert.False(TreeOps.MoveDown(root, stray));
     }
 
+    // ---- MoveToGroupIndex (in-list drag, spec §7/§10 item 8) ----
+
+    [Fact]
+    public void MoveToGroupIndex_MovesToExactFinalPosition()
+    {
+        var a = App("a", "A");
+        var b = App("b", "B");
+        var c = App("c", "C");
+        var root = Folder("root", "Root", a, b, c);
+
+        // Move A (currently index 0) to final index 1 -> B, A, C.
+        Assert.True(TreeOps.MoveToGroupIndex(root, a, 1));
+        Assert.Equal(new[] { "b", "a", "c" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_MoveToEnd()
+    {
+        var a = App("a", "A");
+        var b = App("b", "B");
+        var c = App("c", "C");
+        var root = Folder("root", "Root", a, b, c);
+
+        Assert.True(TreeOps.MoveToGroupIndex(root, a, 2));
+        Assert.Equal(new[] { "b", "c", "a" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_NegativeIndex_ClampsToStart()
+    {
+        var a = App("a", "A");
+        var b = App("b", "B");
+        var c = App("c", "C");
+        var root = Folder("root", "Root", a, b, c);
+
+        Assert.True(TreeOps.MoveToGroupIndex(root, c, -5));
+        Assert.Equal(new[] { "c", "a", "b" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_TooLargeIndex_ClampsToEnd()
+    {
+        var a = App("a", "A");
+        var b = App("b", "B");
+        var c = App("c", "C");
+        var root = Folder("root", "Root", a, b, c);
+
+        Assert.True(TreeOps.MoveToGroupIndex(root, a, 999));
+        Assert.Equal(new[] { "b", "c", "a" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_SameIndex_ReturnsFalse_NoChange()
+    {
+        var a = App("a", "A");
+        var b = App("b", "B");
+        var root = Folder("root", "Root", a, b);
+
+        Assert.False(TreeOps.MoveToGroupIndex(root, a, 0));
+        Assert.Equal(new[] { "a", "b" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_MixedFoldersAndItems_StaysWithinOwnGroup()
+    {
+        // Stored order: F1, F2, I1, I2. Moving I2 to group-index 0 must land it before I1 without
+        // disturbing either folder's stored slot.
+        var f1 = Folder("f1", "F1");
+        var f2 = Folder("f2", "F2");
+        var i1 = App("i1", "I1");
+        var i2 = App("i2", "I2");
+        var root = Folder("root", "Root", f1, f2, i1, i2);
+
+        Assert.True(TreeOps.MoveToGroupIndex(root, i2, 0));
+        Assert.Equal(new[] { "f1", "f2", "i2", "i1" }, root.Children.Select(n => n.Id));
+
+        // Moving F2 to group-index 0 among folders must not touch the item group's order.
+        Assert.True(TreeOps.MoveToGroupIndex(root, f2, 0));
+        Assert.Equal(new[] { "f2", "f1", "i2", "i1" }, root.Children.Select(n => n.Id));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_NodeWithoutParent_ReturnsFalse()
+    {
+        var root = Folder("root", "Root", App("a", "A"));
+        var stray = App("stray", "Stray");
+
+        Assert.False(TreeOps.MoveToGroupIndex(root, stray, 0));
+    }
+
+    [Fact]
+    public void MoveToGroupIndex_SingleNodeInGroup_IndexZero_ReturnsFalse()
+    {
+        var onlyFolder = Folder("f1", "F1");
+        var root = Folder("root", "Root", onlyFolder, App("a", "A"));
+
+        Assert.False(TreeOps.MoveToGroupIndex(root, onlyFolder, 0));
+    }
+
     // ---- MoveTo (cut/paste) ----
 
     [Fact]

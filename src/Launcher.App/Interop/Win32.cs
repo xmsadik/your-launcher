@@ -24,7 +24,12 @@ internal static partial class Win32
 
     public const uint ASFW_ANY = 0xFFFFFFFF;
     public const byte VK_MENU = 0x12;
+    public const int VK_LBUTTON = 0x01;
     public const uint KEYEVENTF_KEYUP = 0x0002;
+
+    /// <summary>Polled by the panel's Deactivated handler (spec §6/§10 item 6a) to tell a drag-from-Explorer apart from an ordinary click on another window - the high bit of the return value is set while the key/button is currently down.</summary>
+    [LibraryImport("user32.dll")]
+    public static partial short GetAsyncKeyState(int vKey);
 
     // ---- Icons (Phase 4): SHGetFileInfo/ExtractIconEx/SHDefExtractIconW pull in a fixed-size string
     // field (SHFILEINFO.szDisplayName) that the LibraryImport source generator can't marshal on its own,

@@ -46,6 +46,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Func<string, string?> _tryApplyHotkey;
     private readonly Action _beginHotkeyCapture;
     private readonly Action _endHotkeyCaptureRestore;
+    private readonly Func<string, ShellLinkInfo> _resolveShellLink;
     private readonly List<FolderNode> _folderStack = new();
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
@@ -220,6 +221,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>True while config.json is corrupt (startup or reload) *and* some recovery action exists - either "keep current" (there's good in-memory data) or "restore backup" (there is one).</summary>
     public bool CanRecoverFromCorruption => _configService.IsReadOnly && (_configService.HasEverLoadedSuccessfully || _configService.HasBackup);
 
+    /// <summary>Passthrough for MainWindow's context menu (spec §5: "Edit items disabled in read-only mode") and the in-list drag guard (spec §7) - true while config.json failed to load and every mutating entry point above refuses (<see cref="BlockIfReadOnly"/>).</summary>
+    public bool IsReadOnly => _configService.IsReadOnly;
+
     /// <summary>Menu/shortcut label: "keep current" once there's real in-memory data to keep, otherwise "restore backup" (spec §10 item 4).</summary>
     public string RecoveryMenuText => _configService.HasEverLoadedSuccessfully ? "Keep my current version" : "Restore from backup";
 
@@ -239,7 +243,8 @@ public sealed partial class MainViewModel : ObservableObject
         Action pruneUsage,
         Func<string, string?> tryApplyHotkey,
         Action beginHotkeyCapture,
-        Action endHotkeyCaptureRestore)
+        Action endHotkeyCaptureRestore,
+        Func<string, ShellLinkInfo> resolveShellLink)
     {
         _configService = configService;
         _config = configService.Config;
@@ -252,6 +257,7 @@ public sealed partial class MainViewModel : ObservableObject
         _tryApplyHotkey = tryApplyHotkey;
         _beginHotkeyCapture = beginHotkeyCapture;
         _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
+        _resolveShellLink = resolveShellLink;
         _folderStack.Add(_config.Root);
 
         if (!string.IsNullOrEmpty(configService.LoadError))
@@ -547,6 +553,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// for F2 in particular - the editor (which mutates its target node in place as soon as it saves)
     /// never even opens.
     /// </summary>
+    /// <summary>MainWindow's external-drop path (spec §6: "Read-only → reject with error line") - a rejected drag never reaches Drop, so the error line is shown when the drag enters instead.</summary>
+    public void ShowReadOnlyError() => BlockIfReadOnly();
+
     private bool BlockIfReadOnly()
     {
         if (!_configService.IsReadOnly)
@@ -1064,6 +1073,114 @@ public sealed partial class MainViewModel : ObservableObject
         SaveAndRebuildIndex();
         RefreshItems();
         SelectNode(clone);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Phase 6 Part B: drag & drop (spec §6/§7, revised §10 items 6/8). Drop target is always
+    // CurrentFolder, in both nav and search mode (MainWindow only accepts external drops on the List page,
+    // but that page still shows search results while SearchText is non-blank).
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Explorer/Start-menu file drop (spec §6/AC12): maps every dropped path to a node via Core's
+    /// <see cref="DropMapper"/> and adds them all to <see cref="CurrentFolder"/> in drop order, then saves
+    /// once and selects the last one added.
+    /// </summary>
+    public void AddNodesFromDrop(IReadOnlyList<string> paths)
+    {
+        if (BlockIfReadOnly() || paths.Count == 0)
+        {
+            return;
+        }
+
+        Node? last = null;
+        foreach (var path in paths)
+        {
+            var node = DropMapper.Map(path, _resolveShellLink, _fileDescriptionLookup);
+            TreeOps.Add(CurrentFolder, node);
+            last = node;
+        }
+
+        if (last is null)
+        {
+            return;
+        }
+
+        CommitChangeAndSelect(last);
+    }
+
+    /// <summary>
+    /// In-list drag (spec §7/§10 item 8), nav mode only - MainWindow already guards search mode/read-only/
+    /// non-List pages before starting a drag, this is the defense in depth. <paramref name="indicator"/> is
+    /// whichever the row showed when the drop happened: <see cref="DropIndicator.Into"/> on a folder moves
+    /// the source there (same as cut/paste); <see cref="DropIndicator.Above"/>/<see cref="DropIndicator.Below"/>
+    /// reorder the source within its own display group (folders vs. non-folders), landing it exactly where
+    /// the insertion line was shown relative to the target.
+    /// </summary>
+    public void MoveDraggedNode(string sourceNodeId, string targetNodeId, DropIndicator indicator)
+    {
+        if (BlockIfReadOnly() || IsSearchMode)
+        {
+            return;
+        }
+
+        var source = TreeOps.FindById(_config.Root, sourceNodeId);
+        var target = TreeOps.FindById(_config.Root, targetNodeId);
+        if (source is null || target is null || ReferenceEquals(source, target))
+        {
+            return;
+        }
+
+        if (indicator == DropIndicator.Into && target is FolderNode targetFolder)
+        {
+            switch (TreeOps.MoveTo(_config.Root, source, targetFolder))
+            {
+                case MoveOutcome.Rejected:
+                    ErrorMessage = "Cannot move a folder into itself.";
+                    return;
+                case MoveOutcome.NoOp:
+                    return;
+            }
+        }
+        else
+        {
+            // Both rows must be siblings in the shown folder - a stale drag that started before the list
+            // changed underneath it (e.g. double-click into a folder while still holding the button) must
+            // never reorder something in a different folder.
+            var parent = TreeOps.FindParent(_config.Root, target);
+            if (parent is null || !ReferenceEquals(TreeOps.FindParent(_config.Root, source), parent))
+            {
+                return;
+            }
+
+            int finalIndex;
+            if ((source is FolderNode) != (target is FolderNode))
+            {
+                // Across the folders-first boundary (spec §7: "clamp"): the nearest slot the source's own
+                // group allows - an item dropped among folders goes first among items, a folder dropped
+                // among items goes last among folders (MoveToGroupIndex clamps int.MaxValue).
+                finalIndex = source is FolderNode ? int.MaxValue : 0;
+            }
+            else
+            {
+                // Final absolute position within the group, computed with the source excluded first (spec
+                // §10 item 8's contract: MoveToGroupIndex places node at that exact index in the result).
+                var isFolderGroup = target is FolderNode;
+                var group = parent.Children.Where(n => (n is FolderNode) == isFolderGroup).ToList();
+                group.Remove(source);
+                var targetIndex = group.IndexOf(target);
+                finalIndex = indicator == DropIndicator.Below ? targetIndex + 1 : targetIndex;
+            }
+
+            if (!TreeOps.MoveToGroupIndex(_config.Root, source, finalIndex))
+            {
+                return;
+            }
+        }
+
+        SaveAndRebuildIndex();
+        RefreshItems();
+        SelectNode(source);
     }
 
     // ---------------------------------------------------------------------------------------------

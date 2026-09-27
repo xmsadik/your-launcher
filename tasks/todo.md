@@ -102,16 +102,16 @@ Aşama 1 dışında bırakılanlar (bilerek, plana göre): arama yalnızca bulun
 - [x] Import/Export (birleştir: id çakışmasında yeni id / değiştir)
 - [x] UsageService (`usage.json`, debounce'lu kayıt) → arama eşitlik bozucusu
 
-**Aşama 6B (Part B, henüz yapılmadı — bilerek, orkestratör talimatı):**
-- [ ] Fare önkoşulu: `ListBoxItem.Focusable=False`, tıklama = seçim, çift tıklama = aç (§10 madde 5)
-- [ ] Drag&drop Explorer'dan: `.exe/.lnk` → app, diğerleri → path; `.lnk` çözümleme (IShellLinkW: hedef, argüman, çalışma dizini, ikon) — AC12
-- [ ] Liste içi sürükle: sıralama + klasöre bırak
-- [ ] Sağ tık menüsü (Aç, Düzenle, İkon Değiştir, Kes, Buraya Yapıştır, Çoğalt, Sil, Dosya konumunu aç)
+**Aşama 6B (Part B, tamamlandı 2026-09-27 — canlı fare testi kullanıcının son manuel testine kaldı):**
+- [x] Fare önkoşulu: `ListBoxItem.Focusable=False`, tıklama = seçim, çift tıklama = aç (§10 madde 5)
+- [x] Drag&drop Explorer'dan: `.exe/.lnk` → app, diğerleri → path; `.lnk` çözümleme (IShellLinkW: hedef, argüman, çalışma dizini, ikon) — AC12
+- [x] Liste içi sürükle: sıralama + klasöre bırak
+- [x] Sağ tık menüsü (Aç, Düzenle, İkon Değiştir, Kes, Buraya Yapıştır, Çoğalt, Sil, Dosya konumunu aç)
 
 ### Teslimat
-- [ ] `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true`
-- [ ] README: kurulum, kısayol tablosu, config formatı, kararlar (D1–D7)
-- [ ] `config.example.json` (iç içe klasörler, app, path, komut örnekleri)
+- [x] `dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true`
+- [x] README: kurulum, kısayol tablosu, config formatı, kararlar (D1–D7)
+- [x] `config.example.json` (iç içe klasörler, app, path, komut örnekleri)
 
 ## 3. Doğrulama (kabul kriterleri)
 
@@ -503,16 +503,50 @@ gereği bu oturumda **bilerek yapılmadı**.
   parçaların üzerine oturacağı `PanelPage`/tema/ayarlar altyapısını yeniden şekillendirmeden ekleyecek
   şekilde yapılandırıldı (README'de belirtildi).
 
-## Devam noktası (güncellendi 2026-09-26, Aşama 6A sonrası)
-- Aşama 1–5 tamam ve commit edilmiş: `main` → https://github.com/xmsadik/your-launcher (private), Aşama 5
-  dahil commit `94454b6`'ya kadar. Aşama 6A (bu oturum) **commit edilmedi** — orkestratör commit
-  etmeyecek şekilde talimat verdi; değişiklikler working tree'de bekliyor.
-- 206 test yeşil (Debug+Release, 0 uyarı): Aşama 1–5'in 180'i + Aşama 6A'nın 26 yenisi.
-- Sıradaki: **Aşama 6B — Cila Part B** (fare önkoşulu, sağ tık menüsü, Explorer'dan sürükle-bırak/`.lnk`
-  çözümleme, liste içi sürükle-sıralama) — `tasks/phase6-spec.md` §5–§8 ve §10 madde 5–8/11–14.
-- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek Release/R2R yayında
-  ~148 MB Working Set / ~85 MB Private Bytes, 80 MB hedefinin üzerinde (Aşama 5 review'ına bakın — bilerek
-  hack'lenmedi); `icons\` klasöründe öksüz dosya temizliği yok; DPI/çoklu monitör pozisyonlaması sadece kod
-  incelemesiyle doğrulandı (geliştirme makinesinde tek monitör var); global hotkey ile panel gösterme bu
-  geliştirme ortamında otomasyon script'leriyle güvenilir tetiklenemiyor (bkz. Aşama 6A review'ındaki
-  "Sapmalar" — gerçek kullanıcı deneyimini etkilemiyor, sadece bu makinedeki test otomasyonunu).
+### Aşama 6B — Cila, Part B: fare, sağ tık, sürükle-bırak, teslimat (tamamlandı 2026-09-27)
+- Kod bir Sonnet ajanı tarafından yazıldı (canlı ekran otomasyonu sırasında kullanıcı durdurdu); bu oturumda
+  **ekrana dokunmadan** tamamlandı: orkestratör incelemesi + bağımsız adversarial inceleme (Fable) + düzeltmeler,
+  build/test, README/publish (Sonnet).
+- İçerik: `ListBoxItem.Focusable=False` + tıkla-seç/çift tıkla-aç; tema uyumlu sağ tık menüsü
+  (`Services/ThemedMenuFactory.cs`, tepsi menüsüyle ortak; öğe menüsü + boş alan menüsü, hepsi klavye
+  kısayollarının aynı VM metodlarını çağırır); Explorer'dan sürükle-bırak (`Deactivated` anında sol tuş basılıysa
+  gizlemeyi erteleyen 50 ms `GetAsyncKeyState` yoklaması, `Core/Config/DropMapper.cs`, `Interop/ShellLink.cs`
+  classic `[ComImport]`, `SLGP_RAWPATH`, `Resolve` yok); liste içi sürükleme (`DropIndicator` + `TreeOps.MoveToGroupIndex`);
+  "Open file location" için `TargetCheck.ResolveExistingPath`.
+- İncelemede bulunan ve düzeltilen hatalar:
+  1. Liste içi sürükleme de `_externalDragOverPanel`'i true yapıyordu, iç drop onu hiç sıfırlamıyordu → sonraki
+     "başka pencereye tıkla" paneli gizlemiyordu. Artık sadece `FileDrop` için set ediliyor.
+  2. Bozuk `.lnk` → `IPersistFile.Load` `COMException` → drop handler'dan istisna. Artık boş `ShellLinkInfo`
+     dönüyor, `.lnk`'in kendisi app olarak ekleniyor.
+  3. Klasör/öğe grupları arası bırakma sessizce hiçbir şey yapmıyordu → spec'teki "clamp": öğe → öğe grubunun
+     başı, klasör → klasör grubunun sonu.
+  4. (Fable) Çift tıklamayla klasöre girildikten sonra buton basılıyken sürükleme, eski adayla yeni klasördeki
+     satırlara göre yanlış klasörü taşıyıp kaydedebiliyordu → çift tıkta aday temizleniyor, hareket eden satır
+     aday değilse sürükleme başlamıyor, `MoveDraggedNode` kaynak/hedef aynı ebeveynde değilse reddediyor.
+  5. (Fable) Reddedilen dış drop'ta (başka sayfa/salt okunur) buton bırakıldığında yoklama, gecikmeli gelen
+     `DragLeave` ile yarışıp paneli pasif Topmost bırakabiliyordu → buton bırakıldıktan sonra `Drop`/`DragLeave`
+     bayrağı temizleyene kadar (en fazla 2 sn) beklemeye devam ediyor.
+  6. (Fable) Drop, satırdaki (alt eleman geçişlerinde `DragLeave` ile sıfırlanabilen) göstergeyi okuyordu → drop
+     noktasından yeniden hesaplanıyor.
+  7. (Fable) Salt okunurda dış drop hata satırı göstermiyordu (drop hiç gelmiyor) → `DragEnter`'da gösteriliyor.
+  8. (Fable) ConfirmDelete/ConfirmImport sayfalarında satırlara tıklama/sağ tık seçimi değiştirip menü açıyordu →
+     fare handler'ları sadece List sayfasında çalışıyor.
+- Teslimat (§8): `config.example.json`'a eksik `powershell` shell komutu eklendi (mevcut smoke testi parse
+  ediyor); README: Install bölümü, fare tablosu, sürükle-bırak eşlemesi, bilinen kısıtlar listesi.
+  Publish başarılı: tek exe **~134 MB**; boşta bellek **~176 MB Working Set / ~104 MB Private Bytes** (panel
+  açıkken ölçüldü — Aşama 5'in ~148/~85 MB ölçümü panel gizliyken yapılmıştı, README'de belirtildi).
+- Doğrulama: `dotnet build` Debug+Release 0 uyarı; 242/242 test yeşil. `Search_5000Nodes_MedianUnder16Milliseconds`
+  bir koşuda yük altında zamanlama nedeniyle düştü, tekrarlarda geçti (bilinen dalgalı test, değişiklikle ilgisiz).
+- **Canlı doğrulanmadı** (kullanıcı tercihi: fare/klavye otomasyonu yok): sağ tık menüsünün görünümü/eylemleri,
+  Explorer'dan gerçek sürükle-bırak (`.lnk`/`.url`/`.exe`/klasör/txt), liste içi sıralama/klasöre taşıma,
+  drop sonrası panelin önde kalması. Bunlar kullanıcının son manuel testine kaldı.
+
+## Devam noktası (güncellendi 2026-09-27, Aşama 6B tamamlandı, onay bekliyor)
+- Aşama 1–5 commit+push: `94454b6`. Aşama 6A **yerel commit** `0597745` (push edilmedi).
+- Aşama 6B working tree'de, **commit edilmedi**; build 0 uyarı, 242 test yeşil, README/publish tamam.
+- Sıradaki: kullanıcı onayı → 6B commit → 6A+6B push → kullanıcının tüm aşamalar için manuel testi
+  (özellikle sağ tık, sürükle-bırak, gerçek Alt+Space hotkey).
+- Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek 80 MB hedefinin üzerinde (bilerek
+  hack'lenmedi); `icons\` öksüz dosya temizliği yok; DPI/çoklu monitör sadece kod incelemesiyle doğrulandı;
+  MSI "advertised" kısayollarda `GetPath` bazen `C:\Windows\Installer\…` ikon yolu dönebilir (MSI API'si
+  kullanılmadı) — manuel testte Start menüsünden birkaç kısayol denenmeli.

@@ -156,6 +156,51 @@ public static class TreeOps
     }
 
     /// <summary>
+    /// In-list drag reorder (spec §7, revised §10 item 8): places node at absolute position
+    /// <paramref name="groupIndex"/> within its own display group (folder vs. non-folder) - i.e. after the
+    /// move, node is the <paramref name="groupIndex"/>-th element of that group (0-based), clamped to the
+    /// group's bounds. Nodes outside the group keep their exact stored slot; only the group's internal
+    /// order changes. False (no-op) if node has no parent, isn't found, or is already at that position.
+    /// </summary>
+    public static bool MoveToGroupIndex(FolderNode root, Node node, int groupIndex)
+    {
+        var parent = FindParent(root, node);
+        if (parent is null)
+        {
+            return false;
+        }
+
+        var siblings = parent.Children;
+        var isFolder = node is FolderNode;
+        var group = siblings.Where(n => (n is FolderNode) == isFolder).ToList();
+
+        var clampedIndex = Math.Clamp(groupIndex, 0, group.Count - 1);
+        var currentGroupIndex = group.IndexOf(node);
+        if (currentGroupIndex == clampedIndex)
+        {
+            return false;
+        }
+
+        group.RemoveAt(currentGroupIndex);
+        group.Insert(clampedIndex, node);
+
+        // Rebuild `siblings` in place: everything outside this group keeps its exact stored slot: walk
+        // the original positions belonging to this group and refill them, in order, from the reordered
+        // group - since RemoveAt+Insert above didn't change the group's size, this exactly covers every
+        // slot that belonged to the group before the move.
+        var groupQueue = new Queue<Node>(group);
+        for (var i = 0; i < siblings.Count; i++)
+        {
+            if ((siblings[i] is FolderNode) == isFolder)
+            {
+                siblings[i] = groupQueue.Dequeue();
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Cut/paste (spec §6.3): moves node into targetFolder, appended at the end. Rejects moving a
     /// folder into itself or into its own subtree; no-ops if node is already a direct child of
     /// targetFolder.

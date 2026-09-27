@@ -3,15 +3,15 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
-This is **Phase 6 Part A (Polish — theme/settings/import-export/usage)** per `tasks/todo.md`: Phase 1's
-hotkey/panel/navigation/launching, Phase 2's fuzzy Turkish-aware whole-tree search, Phase 3's fully
-keyboard-driven add/edit/delete/move/cut-paste/duplicate of nodes, Phase 4's automatic system icons +
-`Ctrl+I` icon picker, Phase 5's single-instance guard/tray/"Start with Windows"/live config
-watching/DPI-correct positioning/Mica-Acrylic panel, plus Phase 6A's dark/light theme (`Ctrl+,` settings
-page included), usage-based search tie-breaking, and config import/export. Phase 6 Part B — the mouse
-prerequisite, right-click context menu, drag & drop from Explorer, and in-list drag-to-reorder — is not yet
-implemented (see `launcher-spec.md` §5-§9/§14 and `tasks/todo.md`); the code is structured so it slots in
-without reshaping what's here.
+This is **Phase 6 (Polish)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
+fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/cut-paste/
+duplicate of nodes, Phase 4's automatic system icons + `Ctrl+I` icon picker, Phase 5's single-instance
+guard/tray/"Start with Windows"/live config watching/DPI-correct positioning/Mica-Acrylic panel, Phase 6
+Part A's dark/light theme (`Ctrl+,` settings page included), usage-based search tie-breaking, and config
+import/export, plus Phase 6 Part B's mouse prerequisite (click-to-select, double-click-to-open), right-click
+context menu, drag & drop of files/`.lnk`/`.url` from Explorer or the Start menu, and in-list drag to
+reorder/move into a folder (see `launcher-spec.md` §5-§9/§14 and `tasks/phase6-spec.md` for the full spec
+these implement).
 
 ## Build / run / test
 
@@ -34,7 +34,33 @@ $env:YOURLAUNCHER_CONFIG_DIR = "C:\scratch\yl-config"
 dotnet run --project src/Launcher.App
 ```
 
-## Phase 1–6A status
+## Install
+
+Build a standalone copy with the exact command the project is published/measured with (spec §15, D7 — Table
+below):
+
+```powershell
+dotnet publish src/Launcher.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true
+```
+
+The single self-contained exe lands at
+`src\Launcher.App\bin\Release\net10.0-windows\win-x64\publish\YourLauncher.exe` — copy just that file
+anywhere you like (a few native WPF DLLs and `.pdb`s sit next to it in the publish folder but aren't required
+next to the exe once copied elsewhere; `.pdb`s are only for crash diagnostics). No installer — run it
+directly, or right-click → "Pin to taskbar"/create your own shortcut.
+
+**First run**: `%APPDATA%\Your Launcher\config.json` doesn't exist yet, so the app creates it with an empty
+root and default settings (`Alt+Space` hotkey, dark-follows-system theme, `Start with Windows` off), then
+shows the panel once so you can see it worked. The tray icon appears immediately; `Ctrl+N`/`Ctrl+Shift+N`
+build your tree from there, or hand-edit `config.json` (see "Config" below) — `config.example.json` is a
+good starting point to copy in.
+
+**Start with Windows** isn't on by default — turn it on from the settings page (`Ctrl+,` → "Start with
+Windows" toggle) or the tray menu's **Settings…**; it writes `HKCU\...\Run\Your Launcher` immediately and
+keeps it in sync with `settings.startWithWindows` on every subsequent startup/config reload (see "Tray,
+single instance, startup, and file watching" below).
+
+## Phase 1–6 status
 
 Implemented (Phase 1):
 - Global hotkey (default `Alt+Space`, `settings.hotkey`), toggling the panel.
@@ -289,10 +315,52 @@ Implemented (Phase 6 Part A — polish: theme, settings, import/export, usage, s
     with a status line ("Imported N items (merged|replaced).") reusing the same message row as errors/
     warnings elsewhere. Read-only → refused; Export/Import are both disabled in read-only mode too.
 
-Deliberately not yet implemented (Phase 6 Part B, see `launcher-spec.md` §5-§9/§14 and `tasks/todo.md`):
-- The mouse prerequisite (click-to-select without stealing focus from the search box), a right-click
-  context menu, drag & drop of files/`.lnk`/`.url` from Explorer, and in-list drag to reorder/move into a
-  folder.
+Implemented (Phase 6 Part B — mouse, context menu, drag & drop, spec §5-§9/§14):
+- **Mouse prerequisite**: every `ListBoxItem` is `Focusable="False"`, so a click never steals keyboard focus
+  away from the search box. Left-click selects a row; double-click opens it (folder → enter it, anything
+  else → launch it); right-click selects the row first, then opens its context menu. Opening any menu
+  suppresses the panel's `Deactivated` auto-hide the same way the Browse…/tray menus already do.
+- **Context menu** (right-click a list item, also works on search results): **Open**, **Edit** (`F2`),
+  **Change icon** (`Ctrl+I`), **Cut** (`Ctrl+X`), **Paste here** (`Ctrl+V`, enabled only while a node is
+  cut), **Duplicate** (`Ctrl+D`), **Delete** (`Del`), a separator, then **Open file location** — enabled
+  only for an `app`/`path` node whose target actually resolves (same `EnvExpander` → `PathResolver`/
+  `TargetCheck` chain the missing-target badge uses); it runs `explorer.exe /select,"<path>"`, which for a
+  directory target opens its parent with the directory itself selected. Every item is disabled in read-only
+  mode except Open. Right-click on empty list space (or the empty-folder message) instead shows **Paste
+  here** / **New item** (`Ctrl+N`) / **New folder** (`Ctrl+Shift+N`). Every menu item calls the exact same
+  `MainViewModel` method its keyboard shortcut does — no separate logic path — and the menu itself is built
+  fresh from a shared theme-aware style factory (`Services/ThemedMenuFactory.cs`, also used by the tray
+  menu) so it always matches the current theme.
+- **Drag & drop from Explorer/Start menu** (AC12): dropping one or more files onto the panel adds them to
+  the current folder, in drop order, with one save at the end and the last-dropped item selected. Accepted
+  only on the List page (not search results, not any other panel page) and refused outright in read-only
+  mode. Mapping (`Core/Config/DropMapper.cs`, resolved via `Interop/ShellLink.cs`'s hand-written
+  `IShellLinkW`/`IPersistFile` interop for `.lnk`):
+  - `.lnk` with a resolvable target → **app** node if the target is `.exe`/`.bat`/`.cmd`/`.com`/`.msc`,
+    **path** node otherwise; arguments/working directory/icon carried over; an *advertised* (MSI) shortcut
+    with no resolvable target becomes an **app** node pointing at the `.lnk` file itself (so it still
+    launches the way double-clicking it in Explorer would).
+  - `.url` (Internet Shortcut) → **url** node, target read from its `[InternetShortcut]` section.
+  - `.exe`/`.bat`/`.cmd`/`.com`/`.msc` (dropped directly) → **app** node.
+  - Anything else (any other file, or a directory) → **path** node.
+  - Every mapped node's name comes from the same lookup the editor's Target field uses
+    (`TargetNameHelper`/exe `FileDescription`), and environment-variable/relative paths in a `.lnk`'s raw
+    target are preserved exactly as `IPersistFile.GetPath(SLGP_RAWPATH)` returns them (no `.Resolve()` call).
+  - **Known limitation**: clicking on Explorer to start a drag also fires the panel's `Deactivated` event —
+    indistinguishable at that instant from a plain click elsewhere. The panel defers hiding for up to ~50 ms
+    while the left mouse button is still down, giving a *press-and-drag in one continuous motion* time to
+    reach the panel; a plain click that isn't followed by a drag still hides the panel as before, just
+    delayed by up to one poll interval. After a drop, the panel is always left either foreground or hidden —
+    never a visible-but-deactivated `Topmost` window.
+- **In-list drag** (reorder / move into a folder): navigation mode only (not search results, not any other
+  panel page), disabled in read-only mode, using `DragDrop.DoDragDrop` with a private data format so it
+  never collides with the Explorer file-drop path above. Dragging past the system drag threshold
+  (`SystemParameters.MinimumHorizontal/VerticalDragDistance`) shows an insertion line above/below the row
+  under the cursor; hovering over the **middle 50%** of a folder row instead highlights the whole row as
+  "move into". Dropping between rows calls `TreeOps.MoveToGroupIndex` (reorders within the node's own
+  display group — folders vs. everything else — clamped to that group's bounds, so a node never jumps
+  across the folders/items boundary); dropping into a folder calls the existing `TreeOps.MoveTo`. One save
+  at the end; the dragged node stays selected.
 
 ## Keyboard
 
@@ -313,6 +381,20 @@ Deliberately not yet implemented (Phase 6 Part B, see `launcher-spec.md` §5-§9
 | `Ctrl+R` | Reload config.json from disk now (Phase 5) |
 | `Ctrl+Shift+R` | Recover from a corrupt config.json — "keep current version" or "restore from backup", whichever applies (Phase 5) |
 | `Ctrl+,` | Open the settings page (Phase 6) |
+
+### Mouse (Phase 6 Part B, spec §5)
+
+| Action | Behavior |
+|---|---|
+| Click a row | Selects it (never steals focus from the search box — rows are `Focusable="False"`) |
+| Double-click a row | Opens it — folder → enter it, anything else → launch it |
+| Right-click a row | Selects it, then opens its context menu: **Open**, **Edit** (`F2`), **Change icon** (`Ctrl+I`), **Cut** (`Ctrl+X`), **Paste here** (`Ctrl+V`, only while a node is cut), **Duplicate** (`Ctrl+D`), **Delete** (`Del`), then **Open file location** (app/path only, only when the target resolves) |
+| Right-click empty list space | **Paste here** (`Ctrl+V`), **New item** (`Ctrl+N`), **New folder** (`Ctrl+Shift+N`) |
+| Drag a file/`.lnk`/`.url`/folder from Explorer onto the panel | Adds it to the current folder (List page only, not read-only — see "Drag & drop" above) |
+| Drag a row within the list | Reorders it, or moves it into a folder dropped on (nav mode only, not read-only — see "Drag & drop" above) |
+
+Edit-related menu items and both drag types are disabled/refused in read-only mode; the rest (Open, Open
+file location) still work.
 
 ### Search mode (search box non-blank) — spec §6.2
 
@@ -441,8 +523,10 @@ safe, it's only ever read from and copied into, never relied on for anything els
 
 Location: `%APPDATA%\Your Launcher\config.json` (override with the `YOURLAUNCHER_CONFIG_DIR`
 environment variable). Comments and trailing commas are accepted; unknown/missing fields are ignored /
-defaulted, never fatal. See `config.example.json` for a populated example (nested folders, an app with
-an environment-variable path, a `path` node, visible/hidden commands, a URL).
+defaulted, never fatal. See `config.example.json` for a populated example: every node type (`folder`
+(nested three levels deep), `app` with an environment-variable path, `path`, `command` — one example per
+supported shell, `pwsh`/`powershell`/`cmd` — and `url`), plus `keywords`/`description` on a few nodes for
+search.
 
 Usage statistics (Phase 6, spec §8.4) live in a separate `usage.json` next to config.json - never in
 config.json itself, so a hand-edited config stays free of frequently-changing data. It's keyed by node id
@@ -453,7 +537,11 @@ starts back at zero.
 **Import/export** (Phase 6, the settings page's Export…/Import… buttons): Export writes the exact shape
 below (settings + tree) to a `.json` file you choose. Import parses a chosen file the same tolerant way
 config.json itself is read, then asks Merge (append, renaming any colliding ids) or Replace (swap the tree,
-keep your current settings) - see the "Settings page" section above for the exact prompt and keys.
+keep your current settings) - see the "Settings page" section above for the exact prompt and keys. **Merging
+your own export back in duplicates everything** — Merge has no idea two folders named "Dev" mean the same
+thing, so it always appends the imported tree as new siblings (with fresh ids for anything that collides)
+rather than folding it into what's already there; only use Merge to bring in a *different* tree (e.g. from
+another machine), and use Replace (or just don't import) if you meant to restore your own export.
 
 Shape (spec §4.2–§4.5):
 
@@ -508,25 +596,61 @@ order. The whole tree is
 flattened once into a `FlatIndex` per config load, not re-walked per keystroke; 5,000 nodes stay well
 under the spec's 16 ms budget (median ~8 ms / p95 ~10 ms measured in `SearchPerformanceTests`).
 
-## Memory (Phase 5, spec §8)
+## Memory and publish size (Phase 5/6, spec §8/§15)
 
-Measured on a self-contained, single-file, ReadyToRun Release publish
-(`dotnet publish src/Launcher.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
--p:PublishReadyToRun=true`), idle (shown once, then hidden, after a 5 s settle):
+Measured on a self-contained, single-file, ReadyToRun Release publish:
+
+```powershell
+dotnet publish src/Launcher.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishReadyToRun=true
+```
 
 | Metric | Measured | Target |
 |---|---|---|
-| Working Set | ~148 MB | < 80 MB |
-| Private Bytes | ~85 MB | (not separately targeted) |
+| Published exe size (`YourLauncher.exe`) | ~134 MB (140,262,650 bytes) | (not targeted) |
+| Working Set, idle | ~176 MB | < 80 MB |
+| Private Bytes, idle | ~104 MB | (not separately targeted) |
+
+(Working Set/Private Bytes: process launched with `YOURLAUNCHER_CONFIG_DIR` pointed at a scratch config
+directory, panel left showing, measured via `Get-Process` after a 15 s settle, Phase 6 remeasurement — an
+earlier Phase 5 measurement that hid the panel before settling read ~148 MB/~85 MB; either way the number is
+well above target for the reason below, so the exact idle/shown split isn't the deciding factor.)
 
 **Target missed.** No working-set-trimming hack was applied to game this number (`SetProcessWorkingSetSize`
-was deliberately left out — see spec §8's own risk note and `tasks/todo.md`'s Phase 5 review); the Release
-build only turns off concurrent GC/TieredPGO and satellite resource languages
-(`Launcher.App.csproj`). A self-contained WPF app carries its own CLR + WPF renderer regardless of app
-size, and that baseline is well above 80 MB in practice — the original plan flagged this as a tight-to-miss
-target back at the start (`tasks/todo.md` §0 risks: "WPF boşta bellek ~50–70 MB; hedef sınırda"). Shrinking
-this further (e.g. trimming, a non-self-contained/framework-dependent publish, or a non-WPF UI stack) is a
-larger change than Phase 5's scope and is left as a known limitation.
+was deliberately left out — see spec §8's own risk note, `tasks/phase6-spec.md` §10 item 14, and
+`tasks/todo.md`'s Phase 5 review); the Release build only turns off concurrent GC/TieredPGO and satellite
+resource languages (`Launcher.App.csproj`). A self-contained WPF app carries its own CLR + WPF renderer
+regardless of app size, and that baseline is well above 80 MB in practice — the original plan flagged this
+as a tight-to-miss target back at the start (`tasks/todo.md` §0 risks: "WPF boşta bellek ~50–70 MB; hedef
+sınırda"). Shrinking this further (e.g. trimming, a non-self-contained/framework-dependent publish, or a
+non-WPF UI stack) is a larger change than this project's scope and is left as a known limitation.
+
+## Known limitations
+
+A quick-reference list — most of these are explained in more detail in the section named alongside them:
+
+- **Idle memory is ~176 MB Working Set / ~104 MB Private Bytes**, well above the spec's < 80 MB target
+  (see "Memory and publish size" above) — no trimming hack applied, by design.
+- **Multi-word search doesn't match across fields** — every token of a multi-word query must match within
+  the *same* field (name, or the same keyword, or description, or command text); a query where one word
+  only matches the name and another only matches a keyword won't find that node (see "Search" above).
+- **Orphaned custom icon files aren't cleaned up.** Switching a node away from a custom `file` icon (or
+  deleting the node) leaves its copy behind in `<config dir>\icons\`; deleting that folder yourself is
+  always safe (see "Icons" above).
+- **Panel positioning uses only the monitor under the cursor** at the moment the hotkey fires; per-monitor
+  DPI is read fresh each time (`GetDpiForMonitor`), but this was verified by code review only — the
+  development machine has a single monitor (see "Phase 1–6 status" → Phase 5).
+- **A Windows shutdown that skips the app's normal exit path can lose up to the last ~2 seconds of unflushed
+  usage statistics** — `usage.json` writes are debounced 2 s and flushed on a clean exit, but not on a hard
+  power-off/forced shutdown (see "Usage statistics" under "Phase 1–6 status" → Phase 6 Part A).
+- **The Win key is never offered as a hotkey modifier** (for the global hotkey or the settings page's Hotkey
+  capture box) — it's reserved by Windows itself, so `RegisterHotKey`/the capture box only accept
+  Ctrl/Alt/Shift combinations.
+- **`Enter`, `Tab`, `Esc`, and `Backspace` can't be captured as a hotkey key** from the settings page's
+  Hotkey box — each already has a fixed meaning on that page (save/move-focus/cancel/reset-to-saved). To use
+  one of them as part of a hotkey, edit `settings.hotkey` in `config.json` directly.
+- **A press that isn't a continuous drag from Explorer still hides the panel** (see "Drag & drop" above) —
+  only up to ~50 ms slower than before, while the panel waits to see whether the mouse button comes back up
+  without a drag ever reaching it.
 
 ## Key decisions (D1–D8, see `tasks/todo.md` §0 for full rationale)
 
@@ -569,24 +693,30 @@ src/Launcher.Core/               # net10.0, no UI references
   Icons/                         # IconKey, TargetCheck, PathResolver, IconFileStore (Phase 4)
   Startup/                       # StartupSync (pure Run-registry write/delete/none decision, Phase 5)
   Usage/                         # UsageData, UsageScorer (frecency), UsageSerializer (Phase 6)
-  Config/ConfigImport.cs         # Merge (id-collision rename) / Replace tree logic for import (Phase 6)
+  Config/ConfigImport.cs         # Merge (id-collision rename) / Replace tree logic for import (Phase 6A)
+  Config/DropMapper.cs           # Explorer/Start-menu drop path -> Node mapping (Phase 6B)
+                                  # TreeOps also gained MoveToGroupIndex (in-list drag, Phase 6B)
 src/Launcher.App/                # net10.0-windows, WPF
   Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon,
                                   # Shell_NotifyIcon/NOTIFYICONDATA, DWM (Mica/rounded corners), named-pipe/mutex interop (Phase 5)
+  Interop/ShellLink.cs           # IShellLinkW/IPersistFile interop for resolving dropped .lnk files (Phase 6B)
   Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs,
                                   # SingleInstanceService, TrayService, StartupService, ConfigWatcherService (Phase 5),
-                                  # ThemeService, UsageService (debounced atomic usage.json writer, Phase 6)
+                                  # ThemeService, UsageService (debounced atomic usage.json writer, Phase 6A)
+  Services/ThemedMenuFactory.cs  # Shared theme-aware ContextMenu/MenuItem style factory (tray menu + list context menu, Phase 6B)
   ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel,
-                                  # IconPickerViewModel, SettingsViewModel (Phase 6)
-  Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView, SettingsView (Phase 6)
+                                  # IconPickerViewModel, SettingsViewModel (Phase 6A)
+  ViewModels/DropIndicator.cs    # None/Above/Below/Into - in-list drag row indicator (Phase 6B)
+  Views/                         # MainWindow (the panel), TypePickerView, EditorView, IconPickerView, SettingsView (Phase 6A)
   Converters/                    # StringEmptyToVisibilityConverter, StringNonEmptyToVisibilityConverter,
                                   # UrlOrTargetLabelConverter, AdvancedToggleTextConverter, NullToVisibilityConverter,
                                   # IconTierVisibilityConverter, MissingTargetTooltipConverter
   Controls/                      # HighlightedText (attached property for match highlighting)
-  Themes/                        # Dark.xaml, Light.xaml — DynamicResource brush dictionaries (Phase 6)
+  Themes/                        # Dark.xaml, Light.xaml — DynamicResource brush dictionaries (Phase 6A)
   app.ico                        # Multi-size (16/24/32/48/256) app + tray icon (Phase 5)
-tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps,
-                                  # TargetNameHelper, Icons/ (IconKey, IconFileStore, TargetCheck, PathResolver),
-                                  # StartupSyncTests (Phase 5), Usage/ (UsageScorerTests), Config/ (ConfigImportTests) (Phase 6)
+tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps
+                                  # (incl. MoveToGroupIndex, Phase 6B), TargetNameHelper, Icons/ (IconKey, IconFileStore,
+                                  # TargetCheck, PathResolver), StartupSyncTests (Phase 5), Usage/ (UsageScorerTests),
+                                  # Config/ (ConfigImportTests (Phase 6A), DropMapperTests (Phase 6B))
 config.example.json
 ```

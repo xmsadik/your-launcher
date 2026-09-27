@@ -125,4 +125,47 @@ public class TargetCheckTests : IDisposable
             Environment.SetEnvironmentVariable("YL_TEST_TARGET_DIR", null);
         }
     }
+
+    // ---- ResolveExistingPath (spec §10 item 7: "Open file location") ----
+
+    [Fact]
+    public void ResolveExistingPath_ExistingFile_ReturnsExpandedPath()
+    {
+        var file = Path.Combine(_tempRoot, "exists.txt");
+        File.WriteAllText(file, "x");
+        Assert.Equal(file, TargetCheck.ResolveExistingPath(file));
+    }
+
+    [Fact]
+    public void ResolveExistingPath_ExistingDirectory_ReturnsPath() =>
+        Assert.Equal(_tempRoot, TargetCheck.ResolveExistingPath(_tempRoot));
+
+    [Fact]
+    public void ResolveExistingPath_NonExistentLocalPath_ReturnsNull() =>
+        Assert.Null(TargetCheck.ResolveExistingPath(Path.Combine(_tempRoot, "nope.exe")));
+
+    [Fact]
+    public void ResolveExistingPath_BareName_ResolvableOnPath_ReturnsFullPath()
+    {
+        var exePath = Path.Combine(_tempRoot, "tool.exe");
+        File.WriteAllText(exePath, "");
+        Environment.SetEnvironmentVariable("PATH", _tempRoot);
+
+        Assert.Equal(exePath, TargetCheck.ResolveExistingPath("tool.exe"));
+    }
+
+    [Fact]
+    public void ResolveExistingPath_BareName_NotResolvable_ReturnsNull()
+    {
+        Environment.SetEnvironmentVariable("PATH", _tempRoot);
+        Assert.Null(TargetCheck.ResolveExistingPath("definitely-not-a-real-tool.exe"));
+    }
+
+    [Fact]
+    public void ResolveExistingPath_Unc_NeverResolved_ReturnsNull() =>
+        Assert.Null(TargetCheck.ResolveExistingPath(@"\\some-unreachable-server\share\file.txt"));
+
+    [Fact]
+    public void ResolveExistingPath_Empty_ReturnsNull() =>
+        Assert.Null(TargetCheck.ResolveExistingPath(""));
 }

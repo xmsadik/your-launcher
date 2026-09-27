@@ -16,7 +16,12 @@
         FontFamily="Segoe UI Variable, Segoe UI"
         FontSize="14"
         Foreground="{DynamicResource ForegroundBrush}"
-        Deactivated="MainWindow_OnDeactivated">
+        Deactivated="MainWindow_OnDeactivated"
+        AllowDrop="True"
+        DragEnter="Panel_OnDragEnter"
+        DragOver="Panel_OnDragOver"
+        DragLeave="Panel_OnDragLeave"
+        Drop="Panel_OnDrop">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <conv:StringEmptyToVisibilityConverter x:Key="EmptyToVis" />
@@ -94,7 +99,8 @@
                      Background="Transparent"
                      BorderThickness="0"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     MouseRightButtonUp="ItemsList_OnMouseRightButtonUp">
                 <ListBox.Style>
                     <Style TargetType="ListBox">
                         <Style.Triggers>
@@ -111,24 +117,58 @@
                 </ListBox.Style>
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
+                        <!-- Spec §10 item 5 (mouse prerequisite): a ListBoxItem is focusable by default, so
+                             clicking a row would steal keyboard focus away from SearchBox - the search
+                             TextBox's own PreviewKeyDown handler is what drives every keyboard shortcut, so
+                             that must never happen. Selection instead flows through the mouse-down handlers
+                             below, which set MainViewModel.SelectedIndex directly (the SelectedIndex binding
+                             above is OneWay). -->
+                        <Setter Property="Focusable" Value="False" />
+                        <Setter Property="AllowDrop" Value="True" />
                         <Setter Property="Padding" Value="12,6" />
                         <Setter Property="Height" Value="{x:Static local:MainWindow.RowHeight}" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ListItem_OnPreviewMouseLeftButtonDown" />
+                        <EventSetter Event="PreviewMouseLeftButtonUp" Handler="ListItem_OnPreviewMouseLeftButtonUp" />
+                        <EventSetter Event="PreviewMouseMove" Handler="ListItem_OnPreviewMouseMove" />
+                        <EventSetter Event="MouseDoubleClick" Handler="ListItem_OnMouseDoubleClick" />
+                        <EventSetter Event="MouseRightButtonUp" Handler="ListItem_OnMouseRightButtonUp" />
+                        <EventSetter Event="DragOver" Handler="ListItem_OnDragOver" />
+                        <EventSetter Event="DragLeave" Handler="ListItem_OnDragLeave" />
+                        <EventSetter Event="Drop" Handler="ListItem_OnDrop" />
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="ListBoxItem">
-                                    <Border x:Name="Bd"
-                                            Background="Transparent"
-                                            BorderBrush="Transparent"
-                                            BorderThickness="3,0,0,0"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter />
-                                    </Border>
+                                    <Grid>
+                                        <Border x:Name="Bd"
+                                                Background="Transparent"
+                                                BorderBrush="Transparent"
+                                                BorderThickness="3,0,0,0"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <!-- In-list drag insertion lines (spec §7/§10 item 8) - a DropIndicator
+                                             property on the row's own DataContext, no Adorner. -->
+                                        <Border x:Name="DropAboveLine" Height="2" VerticalAlignment="Top"
+                                                Background="{DynamicResource AccentBrush}" Visibility="Collapsed" />
+                                        <Border x:Name="DropBelowLine" Height="2" VerticalAlignment="Bottom"
+                                                Background="{DynamicResource AccentBrush}" Visibility="Collapsed" />
+                                    </Grid>
                                     <ControlTemplate.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
                                             <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
                                             <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
                                         </Trigger>
+                                        <DataTrigger Binding="{Binding DropIndicator}" Value="Into">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+                                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DropIndicator}" Value="Above">
+                                            <Setter TargetName="DropAboveLine" Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding DropIndicator}" Value="Below">
+                                            <Setter TargetName="DropBelowLine" Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Setter.Value>
@@ -216,7 +256,9 @@
             <TextBlock Grid.Row="2"
                        Text="{Binding EmptyMessage}"
                        Foreground="{DynamicResource SecondaryTextBrush}"
-                       Margin="12,10">
+                       Margin="12,10"
+                       Background="Transparent"
+                       MouseRightButtonUp="ItemsList_OnMouseRightButtonUp">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
                         <Setter Property="Visibility" Value="Collapsed" />

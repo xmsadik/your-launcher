@@ -47,6 +47,10 @@ public sealed partial class ListItemViewModel : ObservableObject
     /// <summary>True while this node is the current Ctrl+X target (spec §6.3) - shown dimmed/italic until paste/another cut/hide clears it.</summary>
     public bool IsCut { get; init; }
 
+    /// <summary>Set by MainWindow's in-list drag handlers (spec §7/§10 item 8) while an internal drag hovers over this row; reset to <see cref="ViewModels.DropIndicator.None"/> once the drag leaves or ends.</summary>
+    [ObservableProperty]
+    private DropIndicator _dropIndicator;
+
     [ObservableProperty]
     private ImageSource? _iconImageValue;
 

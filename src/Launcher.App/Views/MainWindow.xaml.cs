@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -9,6 +12,7 @@ using System.Windows.Threading;
 using YourLauncher.App.Interop;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
+using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.App.Views;
@@ -29,6 +33,19 @@ public partial class MainWindow : Window
     private int _suppressAutoHideCount;
 
     private const int WM_SETTINGCHANGE = 0x001A;
+
+    /// <summary>Private DataObject format for the in-list drag (spec §7/§10 item 8) - distinct from <see cref="DataFormats.FileDrop"/> so the two drop paths (Explorer files vs. reordering) never collide.</summary>
+    private const string InternalDragFormat = "YourLauncher.InternalNodeDrag";
+
+    /// <summary>Polling timer for the Explorer-drag deactivation deferral (spec §6/§10 item 6a) - null whenever not currently waiting on a mouse-button release.</summary>
+    private DispatcherTimer? _dragDeferTimer;
+
+    /// <summary>True from the moment a FileDrop DragEnter reaches the panel until Drop/DragLeave - tells the deferred-hide poll a real drag made it here (spec §6).</summary>
+    private bool _externalDragOverPanel;
+
+    /// <summary>Mouse-down anchor for the in-list drag threshold check (spec §7) - set on PreviewMouseLeftButtonDown, cleared on button-up or once a drag actually starts.</summary>
+    private Point _listDragStartPoint;
+    private ListItemViewModel? _listDragCandidate;
 
     /// <summary>Fixed row height so the list can be capped at exactly settings.maxVisibleItems rows.</summary>
     public const double RowHeight = 36;
@@ -162,6 +179,16 @@ public partial class MainWindow : Window
         Keyboard.Focus(SearchBox);
     }
 
+    /// <summary>
+    /// Spec §6/§10 item 6a: an ordinary click on another window (e.g. Explorer) deactivates the panel the
+    /// instant the mouse button goes down there - exactly the same signal a *press-and-drag* toward the
+    /// panel starts with. If the left button is still down right now, defer the hide and poll
+    /// (<see cref="BeginDragDeferPoll"/>) until it's released, so a real drag has time to reach
+    /// <see cref="Panel_OnDragEnter"/>/<see cref="Panel_OnDrop"/> before the panel disappears. A plain
+    /// click (no drag) still ends up hiding the panel once the poll sees the button come back up with no
+    /// drag having reached us - just delayed by up to one poll interval (documented limitation, spec §10
+    /// item 6a: "only a press-and-drag in one motion from Explorer survives").
+    /// </summary>
     private void MainWindow_OnDeactivated(object? sender, EventArgs e)
     {
         if (_suppressAutoHideCount > 0)
@@ -169,7 +196,53 @@ public partial class MainWindow : Window
             return;
         }
 
+        if ((Win32.GetAsyncKeyState(Win32.VK_LBUTTON) & 0x8000) != 0)
+        {
+            BeginDragDeferPoll();
+            return;
+        }
+
         HideLauncher();
+    }
+
+    private void BeginDragDeferPoll()
+    {
+        if (_dragDeferTimer is not null)
+        {
+            return; // already polling from an earlier Deactivated.
+        }
+
+        DateTime? releasedAt = null;
+        _dragDeferTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+        _dragDeferTimer.Tick += (_, _) =>
+        {
+            if ((Win32.GetAsyncKeyState(Win32.VK_LBUTTON) & 0x8000) != 0)
+            {
+                return; // still held down - keep waiting.
+            }
+
+            // Button released while a drag is still over the panel: the source's Drop/DragLeave reaches us
+            // cross-process a few ms after the release, so keep waiting for it to clear the flag (capped,
+            // in case neither ever arrives) - deciding now would race a rejected drop's DragLeave and could
+            // leave a visible, deactivated Topmost panel (spec §10 item 6b).
+            releasedAt ??= DateTime.UtcNow;
+            if (_externalDragOverPanel && DateTime.UtcNow - releasedAt < TimeSpan.FromSeconds(2))
+            {
+                return;
+            }
+
+            _dragDeferTimer!.Stop();
+            _dragDeferTimer = null;
+            _externalDragOverPanel = false;
+
+            // A drop that landed on the panel re-foregrounded it (Panel_OnDrop), so IsActive is true.
+            // Otherwise, spec §6/§10 item 6a: no drag over the panel and not active -> hide as before.
+            if (!IsActive)
+            {
+                HideLauncher();
+            }
+        };
+        _dragDeferTimer.Start();
     }
 
     private void MoveFocusToCurrentPage()
@@ -622,6 +695,323 @@ public partial class MainWindow : Window
         else
         {
             HideLauncher();
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Mouse prerequisite (spec §10 item 5): ListBoxItem is Focusable=False (see MainWindow.xaml), so these
+    // handlers are the only way a mouse click affects selection - left-click selects, double-click opens,
+    // right-click selects then opens the context menu (spec §5).
+    // ---------------------------------------------------------------------------------------------
+
+    private void ListItem_OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        // List page only - ConfirmDelete/ConfirmImport keep the list visible, but a pending confirmation
+        // must not have its selection changed underneath it.
+        if (_viewModel.CurrentPage != PanelPage.List || sender is not ListBoxItem { DataContext: ListItemViewModel item } container)
+        {
+            return;
+        }
+
+        SelectContainer(container);
+
+        // Anchor for the in-list drag threshold (spec §7) - a plain click never crosses it, so this never
+        // fires DoDragDrop by itself; ListItem_OnPreviewMouseMove/Up below decide that.
+        _listDragStartPoint = e.GetPosition(null);
+        _listDragCandidate = item;
+    }
+
+    private void ListItem_OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) => _listDragCandidate = null;
+
+    private void ListItem_OnMouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        // Clear the drag anchor first: entering a folder replaces every row while the button may still be
+        // down, and a drag from that stale candidate would move the folder we just entered.
+        _listDragCandidate = null;
+        if (_viewModel.CurrentPage == PanelPage.List && sender is ListBoxItem { DataContext: ListItemViewModel })
+        {
+            _viewModel.EnterSelected();
+        }
+    }
+
+    private void ListItem_OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_viewModel.CurrentPage != PanelPage.List || sender is not ListBoxItem { DataContext: ListItemViewModel item } container)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        SelectContainer(container);
+        e.Handled = true; // stop this from also reaching ItemsList_OnMouseRightButtonUp (empty-area menu).
+        ShowItemContextMenu(container, item);
+    }
+
+    /// <summary>Right-click on empty list space, or on the empty-folder message - spec §10 item 7's "Paste here / New item / New folder" menu.</summary>
+    private void ItemsList_OnMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (_viewModel.CurrentPage == PanelPage.List)
+        {
+            ShowEmptyAreaContextMenu((UIElement)sender);
+        }
+    }
+
+    private void SelectContainer(ListBoxItem container)
+    {
+        var index = ItemsList.ItemContainerGenerator.IndexFromContainer(container);
+        if (index >= 0)
+        {
+            _viewModel.SelectedIndex = index;
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Context menu (spec §5, revised §10 item 7): each item calls the exact same MainViewModel method the
+    // matching keyboard shortcut does - no duplicated logic. Built fresh from ThemedMenuFactory (shared
+    // with TrayService) on every open so it always reflects the current theme and read-only state.
+    // ---------------------------------------------------------------------------------------------
+
+    private void ShowItemContextMenu(ListBoxItem placementTarget, ListItemViewModel item)
+    {
+        var readOnly = _viewModel.IsReadOnly;
+        var style = ThemedMenuFactory.CreateMenuItemStyle();
+        var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
+
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Cut", style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Duplicate", style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Delete", style, () => _viewModel.BeginDelete(), "Del", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
+
+        var canOpenLocation = TryResolveOpenLocationPath(item.Node, out var locationPath);
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Open file location", style, () => OpenFileLocation(locationPath), enabled: canOpenLocation));
+
+        OpenContextMenu(menu);
+    }
+
+    private void ShowEmptyAreaContextMenu(UIElement placementTarget)
+    {
+        var readOnly = _viewModel.IsReadOnly;
+        var style = ThemedMenuFactory.CreateMenuItemStyle();
+        var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
+
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("New item", style, () => _viewModel.BeginAddNode(), "Ctrl+N", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("New folder", style, () => _viewModel.BeginAddFolderDirect(), "Ctrl+Shift+N", enabled: !readOnly));
+
+        OpenContextMenu(menu);
+    }
+
+    /// <summary>Spec §5: "Opening the menu must not trigger auto-hide" - same suppression counter the Browse…/tray menus already use.</summary>
+    private void OpenContextMenu(ContextMenu menu)
+    {
+        BeginSuppressAutoHide();
+        menu.Closed += (_, _) => EndSuppressAutoHide();
+        menu.IsOpen = true;
+    }
+
+    /// <summary>"Open file location" (spec §10 item 7): app/path targets only, resolved with the same EnvExpander + PathResolver/TargetCheck chain the missing-target badge uses, so both always agree on what's actually there.</summary>
+    private static bool TryResolveOpenLocationPath(Node node, out string path)
+    {
+        var target = node switch
+        {
+            AppNode app => app.Target,
+            PathNode pathNode => pathNode.Target,
+            _ => null,
+        };
+
+        var resolved = target is null ? null : TargetCheck.ResolveExistingPath(target);
+        path = resolved ?? "";
+        return resolved is not null;
+    }
+
+    /// <summary>Explorer /select highlights the item in its parent folder - the same call works whether the resolved path is itself a file or a directory (spec: "for a directory target open its parent with it selected").</summary>
+    private static void OpenFileLocation(string path)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            return; // menu item is disabled in this case; defensive only.
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or IOException)
+        {
+            Debug.WriteLine($"[YourLauncher] Could not open file location for '{path}': {ex.Message}");
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Drag & drop from Explorer/Start menu (spec §6/AC12, revised §10 item 6): accepted only on the List
+    // page, only DataFormats.FileDrop - the private in-list-drag format below is handled at the
+    // ListBoxItem level and marks the event Handled so it never reaches these Window-level handlers.
+    // ---------------------------------------------------------------------------------------------
+
+    private void Panel_OnDragEnter(object sender, DragEventArgs e)
+    {
+        // FileDrop only: an in-list drag also bubbles DragEnter up here, but its Drop is handled at the row
+        // and never reaches Panel_OnDrop to clear the flag - a stale true would keep a later plain click on
+        // another window from hiding the panel (spec §10 item 6b).
+        if (e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            _externalDragOverPanel = true;
+
+            // Spec §6: read-only rejects with the error line - a rejected drag never gets a Drop, so say it now.
+            if (_viewModel.CurrentPage == PanelPage.List && _viewModel.IsReadOnly)
+            {
+                _viewModel.ShowReadOnlyError();
+            }
+        }
+
+        ApplyFileDropEffect(e);
+    }
+
+    private void Panel_OnDragOver(object sender, DragEventArgs e) => ApplyFileDropEffect(e);
+
+    private void Panel_OnDragLeave(object sender, DragEventArgs e) => _externalDragOverPanel = false;
+
+    private void ApplyFileDropEffect(DragEventArgs e)
+    {
+        if (_viewModel.CurrentPage != PanelPage.List || _viewModel.IsReadOnly || !e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
+
+        e.Effects = (e.KeyStates & DragDropKeyStates.ControlKey) == DragDropKeyStates.ControlKey
+            ? DragDropEffects.Link
+            : DragDropEffects.Copy;
+        e.Handled = true;
+    }
+
+    private void Panel_OnDrop(object sender, DragEventArgs e)
+    {
+        _externalDragOverPanel = false;
+
+        if (_viewModel.CurrentPage != PanelPage.List || !e.Data.GetDataPresent(DataFormats.FileDrop))
+        {
+            return;
+        }
+
+        var paths = (string[]?)e.Data.GetData(DataFormats.FileDrop) ?? Array.Empty<string>();
+        _viewModel.AddNodesFromDrop(paths);
+
+        // Spec §10 item 6b: after a drop the panel must end up foreground or hidden - never a visible
+        // deactivated Topmost panel. The Explorer drag deactivated us to get here; take the foreground back
+        // now that the drop is handled (same trick RequestShow/ForceForeground already use).
+        ForceForeground();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // In-list drag (spec §7, revised §10 item 8): nav mode only, List page only, disabled read-only -
+    // DragDrop.DoDragDrop with a private format (InternalDragFormat) so it never collides with the
+    // Explorer FileDrop path above. TreeOps.MoveToGroupIndex/MoveTo do the actual tree edit (MainViewModel.
+    // MoveDraggedNode); this class only tracks the drag gesture and the per-row visual indicator.
+    // ---------------------------------------------------------------------------------------------
+
+    private void ListItem_OnPreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _listDragCandidate is null ||
+            !ReferenceEquals((sender as FrameworkElement)?.DataContext, _listDragCandidate))
+        {
+            return;
+        }
+
+        if (_viewModel.IsSearchMode || _viewModel.CurrentPage != PanelPage.List || _viewModel.IsReadOnly)
+        {
+            return;
+        }
+
+        var current = e.GetPosition(null);
+        if (Math.Abs(current.X - _listDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
+            Math.Abs(current.Y - _listDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance)
+        {
+            return;
+        }
+
+        var dragged = _listDragCandidate;
+        _listDragCandidate = null; // DoDragDrop below runs its own message loop - one drag per press.
+
+        var data = new DataObject(InternalDragFormat, dragged.Node.Id);
+        DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move);
+        ClearDropIndicators();
+    }
+
+    private void ListItem_OnDragOver(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(InternalDragFormat) || sender is not ListBoxItem { DataContext: ListItemViewModel targetItem } container)
+        {
+            return; // not our format - let it bubble to Panel_OnDragOver untouched.
+        }
+
+        e.Handled = true;
+
+        var sourceId = (string)e.Data.GetData(InternalDragFormat)!;
+        if (sourceId == targetItem.Node.Id)
+        {
+            e.Effects = DragDropEffects.None;
+            ClearDropIndicators();
+            return;
+        }
+
+        e.Effects = DragDropEffects.Move;
+
+        var indicator = IndicatorAt(e, container, targetItem);
+        ClearDropIndicators();
+        targetItem.DropIndicator = indicator;
+    }
+
+    private static DropIndicator IndicatorAt(DragEventArgs e, ListBoxItem container, ListItemViewModel targetItem)
+    {
+        var verticalFraction = e.GetPosition(container).Y / container.ActualHeight;
+        return targetItem.IsFolder
+            ? verticalFraction switch
+            {
+                <= 0.25 => DropIndicator.Above,
+                >= 0.75 => DropIndicator.Below,
+                _ => DropIndicator.Into, // spec §7: a folder's middle 50% = "move into".
+            }
+            : verticalFraction < 0.5 ? DropIndicator.Above : DropIndicator.Below;
+    }
+
+    private void ListItem_OnDragLeave(object sender, DragEventArgs e)
+    {
+        if (sender is ListBoxItem { DataContext: ListItemViewModel item })
+        {
+            item.DropIndicator = DropIndicator.None;
+        }
+    }
+
+    private void ListItem_OnDrop(object sender, DragEventArgs e)
+    {
+        if (!e.Data.GetDataPresent(InternalDragFormat) || sender is not ListBoxItem { DataContext: ListItemViewModel targetItem } container)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ClearDropIndicators();
+
+        // Recomputed from the drop point, not read from the row: DragLeave between the row's own child
+        // elements resets DropIndicator until the next DragOver, so the stored value can be stale here.
+        var indicator = IndicatorAt(e, container, targetItem);
+
+        var sourceId = (string)e.Data.GetData(InternalDragFormat)!;
+        _viewModel.MoveDraggedNode(sourceId, targetItem.Node.Id, indicator);
+    }
+
+    private void ClearDropIndicators()
+    {
+        foreach (var item in _viewModel.Items)
+        {
+            item.DropIndicator = DropIndicator.None;
         }
     }
 }

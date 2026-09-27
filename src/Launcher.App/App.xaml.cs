@@ -84,7 +84,8 @@ public partial class App : Application
             () => usageService.Prune(ConfigImport.CollectIds(configService.Config.Root).ToHashSet()),
             TryApplyHotkey,
             BeginHotkeyCapture,
-            EndHotkeyCaptureRestore);
+            EndHotkeyCaptureRestore,
+            ShellLinkResolver.Resolve);
         _viewModel = viewModel;
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;

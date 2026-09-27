@@ -55,4 +55,26 @@ public static class TargetCheck
     /// <summary>No path separator and no scheme/drive colon - the shape %PATH%-resolution applies to.</summary>
     private static bool LooksLikeBareName(string value) =>
         !value.Contains('\\') && !value.Contains('/') && !value.Contains(':');
+
+    /// <summary>
+    /// The full existing path <paramref name="target"/> (env-expanded) resolves to, or null if it doesn't
+    /// exist/resolve - the same resolution <see cref="IsMissing"/> uses, exposed for "Open file location"
+    /// (spec §10 item 7) so the context menu and the missing-target badge always agree on what a target
+    /// means. Null for a UNC/URI/shell target (never resolved to a local path) same as <see cref="IsMissing"/>.
+    /// </summary>
+    public static string? ResolveExistingPath(string target)
+    {
+        var expanded = EnvExpander.Expand(target) ?? "";
+        if (expanded.Length == 0)
+        {
+            return null;
+        }
+
+        if (ShouldCheckExistence(expanded))
+        {
+            return File.Exists(expanded) || Directory.Exists(expanded) ? expanded : null;
+        }
+
+        return LooksLikeBareName(expanded) ? PathResolver.FindOnPath(expanded) : null;
+    }
 }
