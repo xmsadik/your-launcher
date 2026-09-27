@@ -546,8 +546,7 @@ gereği bu oturumda **bilerek yapılmadı**.
 - Aşama 6B `7925d86`; sonrasında: Esc paneli kapatır (`ebedc11`), öğe başına "Ask before launching" onayı (`d3155aa`), yer imi içe aktarma (bu commit).
 - 2026-09-27 ek işler (hepsi push edildi): Chrome `AccountBookmarks` desteği + aynı adlı profilleri ayırma (`719fbde`),
   liste satırında isim önceliği + yolun baştan kısaltılması (`78157ad`, `Controls/NameAndPathPanel.cs`,
-  `Controls/PathText.cs`, `Core/Search/PathTrimmer.cs`). 305 test yeşil. Exe `src\Launcher.Appin\Release
-et10.0-windows  win-x64\publish\YourLauncher.exe` son koddan publish edildi.
+  `Controls/PathText.cs`, `Core/Search/PathTrimmer.cs`). 305 test yeşil. Exe (Release publish klasöründeki `YourLauncher.exe`) son koddan publish edildi.
 - Kullanıcı 2026-09-27'de manuel teste başladı ve ara verdi. Sıradaki: kullanıcının test geri bildirimlerini düzeltmek
   (özellikle sağ tık, sürükle-bırak, gerçek Alt+Space hotkey).
 - Açık konular: çok kelimeli aramada alanlar arası eşleşme yok; boşta bellek 80 MB hedefinin üzerinde (bilerek
