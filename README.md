@@ -373,7 +373,7 @@ Implemented (Phase 6 Part B — mouse, context menu, drag & drop, spec §5-§9/�
 | `Enter` | Folder → enter it; anything else → launch it |
 | `→` / `Tab` | Enter the selected folder (no-op on non-folders) |
 | `←` / `Backspace` (when search is empty) | Go up one folder (no-op at root) |
-| `Esc` | In a subfolder → go up; else at root → hide the panel |
+| `Esc` | Hide the panel (from any folder — `Backspace` goes up a folder) |
 | `Home` / `End` | Jump to first / last item |
 | `PageUp` / `PageDown` | Move by `settings.maxVisibleItems` |
 | Any printable character | Typed into the search box, switches to search mode |

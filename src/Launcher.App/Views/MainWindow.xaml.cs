@@ -684,13 +684,10 @@ public partial class MainWindow : Window
 
     private void HandleEscape()
     {
+        // Esc never navigates up a folder (user request 2026-09-27) - Backspace on an empty search does that.
         if (!string.IsNullOrEmpty(_viewModel.SearchText))
         {
             _viewModel.SearchText = "";
-        }
-        else if (_viewModel.CanNavigateUp)
-        {
-            _viewModel.NavigateUp();
         }
         else
         {

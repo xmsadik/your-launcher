@@ -201,12 +201,12 @@ Otomatik ikon kuralları (`icon: null`):
 | `Enter` | Klasörse içine gir; değilse node'u çalıştır |
 | `→` / `Tab` | Klasörse içine gir |
 | `←` / `Backspace` | Üst klasöre çık (root'ta etkisiz) |
-| `Esc` | Alt klasördeyse bir üst klasöre çık; root'taysa launcher'ı kapat |
+| `Esc` | Launcher'ı kapat (hangi klasörde olursa olsun; üst klasöre çıkmak `Backspace`) |
 | `Home` / `End` | İlk / son öğe |
 | `PageUp` / `PageDown` | Sayfa kaydır |
 | Herhangi bir yazılabilir karakter | Arama moduna geç (karakter kutuya yazılır) |
 
-> Not: `Esc` davranışı: arama doluysa → aramayı temizle; alt klasördeyse → bir üst klasöre çık; root'taysa → kapat.
+> Not: `Esc` davranışı: arama doluysa → aramayı temizle; değilse → kapat (alt klasörde de; kullanıcı kararı 2026-09-27).
 
 ### 6.2 Arama Modu (arama kutusu dolu)
 
