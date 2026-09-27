@@ -308,10 +308,10 @@
                        TextWrapping="Wrap"
                        Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}" />
 
-            <!-- Inline delete-confirm bar -->
+            <!-- Inline delete-/launch-confirm bar -->
             <Border Grid.Row="4" BorderBrush="{DynamicResource PanelBorderBrush}" BorderThickness="0,1,0,0"
                     Visibility="{Binding ShowConfirmBar, Converter={StaticResource BoolToVis}}">
-                <TextBlock Text="{Binding DeleteConfirmMessage}"
+                <TextBlock Text="{Binding ConfirmMessage}"
                            Foreground="{DynamicResource WarningBrush}"
                            FontSize="12"
                            TextWrapping="Wrap"

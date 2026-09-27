@@ -575,6 +575,11 @@ Every node also accepts optional `icon` (see "Icons" above), `keywords` and `des
 latter two are searched (weighted below name, see "Search" below). `config.example.json` has a few
 populated to demonstrate keyword search.
 
+Every non-folder node also accepts `"confirmLaunch": true` (editor: **Ask before launching**). Launching
+such a node — Enter, double-click or the context menu's Open — first shows an inline bar
+"Launch '<name>'? Enter = launch, Esc = cancel"; any key other than Enter cancels. Meant for items like
+shut down / restart / log out. The field is omitted from config.json while false.
+
 ## Search (spec §7, Phase 2)
 
 Typing into the search box searches the **whole tree**, not just the current folder. Matching is

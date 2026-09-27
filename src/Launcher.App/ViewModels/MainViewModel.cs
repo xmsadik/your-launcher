@@ -51,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
     private Node? _pendingDeleteNode;
+    private Node? _pendingLaunchNode;
     private Node? _iconPickerNode;
     private LauncherConfig? _pendingImportConfig;
 
@@ -113,7 +114,7 @@ public sealed partial class MainViewModel : ObservableObject
     private Node? _cutNode;
 
     [ObservableProperty]
-    private string _deleteConfirmMessage = "";
+    private string _confirmMessage = "";
 
     [ObservableProperty]
     private string _importConfirmMessage = "";
@@ -181,9 +182,9 @@ public sealed partial class MainViewModel : ObservableObject
     public bool ShowHintBar => _config.Settings.ShowHintBar;
 
     /// <summary>The hint bar row is replaced by the inline delete-/import-confirm bar on those pages.</summary>
-    public bool ShowHintBarRow => ShowHintBar && CurrentPage is not (PanelPage.ConfirmDelete or PanelPage.ConfirmImport);
+    public bool ShowHintBarRow => ShowHintBar && CurrentPage is not (PanelPage.ConfirmDelete or PanelPage.ConfirmLaunch or PanelPage.ConfirmImport);
 
-    public bool ShowConfirmBar => CurrentPage == PanelPage.ConfirmDelete;
+    public bool ShowConfirmBar => CurrentPage is PanelPage.ConfirmDelete or PanelPage.ConfirmLaunch;
 
     public bool ShowConfirmImportBar => CurrentPage == PanelPage.ConfirmImport;
 
@@ -191,7 +192,7 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsConfirmBarActive => ShowConfirmBar || ShowConfirmImportBar;
 
     /// <summary>Search box + item list are visible on List, ConfirmDelete and ConfirmImport (the confirm bars are overlays, not page swaps).</summary>
-    public bool IsListPage => CurrentPage is PanelPage.List or PanelPage.ConfirmDelete or PanelPage.ConfirmImport;
+    public bool IsListPage => CurrentPage is PanelPage.List or PanelPage.ConfirmDelete or PanelPage.ConfirmLaunch or PanelPage.ConfirmImport;
 
     public bool ShowTypePickerPage => CurrentPage == PanelPage.TypePicker;
 
@@ -330,6 +331,7 @@ public sealed partial class MainViewModel : ObservableObject
         DetachIconPicker();
         DetachSettings();
         _pendingDeleteNode = null;
+        _pendingLaunchNode = null;
         _pendingImportConfig = null;
         CurrentPage = PanelPage.List;
 
@@ -524,7 +526,41 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedIndex = indexInFolder >= 0 ? indexInFolder : (Items.Count > 0 ? 0 : -1);
     }
 
+    /// <summary>Nodes marked <see cref="Node.ConfirmLaunch"/> (e.g. shutdown/restart) go through the inline confirm bar first; everything else launches immediately.</summary>
     private void Launch(Node node)
+    {
+        if (node.ConfirmLaunch)
+        {
+            _pendingLaunchNode = node;
+            ConfirmMessage = $"Launch '{node.Name}'? Enter = launch, Esc = cancel";
+            CurrentPage = PanelPage.ConfirmLaunch;
+            return;
+        }
+
+        LaunchNow(node);
+    }
+
+    /// <summary>Enter on the launch-confirm bar.</summary>
+    public void ConfirmPendingLaunch()
+    {
+        var node = _pendingLaunchNode;
+        _pendingLaunchNode = null;
+        CurrentPage = PanelPage.List;
+
+        if (node is not null)
+        {
+            LaunchNow(node);
+        }
+    }
+
+    /// <summary>Esc, or any other key, while the launch-confirm bar is showing.</summary>
+    public void CancelPendingLaunch()
+    {
+        _pendingLaunchNode = null;
+        CurrentPage = PanelPage.List;
+    }
+
+    private void LaunchNow(Node node)
     {
         var launched = _launchService.Launch(node, _config.Settings);
         if (launched)
@@ -930,7 +966,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         _pendingDeleteNode = SelectedNode;
         var descendantCount = CountDescendants(_pendingDeleteNode);
-        DeleteConfirmMessage = _pendingDeleteNode is FolderNode && descendantCount > 0
+        ConfirmMessage = _pendingDeleteNode is FolderNode && descendantCount > 0
             ? $"Delete folder '{_pendingDeleteNode.Name}' and its {descendantCount} item{(descendantCount == 1 ? "" : "s")}? Enter = delete, Esc = cancel"
             : $"Delete '{_pendingDeleteNode.Name}'? Enter = delete, Esc = cancel";
         CurrentPage = PanelPage.ConfirmDelete;
@@ -1309,9 +1345,10 @@ public sealed partial class MainViewModel : ObservableObject
         _pruneUsage();
         CutNode = null;
         _pendingDeleteNode = null;
+        _pendingLaunchNode = null;
         _pendingImportConfig = null;
 
-        if (CurrentPage is PanelPage.ConfirmDelete or PanelPage.ConfirmImport)
+        if (CurrentPage is PanelPage.ConfirmDelete or PanelPage.ConfirmLaunch or PanelPage.ConfirmImport)
         {
             CurrentPage = PanelPage.List;
         }

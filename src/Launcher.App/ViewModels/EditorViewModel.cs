@@ -76,6 +76,10 @@ public sealed partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private bool _runAsAdmin;
 
+    /// <summary>Every type except folder - shown outside Advanced so it's easy to spot on shutdown/restart-style items.</summary>
+    [ObservableProperty]
+    private bool _confirmLaunch;
+
     // app + command
     [ObservableProperty]
     private string _workingDirectory = "";
@@ -122,6 +126,7 @@ public sealed partial class EditorViewModel : ObservableObject
         Name = originalNode.Name;
         KeywordsText = string.Join(", ", originalNode.Keywords);
         Description = originalNode.Description ?? "";
+        ConfirmLaunch = originalNode.ConfirmLaunch;
 
         switch (originalNode)
         {
@@ -217,6 +222,8 @@ public sealed partial class EditorViewModel : ObservableObject
     public bool ShowWorkingDirectory => IsApp || IsCommand;
     public bool ShowRunAsAdmin => IsApp || IsCommand;
 
+    public bool ShowConfirmLaunch => !IsFolder;
+
     /// <summary>app/path focus Target first on open (so browse/paste then name auto-fills); everything else focuses Name.</summary>
     public bool FocusTargetFirst => IsApp || IsPath;
 
@@ -292,6 +299,7 @@ public sealed partial class EditorViewModel : ObservableObject
         node.Name = trimmedName;
         node.Keywords = keywords;
         node.Description = description;
+        node.ConfirmLaunch = !IsFolder && ConfirmLaunch;
 
         ApplyTypeSpecificFields(node);
 

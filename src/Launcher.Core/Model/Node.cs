@@ -25,6 +25,11 @@ public abstract class Node
     [JsonPropertyOrder(12)]
     public IconSpec? Icon { get; set; }
 
+    /// <summary>Ask "Launch '...'? Enter = launch" before launching (e.g. shutdown/restart items). Folders ignore it; omitted from config.json while false.</summary>
+    [JsonPropertyOrder(9)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool ConfirmLaunch { get; set; }
+
     [JsonPropertyOrder(10)]
     public List<string> Keywords { get; set; } = new();
 

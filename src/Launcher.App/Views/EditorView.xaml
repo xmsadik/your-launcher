@@ -207,6 +207,12 @@
             </StackPanel>
         </StackPanel>
 
+        <!-- every type except folder: ask before launching -->
+        <CheckBox Content="Ask before launching"
+                  Margin="0,10,0,0"
+                  IsChecked="{Binding ConfirmLaunch}"
+                  Visibility="{Binding ShowConfirmLaunch, Converter={StaticResource BoolToVis}}" />
+
         <!-- Keywords -->
         <Grid Margin="0,10,0,4">
             <Grid.ColumnDefinitions>

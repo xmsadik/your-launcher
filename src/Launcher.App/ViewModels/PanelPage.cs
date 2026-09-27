@@ -15,4 +15,5 @@ public enum PanelPage
     IconPicker,
     Settings,
     ConfirmImport,
+    ConfirmLaunch,
 }

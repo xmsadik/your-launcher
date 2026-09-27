@@ -267,6 +267,7 @@ public partial class MainWindow : Window
 
             case PanelPage.List:
             case PanelPage.ConfirmDelete:
+            case PanelPage.ConfirmLaunch:
             case PanelPage.ConfirmImport:
                 SearchBox.Focus();
                 Keyboard.Focus(SearchBox);
@@ -462,6 +463,22 @@ public partial class MainWindow : Window
             else
             {
                 _viewModel.CancelPendingDelete();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (_viewModel.CurrentPage == PanelPage.ConfirmLaunch)
+        {
+            // Same "Enter confirms, any other key cancels" rule as ConfirmDelete above.
+            if (e.Key == Key.Enter)
+            {
+                _viewModel.ConfirmPendingLaunch();
+            }
+            else
+            {
+                _viewModel.CancelPendingLaunch();
             }
 
             e.Handled = true;
