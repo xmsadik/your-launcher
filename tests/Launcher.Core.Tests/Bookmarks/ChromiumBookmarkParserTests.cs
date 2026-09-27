@@ -188,4 +188,27 @@ public class ChromiumBookmarkParserTests
         var bar = Assert.IsType<FolderNode>(Assert.Single(result.Children));
         Assert.Equal("Ok", Assert.IsType<UrlNode>(Assert.Single(bar.Children)).Name);
     }
+
+    [Fact]
+    public void Parse_MultipleFiles_MergedUnderSameRoots_InFileOrder()
+    {
+        var account = Wrap(bar: """{"children":[{"type":"url","name":"Account","url":"https://a.example"}]}""");
+        var local = Wrap(
+            bar: """{"children":[{"type":"url","name":"Local","url":"https://l.example"}]}""",
+            other: """{"children":[{"type":"url","name":"Other","url":"https://o.example"}]}""");
+
+        var result = ChromiumBookmarkParser.Parse(new[] { account, local }, "Chrome bookmarks");
+
+        Assert.Equal(new[] { "Bookmarks bar", "Other bookmarks" }, result.Children.Select(c => c.Name));
+        var bar = Assert.IsType<FolderNode>(result.Children[0]);
+        Assert.Equal(new[] { "Account", "Local" }, bar.Children.Select(c => c.Name));
+    }
+
+    [Fact]
+    public void Parse_AccountFileEmpty_LocalFileEmpty_ResultHasNoChildren()
+    {
+        var result = ChromiumBookmarkParser.Parse(new[] { Wrap(), Wrap() }, "Chrome bookmarks");
+
+        Assert.Empty(result.Children);
+    }
 }

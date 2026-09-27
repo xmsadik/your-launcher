@@ -255,10 +255,10 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>One menu item's click: read + parse the chosen browser's <c>Bookmarks</c> file. Errors go on this page's own error line, nothing changes (bookmark spec §2).</summary>
     public void RequestImportBookmarksFromSource(BookmarkSource source)
     {
-        string json;
+        List<string> jsons;
         try
         {
-            json = ReadAllTextSharingWithBrowser(source.BookmarksPath);
+            jsons = source.BookmarksPaths.Select(ReadAllTextSharingWithBrowser).ToList();
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -269,7 +269,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         FolderNode imported;
         try
         {
-            imported = ChromiumBookmarkParser.Parse(json, $"{source.DisplayName} bookmarks");
+            imported = ChromiumBookmarkParser.Parse(jsons, $"{source.DisplayName} bookmarks");
         }
         catch (BookmarkImportException ex)
         {

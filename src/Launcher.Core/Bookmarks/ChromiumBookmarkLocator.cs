@@ -44,10 +44,10 @@ public static class ChromiumBookmarkLocator
 
         foreach (var (browser, relativeDir) in RoamingAppDataBrowsers)
         {
-            var bookmarksPath = Path.Combine(roamingAppData, relativeDir, "Bookmarks");
-            if (File.Exists(bookmarksPath))
+            var bookmarksPaths = ExistingBookmarkFiles(Path.Combine(roamingAppData, relativeDir));
+            if (bookmarksPaths.Count > 0)
             {
-                sources.Add(new BookmarkSource(browser, ProfileDir: "", ProfileName: "", bookmarksPath)
+                sources.Add(new BookmarkSource(browser, ProfileDir: "", ProfileName: "", bookmarksPaths)
                 {
                     SourceKey = $"{browser.ToLowerInvariant()}/",
                     DisplayName = browser,
@@ -58,9 +58,16 @@ public static class ChromiumBookmarkLocator
         return sources;
     }
 
+    /// <summary>Signed-in Chrome keeps Google-account bookmarks in <c>AccountBookmarks</c>, local ones in <c>Bookmarks</c> - a profile may have either or both.</summary>
+    private static IReadOnlyList<string> ExistingBookmarkFiles(string profileDir) =>
+        new[] { "AccountBookmarks", "Bookmarks" }
+            .Select(file => Path.Combine(profileDir, file))
+            .Where(File.Exists)
+            .ToList();
+
     private static List<BookmarkSource> DiscoverUserDataProfiles(string browser, string userDataDir)
     {
-        var profiles = new List<(string Dir, string Name, string BookmarksPath)>();
+        var profiles = new List<(string Dir, string Name, IReadOnlyList<string> BookmarksPaths)>();
 
         try
         {
@@ -79,14 +86,14 @@ public static class ChromiumBookmarkLocator
                     continue;
                 }
 
-                var bookmarksPath = Path.Combine(dir, "Bookmarks");
-                if (!File.Exists(bookmarksPath))
+                var bookmarksPaths = ExistingBookmarkFiles(dir);
+                if (bookmarksPaths.Count == 0)
                 {
                     continue;
                 }
 
                 var name = profileNames.TryGetValue(dirName, out var n) && !string.IsNullOrWhiteSpace(n) ? n : dirName;
-                profiles.Add((dirName, name, bookmarksPath));
+                profiles.Add((dirName, name, bookmarksPaths));
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -99,12 +106,14 @@ public static class ChromiumBookmarkLocator
         var multipleProfiles = profiles.Count > 1;
 
         var result = new List<BookmarkSource>(profiles.Count);
-        foreach (var (dir, name, bookmarksPath) in profiles)
+        foreach (var (dir, name, bookmarksPaths) in profiles)
         {
-            result.Add(new BookmarkSource(browser, dir, name, bookmarksPath)
+            result.Add(new BookmarkSource(browser, dir, name, bookmarksPaths)
             {
                 SourceKey = $"{browser.ToLowerInvariant()}/{dir.ToLowerInvariant()}",
-                DisplayName = multipleProfiles ? $"{browser} ({name})" : browser,
+                DisplayName = !multipleProfiles ? browser
+                    : profiles.Count(p => p.Name == name) > 1 ? $"{browser} ({name}, {dir})" // two profiles can share a display name (e.g. Edge's "Person 1").
+                    : $"{browser} ({name})",
             });
         }
 

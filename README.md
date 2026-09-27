@@ -594,6 +594,9 @@ Clicking it opens a menu:
   **Opera**/**Opera GX** (`%APPDATA%\Opera Software\Opera <Stable|GX Stable>`, single profile). A browser
   with more than one profile shows each as e.g. "Chrome (Work)"; a single-profile browser just shows
   "Chrome". Browsers that aren't installed, or whose profile can't be read, are silently left off the list.
+  Each profile's `AccountBookmarks` (where Chrome keeps Google-account bookmarks while signed in) and
+  `Bookmarks` (local bookmarks) files are both read and merged, the same way the browser shows them. Two
+  profiles with the same display name show their directory too, e.g. "Edge (Person 1, Profile 1)".
 - **From HTML file…** — any browser's own "export bookmarks to HTML" file (Netscape bookmark format),
   which covers browsers the auto-detection above doesn't reach, most notably **Firefox**: in Firefox,
   Library (`Ctrl+Shift+O`) → Import and Backup → **Export Bookmarks to HTML…**, then pick that file here.

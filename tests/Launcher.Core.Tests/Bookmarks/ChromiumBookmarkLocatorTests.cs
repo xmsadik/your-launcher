@@ -170,4 +170,40 @@ public class ChromiumBookmarkLocatorTests : IDisposable
         Assert.Contains(sources, s => s.Browser == "Chrome" && s.SourceKey == "chrome/default");
         Assert.Contains(sources, s => s.Browser == "Edge" && s.SourceKey == "edge/default");
     }
+
+    [Fact]
+    public void Discover_SignedInProfile_OnlyAccountBookmarks_IsFound()
+    {
+        var dir = Path.Combine(LocalAppData, "Google", "Chrome", "User Data", "Default");
+        Directory.CreateDirectory(dir);
+        File.WriteAllText(Path.Combine(dir, "AccountBookmarks"), "{}");
+
+        var source = Assert.Single(ChromiumBookmarkLocator.Discover(LocalAppData, RoamingAppData));
+
+        Assert.Equal(new[] { Path.Combine(dir, "AccountBookmarks") }, source.BookmarksPaths);
+    }
+
+    [Fact]
+    public void Discover_BothFiles_AccountBookmarksFirst()
+    {
+        CreateChromeProfile("Default");
+        var dir = Path.Combine(LocalAppData, "Google", "Chrome", "User Data", "Default");
+        File.WriteAllText(Path.Combine(dir, "AccountBookmarks"), "{}");
+
+        var source = Assert.Single(ChromiumBookmarkLocator.Discover(LocalAppData, RoamingAppData));
+
+        Assert.Equal(new[] { Path.Combine(dir, "AccountBookmarks"), Path.Combine(dir, "Bookmarks") }, source.BookmarksPaths);
+    }
+
+    [Fact]
+    public void Discover_TwoProfilesWithSameName_DisplayNamesIncludeDir()
+    {
+        CreateChromeProfile("Default");
+        CreateChromeProfile("Profile 1");
+        WriteChromeLocalState("""{"profile":{"info_cache":{"Default":{"name":"Person 1"},"Profile 1":{"name":"Person 1"}}}}""");
+
+        var names = ChromiumBookmarkLocator.Discover(LocalAppData, RoamingAppData).Select(s => s.DisplayName).OrderBy(n => n);
+
+        Assert.Equal(new[] { "Chrome (Person 1, Default)", "Chrome (Person 1, Profile 1)" }, names);
+    }
 }

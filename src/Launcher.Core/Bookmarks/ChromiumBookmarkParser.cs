@@ -15,7 +15,33 @@ namespace YourLauncher.Core.Bookmarks;
 /// </summary>
 public static class ChromiumBookmarkParser
 {
-    public static FolderNode Parse(string json, string folderName)
+    public static FolderNode Parse(string json, string folderName) => Parse(new[] { json }, folderName);
+
+    /// <summary>
+    /// Several files of one profile merged into one tree - signed-in Chrome keeps the Google-account
+    /// bookmarks in <c>AccountBookmarks</c> and only local ones in <c>Bookmarks</c>, and shows both merged
+    /// under the same three roots. Children are appended in file order.
+    /// </summary>
+    public static FolderNode Parse(IReadOnlyList<string> jsons, string folderName)
+    {
+        var result = BookmarkTreeHelpers.NewFolder(folderName);
+        var bar = BookmarkTreeHelpers.NewFolder("Bookmarks bar");
+        var other = BookmarkTreeHelpers.NewFolder("Other bookmarks");
+        var synced = BookmarkTreeHelpers.NewFolder("Mobile bookmarks");
+        result.Children.Add(bar);
+        result.Children.Add(other);
+        result.Children.Add(synced);
+
+        foreach (var json in jsons)
+        {
+            AddFile(json, bar, other, synced);
+        }
+
+        BookmarkTreeHelpers.PruneEmptyFolders(result); // drops any of the three roots that ended up empty.
+        return result;
+    }
+
+    private static void AddFile(string json, FolderNode bar, FolderNode other, FolderNode synced)
     {
         JsonDocument document;
         try
@@ -34,26 +60,18 @@ public static class ChromiumBookmarkParser
                 throw new BookmarkImportException("Could not parse bookmarks file: missing 'roots'.");
             }
 
-            var result = BookmarkTreeHelpers.NewFolder(folderName);
-            AddFixedRoot(result, roots, "bookmark_bar", "Bookmarks bar");
-            AddFixedRoot(result, roots, "other", "Other bookmarks");
-            AddFixedRoot(result, roots, "synced", "Mobile bookmarks");
-
-            BookmarkTreeHelpers.PruneEmptyFolders(result);
-            return result;
+            AddFixedRoot(bar, roots, "bookmark_bar");
+            AddFixedRoot(other, roots, "other");
+            AddFixedRoot(synced, roots, "synced");
         }
     }
 
-    private static void AddFixedRoot(FolderNode parent, JsonElement roots, string rootKey, string fixedName)
+    private static void AddFixedRoot(FolderNode folder, JsonElement roots, string rootKey)
     {
-        if (!roots.TryGetProperty(rootKey, out var rootElement) || rootElement.ValueKind != JsonValueKind.Object)
+        if (roots.TryGetProperty(rootKey, out var rootElement) && rootElement.ValueKind == JsonValueKind.Object)
         {
-            return;
+            ParseChildrenInto(folder, rootElement);
         }
-
-        var folder = BookmarkTreeHelpers.NewFolder(fixedName);
-        ParseChildrenInto(folder, rootElement);
-        parent.Children.Add(folder); // pruned later if it (or any descendant folder) ends up empty.
     }
 
     private static void ParseChildrenInto(FolderNode folder, JsonElement nodeElement)
