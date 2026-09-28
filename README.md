@@ -44,7 +44,7 @@ dotnet publish src/Launcher.App -c Release -r win-x64 --self-contained -p:Publis
 ```
 
 The single self-contained exe lands at
-`src\Launcher.App\bin\Release\net10.0-windows\win-x64\publish\YourLauncher.exe` — copy just that file
+`src\Launcher.App\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish\YourLauncher.exe` — copy just that file
 anywhere you like (a few native WPF DLLs and `.pdb`s sit next to it in the publish folder but aren't required
 next to the exe once copied elsewhere; `.pdb`s are only for crash diagnostics). No installer — run it
 directly, or right-click → "Pin to taskbar"/create your own shortcut.
