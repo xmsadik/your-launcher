@@ -64,6 +64,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public string ConfigDirectory { get; }
 
+    /// <summary>Why Windows won't start the app even though "Start with Windows" is on (Store build: turned off in Task Manager or by policy); empty hides the line.</summary>
+    public string StartupNote { get; init; } = "";
+
     /// <summary>Export/Import are disabled in read-only mode too (spec §10 revision item 9) - exporting an empty fallback tree, or importing into a config that can't be saved, is more confusing than useful.</summary>
     public bool CanExportImport => !_isReadOnly;
 

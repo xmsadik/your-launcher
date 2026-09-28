@@ -85,6 +85,11 @@
             <TextBlock Grid.Column="0" Text="Start with Windows" Style="{StaticResource FieldLabel}" />
             <CheckBox Grid.Column="1" IsChecked="{Binding StartWithWindows}" VerticalAlignment="Center" />
         </Grid>
+        <TextBlock Text="{Binding StartupNote}"
+                   Foreground="{DynamicResource WarningBrush}"
+                   Margin="0,-4,0,6"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding StartupNote, Converter={StaticResource NonEmptyToVis}}" />
 
         <!-- Close after launch -->
         <Grid Style="{StaticResource Row}">

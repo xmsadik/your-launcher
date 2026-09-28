@@ -647,10 +647,14 @@ aktarmanın yerine geçiyor (Merge/Replace sorusu yok, doğrudan uygulanıyor).
 
 Referans: `desktop-tiler-cmdpal` Store gönderimi (2026-09-25). Aynı kalıp: MSIX, Store'a imzasız bundle, GitHub'a aynı kimlikle self-signed.
 
-- [ ] **0. Partner Center:** "Your Launcher" adını rezerve et (dolu olursa alternatif isim). Identity Name / Publisher CN değerlerini al.
-- [ ] **1. Spike (kritik):** elle MSIX üret, `Add-AppxPackage -Register` ile kur, şunları doğrula: hotkey, tray, uygulama/komut başlatma (child process'ler paket container'ında mı, AppData'yı sanallaştırılmış mı görüyor?), bookmark okuma, config yolu. Sonuç planı değiştirebilir.
-- [ ] **2. Paketleme:** `packaging/AppxManifest.xml` (runFullTrust, en-US, MinVersion 10.0.19041), `scripts/make-icons` (app.ico çiziminden tüm Store asset'leri), `scripts/pack-store.ps1` (x64+ARM64 klasör publish → makeappx pack → bundle), `scripts/pack.ps1 -Sign` (GitHub).
-- [ ] **3. Paketli mod farkları (kod):** `IsPackaged` tespiti; Start with Windows → `desktop:StartupTask` + `StartupTask` API (HKCU Run MSIX'te sanallaştırılır); sessiz başlangıç → StartupTask aktivasyonu; ayarlarda "DisabledByUser" durumu; config klasörü → paketin gerçek klasörü + eski `%APPDATA%\Your Launcher`'dan tek seferlik taşıma; "Config klasörünü aç" doğru yolu açsın.
+- [x] **0. Partner Center:** `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271DD`, PublisherDisplayName `ABAPer` (Desktop Tiler ile aynı hesap).
+- [x] **1. Spike (2026-09-28, Win11 26100):** aynı kimlikle paketlenmiş probe exe, `shell:AppsFolder` ile gerçek aktivasyon. Sonuçlar:
+  - Paketli süreç `%APPDATA%` altında **yeni klasör** açarsa → `LocalCache\Roaming\...`'e yönleniyor (Explorer/harici editör göremez). **Var olan** gerçek klasördeki dosyaları değiştirme, `File.Replace` ve o klasöre yeni dosya → **gerçek** konuma yazılıyor.
+  - Paketli sürecin HKCU yazımı **sanallaştırılıyor** (gerçek `Run` anahtarına ulaşmaz) → StartupTask şart.
+  - Başlatılan child process'ler (CreateProcess ve ShellExecute) container **dışında** çalışıyor (HKCU yazımları gerçek) → launcher'dan açılan uygulamalar normal davranır. Windows 10'da doğrulanmadı.
+  - Chrome `Local State` okunabiliyor (bookmark içe aktarma çalışır). Hotkey/tray bu spike'ta ölçülmedi (standart Win32, düşük risk; 5. adımda).
+- [x] **2. Paketleme (commit 3d87ef4):** `packaging/AppxManifest.xml` (Win11+, en-US, runFullTrust, StartupTask `YourLauncherStartup`), `packaging/Assets` (18 PNG, `scripts/make-icons.ps1`), `scripts/pack.ps1 [-Sign]`, `scripts/pack-store.ps1`; sürüm tek kaynak `Directory.Build.props` `<Version>0.1.0`. x64 msix 65 MB, bundle ~120 MB.
+- [x] **3. Paketli mod (kod):** `Services/PackageContext.cs` (IsPackaged, StartupTask aktivasyonu = sessiz başlangıç, `ToPhysicalPath` ile config/error.log açma); `StartupService` paketliyken StartupTask kullanır, `DisabledByUser/Policy` notu ayarlar sayfasında görünür. TFM `net10.0-windows10.0.19041.0` (WinRT projeksiyonu), `SupportedOSPlatformVersion` 19041 (düz exe Win10'da çalışmaya devam eder). Projeksiyon ReadyToRun dışı bırakıldı (klasör publish'te 52.8→23.7 MB). Açık konu: single-file exe (GitHub) 134→198 MB — single-file modunda R2R exclude uygulanmıyor; sıkıştırma 78 MB ama +90 MB RAM, reddedildi.
 - [ ] **4. Yasal/listing:** `PRIVACY.md` (bookmark'lar yerelde okunur, ağ yok), `tasks/store-submission.md` (açıklama, arama terimleri, runFullTrust gerekçesi ≤500 karakter, sertifikasyon test notları, IARC).
 - [ ] **5. Doğrulama:** WACK çalıştır, üretilen manifestte `Language=en-US` kontrolü, gerçek ikonlar, testler yeşil, paketli build'de uçtan uca manuel tur.
 - [ ] **6. Gönderim:** Partner Center'a `.msixbundle` yükle, ekran görüntüleri, onay bekle.

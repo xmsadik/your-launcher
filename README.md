@@ -50,12 +50,12 @@ next to the exe once copied elsewhere; `.pdb`s are only for crash diagnostics). 
 directly, or right-click → "Pin to taskbar"/create your own shortcut.
 
 **First run**: `%APPDATA%\Your Launcher\config.json` doesn't exist yet, so the app creates it with an empty
-root and default settings (`Alt+Space` hotkey, dark-follows-system theme, `Start with Windows` off), then
+root and default settings (`Alt+Space` hotkey, dark-follows-system theme, `Start with Windows` on), then
 shows the panel once so you can see it worked. The tray icon appears immediately; `Ctrl+N`/`Ctrl+Shift+N`
 build your tree from there, or hand-edit `config.json` (see "Config" below) — `config.example.json` is a
 good starting point to copy in.
 
-**Start with Windows** isn't on by default — turn it on from the settings page (`Ctrl+,` → "Start with
+**Start with Windows** is on by default — turn it off from the settings page (`Ctrl+,` → "Start with
 Windows" toggle) or the tray menu's **Settings…**; it writes `HKCU\...\Run\Your Launcher` (with `--silent`, so a sign-in start stays in the tray) immediately and
 keeps it in sync with `settings.startWithWindows` on every subsequent startup/config reload (see "Tray,
 single instance, startup, and file watching" below).
@@ -82,6 +82,24 @@ Import-Certificate dist\YourLauncher.cer -CertStoreLocation Cert:\LocalMachine\T
 
 `pack-store.ps1` produces unsigned packages for both architectures — upload the `.msixbundle` to Partner
 Center as-is; the Store signs it itself.
+
+Run the Windows App Certification Kit before an upload (elevated):
+
+```powershell
+& "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" test -appxpackagepath dist\YourLauncher_<version>_x64.msix -reportoutputpath wack.xml
+```
+
+What changes when the app runs from the package (`Services/PackageContext.cs`; measured on Win11 26100):
+- **Start with Windows** drives the manifest's `StartupTask` (`YourLauncherStartup`) instead of the `Run`
+  value — a packaged app's HKCU writes are virtualized. A StartupTask activation counts as a silent start,
+  like `--silent`. If the user turned it off in Task Manager, only they can turn it back on; the settings
+  page says so under the toggle.
+- **Config folder**: a fresh install's `%APPDATA%\Your Launcher` is redirected by Windows into the package's
+  `LocalCache\Roaming` (removed on uninstall); an already-existing real folder (e.g. from the plain exe) is
+  used in place. "Open config file/folder" and the error-log balloon open the physical path, since Explorer
+  and editors run outside the package.
+- **Launched apps** run outside the package (verified: their AppData/HKCU writes are real), so they behave
+  exactly as when started normally. This is why the manifest targets Windows 11 only — not verified on 10.
 
 ## Phase 1–6 status
 

@@ -1,7 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- windows10.0.19041.0 for the WinRT projection (StartupTask, AppInstance, ApplicationData) the MSIX build
+         needs; SupportedOSPlatformVersion keeps the unpackaged exe runnable on Windows 10 2004+. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
     <!-- UseWindowsForms stays permanently omitted (decision D4, Phase 5 review): the Phase 5 tray icon
@@ -26,6 +29,12 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The WinRT projection is ~25 MB of IL of which only StartupTask/AppInstance/ApplicationData are used;
+         ReadyToRun-compiling it roughly triples its size for no measurable startup gain. -->
+    <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

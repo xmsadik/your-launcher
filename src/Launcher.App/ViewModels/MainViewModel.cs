@@ -48,6 +48,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Action _beginHotkeyCapture;
     private readonly Action _endHotkeyCaptureRestore;
     private readonly Func<string, ShellLinkInfo> _resolveShellLink;
+
+    /// <summary>StartupService.StatusNote, read each time the settings page opens (App-provided so this VM stays free of the StartupTask API).</summary>
+    private readonly Func<string?> _startupNote;
     private readonly List<FolderNode> _folderStack = new();
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
 
@@ -246,7 +249,8 @@ public sealed partial class MainViewModel : ObservableObject
         Func<string, string?> tryApplyHotkey,
         Action beginHotkeyCapture,
         Action endHotkeyCaptureRestore,
-        Func<string, ShellLinkInfo> resolveShellLink)
+        Func<string, ShellLinkInfo> resolveShellLink,
+        Func<string?>? startupNote = null)
     {
         _configService = configService;
         _config = configService.Config;
@@ -260,6 +264,7 @@ public sealed partial class MainViewModel : ObservableObject
         _beginHotkeyCapture = beginHotkeyCapture;
         _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
         _resolveShellLink = resolveShellLink;
+        _startupNote = startupNote ?? (() => null);
         _folderStack.Add(_config.Root);
 
         if (!string.IsNullOrEmpty(configService.LoadError))
@@ -861,7 +866,10 @@ public sealed partial class MainViewModel : ObservableObject
             _beginHotkeyCapture,
             _endHotkeyCaptureRestore,
             () => ConfigSerializer.Serialize(_config),
-            hotkeyErrorToShow);
+            hotkeyErrorToShow)
+        {
+            StartupNote = _startupNote() ?? "",
+        };
         vm.Saved += OnSettingsSaved;
         vm.Cancelled += OnSettingsCancelled;
         vm.ImportParsed += OnImportParsed;

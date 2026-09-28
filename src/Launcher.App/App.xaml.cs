@@ -103,7 +103,8 @@ public partial class App : Application
             TryApplyHotkey,
             BeginHotkeyCapture,
             EndHotkeyCaptureRestore,
-            ShellLinkResolver.Resolve);
+            ShellLinkResolver.Resolve,
+            () => _startupService?.StatusNote);
         _viewModel = viewModel;
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;
@@ -145,8 +146,9 @@ public partial class App : Application
 
         // Show once at startup so the user can see the launcher works; afterwards the hotkey toggles it
         // (skipped if the hotkey-failure branch above already showed it on the Settings page, and on a
-        // Windows sign-in start, whose Run value passes --silent so the app just sits in the tray).
-        var silent = e.Args.Contains(StartupSync.SilentArg, StringComparer.OrdinalIgnoreCase);
+        // Windows sign-in start - the Run value passes --silent, the Store build's StartupTask activation is
+        // its equivalent - so the app just sits in the tray).
+        var silent = e.Args.Contains(StartupSync.SilentArg, StringComparer.OrdinalIgnoreCase) || PackageContext.LaunchedByStartupTask();
         if (!silent && !_mainWindow.IsVisible)
         {
             _mainWindow.ShowLauncher();
@@ -235,7 +237,8 @@ public partial class App : Application
     {
         try
         {
-            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
+            // Explorer/the user's editor run outside the Store package, so they need the physical path.
+            Process.Start(new ProcessStartInfo(PackageContext.ToPhysicalPath(path)) { UseShellExecute = true })?.Dispose();
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
         {

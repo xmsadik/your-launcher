@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Win32;
+using Windows.ApplicationModel;
 using YourLauncher.Core.Startup;
 
 namespace YourLauncher.App.Services;
@@ -11,10 +12,16 @@ namespace YourLauncher.App.Services;
 ///
 /// The Run value name is a ctor parameter (default "Your Launcher") specifically so a throwaway name can
 /// be used for manual/live verification without ever touching the real value (hard rule, spec §10 item 9).
+///
+/// The MSIX (Store) build can't use the Run value - its HKCU writes are virtualized - so there it drives the
+/// manifest's StartupTask (<see cref="PackagedTaskId"/>) instead, and never touches the Run value at all.
 /// </summary>
 public sealed class StartupService
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
+    /// <summary>Must match the <c>desktop:StartupTask TaskId</c> in packaging/AppxManifest.xml.</summary>
+    private const string PackagedTaskId = "YourLauncherStartup";
 
     private readonly string _valueName;
 
@@ -23,12 +30,25 @@ public sealed class StartupService
         _valueName = valueName;
     }
 
-    /// <summary>Applies <paramref name="desiredEnabled"/> to the registry, unless <see cref="ShouldSkip"/> says this run shouldn't touch it at all.</summary>
+    /// <summary>
+    /// Set when Windows won't let the app start with it even though the setting is on (packaged build only:
+    /// the user turned it off in Task Manager / Settings, or policy did) - the settings page shows it, since
+    /// only the user can turn it back on there. Null otherwise.
+    /// </summary>
+    public string? StatusNote { get; private set; }
+
+    /// <summary>Applies <paramref name="desiredEnabled"/> to the registry (or the packaged StartupTask), unless <see cref="ShouldSkip"/> says this run shouldn't touch it at all.</summary>
     public void Sync(bool desiredEnabled)
     {
         if (ShouldSkip(out var reason))
         {
             Debug.WriteLine($"[YourLauncher] Startup registry sync skipped: {reason}");
+            return;
+        }
+
+        if (PackageContext.IsPackaged)
+        {
+            _ = SyncPackagedAsync(desiredEnabled);
             return;
         }
 
@@ -57,6 +77,43 @@ public sealed class StartupService
 
             case StartupAction.None:
                 break;
+        }
+    }
+
+    private async Task SyncPackagedAsync(bool desiredEnabled)
+    {
+        try
+        {
+            var task = await StartupTask.GetAsync(PackagedTaskId);
+            var state = task.State;
+
+            if (desiredEnabled && state == StartupTaskState.Disabled)
+            {
+                state = await task.RequestEnableAsync();
+            }
+            else if (!desiredEnabled && state is StartupTaskState.Enabled)
+            {
+                task.Disable();
+                state = task.State;
+            }
+
+            StatusNote = desiredEnabled switch
+            {
+                true when state == StartupTaskState.DisabledByUser =>
+                    "Turned off in Task Manager (Startup apps). Turn it back on there to start with Windows.",
+                true when state == StartupTaskState.DisabledByPolicy =>
+                    "Starting with Windows is blocked by a system policy.",
+                false when state == StartupTaskState.EnabledByPolicy =>
+                    "A system policy still starts the app with Windows.",
+                _ => null,
+            };
+            Debug.WriteLine($"[YourLauncher] StartupTask '{PackagedTaskId}': desired={desiredEnabled}, state={state}.");
+        }
+        catch (Exception ex)
+        {
+            // Best effort by design: CsWinRT surfaces HRESULTs as many exception types (FileNotFound, Unauthorized-
+            // Access, ...), e.g. for a TaskId that doesn't match the manifest - never take the app down over this.
+            Debug.WriteLine($"[YourLauncher] StartupTask sync failed: {ex.Message}");
         }
     }
 

@@ -188,7 +188,7 @@ public partial class SettingsView : UserControl
 
         try
         {
-            Process.Start(new ProcessStartInfo(vm.ConfigDirectory) { UseShellExecute = true })?.Dispose();
+            Process.Start(new ProcessStartInfo(PackageContext.ToPhysicalPath(vm.ConfigDirectory)) { UseShellExecute = true })?.Dispose();
         }
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
         {
