@@ -60,6 +60,29 @@ Windows" toggle) or the tray menu's **Settings…**; it writes `HKCU\...\Run\You
 keeps it in sync with `settings.startWithWindows` on every subsequent startup/config reload (see "Tray,
 single instance, startup, and file watching" below).
 
+### MSIX package (Microsoft Store)
+
+WPF doesn't support single-project MSIX tooling, so the package is built by hand: `dotnet publish` to a
+layout folder plus a hand-written `packaging/AppxManifest.xml` and `packaging/Assets`, packed with
+`makeappx` (the Windows SDK Build Tools, restored via NuGet).
+
+```powershell
+scripts\make-icons.ps1                 # regenerate packaging/Assets/*.png from src/Launcher.App/app.ico
+scripts\pack.ps1 -Platform x64         # dist\YourLauncher_<version>_x64.msix (unsigned)
+scripts\pack.ps1 -Platform x64 -Sign   # also self-signs with a CurrentUser\My cert, exports dist\YourLauncher.cer
+scripts\pack-store.ps1                 # x64 + arm64, bundled into dist\store\YourLauncher_<version>_Bundle.msixbundle
+```
+
+The package version comes from `Directory.Build.props`' `<Version>` (as `<Version>.0`). To install a
+`-Sign`ed package for local testing, the machine must trust the exported cert once (elevated):
+
+```powershell
+Import-Certificate dist\YourLauncher.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+`pack-store.ps1` produces unsigned packages for both architectures — upload the `.msixbundle` to Partner
+Center as-is; the Store signs it itself.
+
 ## Phase 1–6 status
 
 Implemented (Phase 1):
