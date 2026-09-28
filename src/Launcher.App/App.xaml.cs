@@ -3,11 +3,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using YourLauncher.App.Interop;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Diagnostics;
 using YourLauncher.Core.Startup;
 
 namespace YourLauncher.App;
@@ -34,6 +36,8 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private string _lastHotkeyText = "";
     private string _lastHotkeyFailureMessage = "";
+    private ErrorLog? _errorLog;
+    private DateTime _lastErrorBalloonUtc = DateTime.MinValue;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -41,6 +45,19 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         var configDir = ConfigService.ResolveConfigDirectory();
+
+        // Global safety net, hooked up before anything else can throw: every exception nothing else caught
+        // goes to error.log next to config.json. UI-thread ones are then swallowed so the tray app keeps
+        // running instead of silently vanishing; a background-thread one can't be stopped, only logged.
+        _errorLog = new ErrorLog(configDir);
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            _errorLog.Write("AppDomain", args.ExceptionObject as Exception ?? new Exception(args.ExceptionObject?.ToString()), DateTime.Now);
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            _errorLog.Write("Task", args.Exception, DateTime.Now);
+            args.SetObserved();
+        };
 
         // Single instance (spec §1, revised §10 item 12) must be resolved before any config/window work -
         // a second instance asks the first one to show itself and exits without ever creating a window.
@@ -169,6 +186,10 @@ public partial class App : Application
             {
                 OpenSettingsPage();
             }
+            else if (kind == TrayBalloonKind.UnhandledError && _errorLog is not null)
+            {
+                TryShellOpen(_errorLog.FilePath, "error.log");
+            }
         };
         tray.IsRecoveryAvailable = () => _viewModel?.CanRecoverFromCorruption ?? false;
         tray.RecoveryMenuText = () => _viewModel?.RecoveryMenuText ?? "Restore from backup";
@@ -219,6 +240,42 @@ public partial class App : Application
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
         {
             Debug.WriteLine($"[YourLauncher] Could not open {what}: {ex.Message}");
+        }
+    }
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        var logged = _errorLog?.Write("Dispatcher", e.Exception, DateTime.Now) ?? false;
+
+        if (_trayService is null)
+        {
+            // Failed before startup finished (no tray icon yet): there is no half-working app worth keeping,
+            // so say where the details are and exit instead of leaving an invisible process behind.
+            MessageBox.Show(
+                logged
+                    ? $"Your Launcher could not start.\n\nDetails were saved to:\n{_errorLog!.FilePath}"
+                    : $"Your Launcher could not start.\n\n{e.Exception.Message}",
+                "Your Launcher",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            e.Handled = true;
+            Shutdown(1);
+            return;
+        }
+
+        e.Handled = true;
+
+        // One balloon per 30 s at most, so an exception that repeats (e.g. on every render) can't flood the
+        // notification area; every occurrence is still logged.
+        var now = DateTime.UtcNow;
+        if (now - _lastErrorBalloonUtc >= TimeSpan.FromSeconds(30))
+        {
+            _lastErrorBalloonUtc = now;
+            _trayService.ShowBalloon(
+                "Your Launcher",
+                logged ? "Something went wrong, but the launcher is still running. Click to see the details." : $"Something went wrong: {e.Exception.Message}",
+                logged ? TrayBalloonKind.UnhandledError : TrayBalloonKind.None,
+                warning: true);
         }
     }
 

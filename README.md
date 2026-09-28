@@ -225,6 +225,14 @@ Implemented (Phase 5 — system integration, spec §1–§8/§9, revised per `ta
   is pure Core logic, unit tested including quoting and case-insensitive path comparison; the actual registry IO is skipped entirely in Debug builds, when
   `YOURLAUNCHER_CONFIG_DIR` is set, or when `YOURLAUNCHER_NO_STARTUP_REG=1` — the real Run value is never
   touched by a dev/test run.
+- **Unhandled errors** (`App.xaml.cs` + Core's `Diagnostics/ErrorLog.cs`): any exception nothing else caught
+  is appended to `error.log` next to config.json (rotated to `error.old.log` at 512 KB). UI-thread ones are
+  swallowed so the tray app keeps running, with a tray balloon (at most one per 30 s) that opens the log when
+  clicked; a failure before startup finishes shows a message box and exits.
+- **Launch monitor**: apps, paths and URLs are started with `ShellExecuteEx` + `SEE_MASK_HMONITOR` set to the
+  panel's monitor, so a window that lets Windows place it opens on the screen the panel was on instead of the
+  primary monitor. Apps that restore their own last position (browsers, Office, ...) still open where they
+  remember.
 - **Config file watching + reload + recovery** (`Services/ConfigWatcherService.cs`, AC10/AC11): a
   `FileSystemWatcher` on config.json, debounced 200 ms, with a byte-hash check against the last write this
   instance itself made (not a timestamp guess) so our own saves never trigger a spurious reload. A reload

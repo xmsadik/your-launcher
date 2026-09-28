@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using YourLauncher.App.Interop;
 using YourLauncher.Core.Launch;
 using YourLauncher.Core.Model;
 
@@ -7,7 +9,7 @@ namespace YourLauncher.App.Services;
 
 /// <summary>
 /// Turns a <see cref="Node"/> into a <see cref="LaunchPlan"/> (via Core's CommandLineBuilder) and
-/// executes it with Process.Start. Never throws out of <see cref="Launch"/>; errors are reported via
+/// executes it with ShellExecuteEx (shell launches, on the panel's monitor) or Process.Start. Never throws out of <see cref="Launch"/>; errors are reported via
 /// <see cref="ErrorOccurred"/> (spec §8.1: launch failures keep the launcher open).
 /// </summary>
 public sealed class LaunchService
@@ -48,6 +50,14 @@ public sealed class LaunchService
 
     private bool Execute(LaunchPlan plan, string displayName, bool isHiddenCommand)
     {
+        // Apps, paths and URLs (raw-argument shell launches) go through ShellExecuteEx so the new window
+        // opens on the panel's monitor; commands keep Process.Start (they need ArgumentList quoting and,
+        // when hidden, the process handle for the exit-code balloon).
+        if (plan.UseShellExecute && plan.ArgumentList is null && !isHiddenCommand)
+        {
+            return ShellExecuteOnPanelMonitor(plan, displayName);
+        }
+
         var psi = new ProcessStartInfo
         {
             FileName = plan.FileName,
@@ -102,6 +112,50 @@ public sealed class LaunchService
             ErrorOccurred?.Invoke($"Could not open '{displayName}': {ex.Message}");
             return false;
         }
+    }
+
+    private bool ShellExecuteOnPanelMonitor(LaunchPlan plan, string displayName)
+    {
+        // The panel is still the foreground window here (it hides after the launch), so its monitor is the
+        // one the user is looking at; the cursor's monitor is the fallback if nothing is in the foreground.
+        var foreground = Win32.GetForegroundWindow();
+        IntPtr monitor;
+        if (foreground != IntPtr.Zero)
+        {
+            monitor = Win32.MonitorFromWindow(foreground, Win32.MONITOR_DEFAULTTONEAREST);
+        }
+        else
+        {
+            Win32.GetCursorPos(out var cursor);
+            monitor = Win32.MonitorFromPoint(cursor, Win32.MONITOR_DEFAULTTONEAREST);
+        }
+
+        var info = new Win32.SHELLEXECUTEINFO
+        {
+            cbSize = Marshal.SizeOf<Win32.SHELLEXECUTEINFO>(),
+            fMask = Win32.SEE_MASK_NOASYNC | Win32.SEE_MASK_FLAG_NO_UI | Win32.SEE_MASK_HMONITOR,
+            lpVerb = plan.Verb,
+            lpFile = plan.FileName,
+            lpParameters = plan.Arguments,
+            lpDirectory = string.IsNullOrEmpty(plan.WorkingDirectory) ? null : plan.WorkingDirectory,
+            nShow = plan.WindowStyle == LaunchWindowStyle.Hidden ? 0 : Win32.SW_SHOWNORMAL,
+            hIconOrMonitor = monitor,
+        };
+
+        if (Win32.ShellExecuteEx(ref info))
+        {
+            return true;
+        }
+
+        var error = Marshal.GetLastPInvokeError();
+        if (error == 1223)
+        {
+            // ERROR_CANCELLED: the user dismissed the UAC prompt. Ignore silently per spec §8.1/§8.2.
+            return false;
+        }
+
+        ErrorOccurred?.Invoke($"Could not open '{displayName}': {new Win32Exception(error).Message}");
+        return false;
     }
 
     private async Task MonitorHiddenProcessAsync(Process process, string displayName)

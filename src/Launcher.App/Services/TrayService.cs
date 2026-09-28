@@ -13,6 +13,7 @@ public enum TrayBalloonKind
 {
     None,
     HotkeyFailure,
+    UnhandledError,
 }
 
 /// <summary>

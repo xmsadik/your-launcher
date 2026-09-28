@@ -86,6 +86,23 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     public static partial IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
 
+    [LibraryImport("user32.dll")]
+    public static partial IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    public const uint SEE_MASK_NOASYNC = 0x00000100;
+    public const uint SEE_MASK_FLAG_NO_UI = 0x00000400;
+    public const uint SEE_MASK_HMONITOR = 0x00200000;
+    public const int SW_SHOWNORMAL = 1;
+
+    /// <summary>
+    /// ShellExecuteEx instead of Process.Start for shell launches, only because it can say which monitor the
+    /// new window belongs on (<c>SEE_MASK_HMONITOR</c>) - Windows otherwise puts a new window that doesn't
+    /// remember its own position on the primary monitor, not the one the launcher panel was on.
+    /// </summary>
+    [DllImport("shell32.dll", EntryPoint = "ShellExecuteExW", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool ShellExecuteEx(ref SHELLEXECUTEINFO lpExecInfo);
+
     [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
@@ -208,5 +225,25 @@ internal static partial class Win32
         public RECT rcMonitor;
         public RECT rcWork;
         public uint dwFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct SHELLEXECUTEINFO
+    {
+        public int cbSize;
+        public uint fMask;
+        public IntPtr hwnd;
+        public string? lpVerb;
+        public string lpFile;
+        public string? lpParameters;
+        public string? lpDirectory;
+        public int nShow;
+        public IntPtr hInstApp;
+        public IntPtr lpIDList;
+        public string? lpClass;
+        public IntPtr hkeyClass;
+        public uint dwHotKey;
+        public IntPtr hIconOrMonitor;
+        public IntPtr hProcess;
     }
 }

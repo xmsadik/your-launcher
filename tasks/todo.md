@@ -642,3 +642,15 @@ aktarmanın yerine geçiyor (Merge/Replace sorusu yok, doğrudan uygulanıyor).
   koparınca `CutNode` asılı kalıyordu (temizleniyor); nesne olmayan JSON kökü/`children` öğesi veya bozuk `Local State`
   `InvalidOperationException` ile UI'ı çökertebiliyordu (atlanıyor / `BookmarkImportException`); `bookmarks:<kaynak>` id'si
   elle bir klasör-olmayan öğeye verilmişse aynı id'li ikinci düğüm oluşuyordu (yeni id). +5 regresyon testi → 294 test.
+
+## Microsoft Store yayını — plan (2026-09-28, onay bekliyor)
+
+Referans: `desktop-tiler-cmdpal` Store gönderimi (2026-09-25). Aynı kalıp: MSIX, Store'a imzasız bundle, GitHub'a aynı kimlikle self-signed.
+
+- [ ] **0. Partner Center:** "Your Launcher" adını rezerve et (dolu olursa alternatif isim). Identity Name / Publisher CN değerlerini al.
+- [ ] **1. Spike (kritik):** elle MSIX üret, `Add-AppxPackage -Register` ile kur, şunları doğrula: hotkey, tray, uygulama/komut başlatma (child process'ler paket container'ında mı, AppData'yı sanallaştırılmış mı görüyor?), bookmark okuma, config yolu. Sonuç planı değiştirebilir.
+- [ ] **2. Paketleme:** `packaging/AppxManifest.xml` (runFullTrust, en-US, MinVersion 10.0.19041), `scripts/make-icons` (app.ico çiziminden tüm Store asset'leri), `scripts/pack-store.ps1` (x64+ARM64 klasör publish → makeappx pack → bundle), `scripts/pack.ps1 -Sign` (GitHub).
+- [ ] **3. Paketli mod farkları (kod):** `IsPackaged` tespiti; Start with Windows → `desktop:StartupTask` + `StartupTask` API (HKCU Run MSIX'te sanallaştırılır); sessiz başlangıç → StartupTask aktivasyonu; ayarlarda "DisabledByUser" durumu; config klasörü → paketin gerçek klasörü + eski `%APPDATA%\Your Launcher`'dan tek seferlik taşıma; "Config klasörünü aç" doğru yolu açsın.
+- [ ] **4. Yasal/listing:** `PRIVACY.md` (bookmark'lar yerelde okunur, ağ yok), `tasks/store-submission.md` (açıklama, arama terimleri, runFullTrust gerekçesi ≤500 karakter, sertifikasyon test notları, IARC).
+- [ ] **5. Doğrulama:** WACK çalıştır, üretilen manifestte `Language=en-US` kontrolü, gerçek ikonlar, testler yeşil, paketli build'de uçtan uca manuel tur.
+- [ ] **6. Gönderim:** Partner Center'a `.msixbundle` yükle, ekran görüntüleri, onay bekle.
