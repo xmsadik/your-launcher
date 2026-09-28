@@ -5,10 +5,9 @@ Kimlik: `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271D
 
 ## Properties
 - **Category:** Productivity. Alternatif: Utilities & tools.
-- **Privacy policy URL:** ⚠ KARAR BEKLİYOR — `your-launcher` reposu **private**; `PRIVACY.md` herkese açık bir
-  adreste yayınlanmalı (repo'yu public yapmak, ya da ayrı bir public sayfa/gist).
-- **Website:** aynı karara bağlı (public repo ise repo URL'si).
-- **Support contact:** aynı karara bağlı (public repo ise `/issues`), yoksa e-posta.
+- **Privacy policy URL:** https://github.com/xmsadik/your-launcher/blob/main/PRIVACY.md
+- **Website:** https://github.com/xmsadik/your-launcher
+- **Support contact:** https://github.com/xmsadik/your-launcher/issues
 
 ## Pricing and availability
 - Free, all markets.
