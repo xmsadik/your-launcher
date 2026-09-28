@@ -16,13 +16,16 @@ public enum StartupAction
 /// </summary>
 public static class StartupSync
 {
-    /// <summary>Wraps a path in double quotes the way the Run value stores it (spec §10 item 3: quoted exe path).</summary>
-    public static string Quote(string exePath) => $"\"{exePath}\"";
+    /// <summary>Command-line flag the Run value passes so a Windows sign-in start stays in the tray instead of showing the panel.</summary>
+    public const string SilentArg = "--silent";
+
+    /// <summary>The Run value's data: the quoted exe path (spec §10 item 3) followed by <see cref="SilentArg"/>.</summary>
+    public static string Command(string exePath) => $"\"{exePath}\" {SilentArg}";
 
     /// <summary>
-    /// desired=true: write if the value is missing, or its (unquoted) path differs from the current exe
-    /// path (case-insensitive - the exe may have moved, or drive letters may differ in case). desired=false:
-    /// delete if a value is present, otherwise do nothing.
+    /// desired=true: write if the value is missing or differs from <see cref="Command"/> (case-insensitive -
+    /// the exe may have moved, drive letters may differ in case, or an older build wrote it without
+    /// <see cref="SilentArg"/>). desired=false: delete if a value is present, otherwise do nothing.
     /// </summary>
     public static StartupAction Decide(bool desiredEnabled, string? currentValue, string exePath)
     {
@@ -31,16 +34,8 @@ public static class StartupSync
             return currentValue is null ? StartupAction.None : StartupAction.Delete;
         }
 
-        if (currentValue is null)
-        {
-            return StartupAction.Write;
-        }
-
-        return PathsEqual(Unquote(currentValue), exePath) ? StartupAction.None : StartupAction.Write;
+        return string.Equals(currentValue, Command(exePath), StringComparison.OrdinalIgnoreCase)
+            ? StartupAction.None
+            : StartupAction.Write;
     }
-
-    private static bool PathsEqual(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-
-    private static string Unquote(string value) =>
-        value.Length >= 2 && value[0] == '"' && value[^1] == '"' ? value[1..^1] : value;
 }

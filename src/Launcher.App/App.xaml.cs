@@ -8,6 +8,7 @@ using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Startup;
 
 namespace YourLauncher.App;
 
@@ -126,8 +127,10 @@ public partial class App : Application
         _configWatcher.Start();
 
         // Show once at startup so the user can see the launcher works; afterwards the hotkey toggles it
-        // (skipped if the hotkey-failure branch above already showed it on the Settings page).
-        if (!_mainWindow.IsVisible)
+        // (skipped if the hotkey-failure branch above already showed it on the Settings page, and on a
+        // Windows sign-in start, whose Run value passes --silent so the app just sits in the tray).
+        var silent = e.Args.Contains(StartupSync.SilentArg, StringComparer.OrdinalIgnoreCase);
+        if (!silent && !_mainWindow.IsVisible)
         {
             _mainWindow.ShowLauncher();
         }

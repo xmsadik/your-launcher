@@ -46,7 +46,7 @@ public sealed class StartupService
         switch (action)
         {
             case StartupAction.Write:
-                key.SetValue(_valueName, StartupSync.Quote(exePath));
+                key.SetValue(_valueName, StartupSync.Command(exePath));
                 Debug.WriteLine($"[YourLauncher] Startup registry: wrote '{_valueName}'.");
                 break;
 

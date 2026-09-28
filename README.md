@@ -56,7 +56,7 @@ build your tree from there, or hand-edit `config.json` (see "Config" below) — 
 good starting point to copy in.
 
 **Start with Windows** isn't on by default — turn it on from the settings page (`Ctrl+,` → "Start with
-Windows" toggle) or the tray menu's **Settings…**; it writes `HKCU\...\Run\Your Launcher` immediately and
+Windows" toggle) or the tray menu's **Settings…**; it writes `HKCU\...\Run\Your Launcher` (with `--silent`, so a sign-in start stays in the tray) immediately and
 keeps it in sync with `settings.startWithWindows` on every subsequent startup/config reload (see "Tray,
 single instance, startup, and file watching" below).
 
@@ -218,9 +218,11 @@ Implemented (Phase 5 — system integration, spec §1–§8/§9, revised per `ta
   (`TaskbarCreated`); `NIM_DELETE` on exit so no ghost icon is left behind.
 - **Start with Windows** (`Services/StartupService.cs` + Core's `Startup/StartupSync.cs`): syncs
   `HKCU\...\Run` value `"Your Launcher"` to `settings.startWithWindows` on every startup and after a
-  config reload — writes (or rewrites, if the exe moved) when enabled, deletes when disabled, no-ops
-  otherwise. The registry write/delete/none *decision* is pure Core logic, unit tested including quoting
-  and case-insensitive path comparison; the actual registry IO is skipped entirely in Debug builds, when
+  config reload — writes (or rewrites, if the exe moved or an older build wrote it without the flag) when
+  enabled, deletes when disabled, no-ops otherwise. The value is `"<exe path>" --silent`: a sign-in start
+  only puts the icon in the tray and doesn't show the panel (a hotkey-registration failure still opens
+  Settings, since otherwise the launcher would be unreachable). The registry write/delete/none *decision*
+  is pure Core logic, unit tested including quoting and case-insensitive path comparison; the actual registry IO is skipped entirely in Debug builds, when
   `YOURLAUNCHER_CONFIG_DIR` is set, or when `YOURLAUNCHER_NO_STARTUP_REG=1` — the real Run value is never
   touched by a dev/test run.
 - **Config file watching + reload + recovery** (`Services/ConfigWatcherService.cs`, AC10/AC11): a

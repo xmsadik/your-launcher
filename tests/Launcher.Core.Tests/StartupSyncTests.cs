@@ -13,37 +13,37 @@ public class StartupSyncTests
     }
 
     [Fact]
-    public void Decide_EnabledAndSamePathQuoted_None()
+    public void Decide_EnabledAndSameCommand_None()
     {
-        var current = StartupSync.Quote(ExePath);
+        var current = StartupSync.Command(ExePath);
         Assert.Equal(StartupAction.None, StartupSync.Decide(true, current, ExePath));
     }
 
     [Fact]
-    public void Decide_EnabledAndSamePathDifferentCase_None()
+    public void Decide_EnabledAndSameCommandDifferentCase_None()
     {
-        var current = StartupSync.Quote(ExePath.ToUpperInvariant());
+        var current = StartupSync.Command(ExePath.ToUpperInvariant());
         Assert.Equal(StartupAction.None, StartupSync.Decide(true, current, ExePath));
     }
 
     [Fact]
-    public void Decide_EnabledAndUnquotedSamePath_None()
+    public void Decide_EnabledAndOldValueWithoutSilentArg_Writes()
     {
-        // A hand-edited Run value without quotes should still compare equal.
-        Assert.Equal(StartupAction.None, StartupSync.Decide(true, ExePath, ExePath));
+        // Older builds wrote just the quoted path; it gets upgraded so sign-in starts stay silent.
+        Assert.Equal(StartupAction.Write, StartupSync.Decide(true, "\"" + ExePath + "\"", ExePath));
     }
 
     [Fact]
     public void Decide_EnabledAndDifferentPath_Writes()
     {
-        var current = StartupSync.Quote(@"C:\Old Location\YourLauncher.exe");
+        var current = StartupSync.Command(@"C:\Old Location\YourLauncher.exe");
         Assert.Equal(StartupAction.Write, StartupSync.Decide(true, current, ExePath));
     }
 
     [Fact]
     public void Decide_DisabledAndPresent_Deletes()
     {
-        var current = StartupSync.Quote(ExePath);
+        var current = StartupSync.Command(ExePath);
         Assert.Equal(StartupAction.Delete, StartupSync.Decide(false, current, ExePath));
     }
 
@@ -54,8 +54,8 @@ public class StartupSyncTests
     }
 
     [Fact]
-    public void Quote_WrapsInDoubleQuotes()
+    public void Command_QuotesPathAndAppendsSilentArg()
     {
-        Assert.Equal("\"" + ExePath + "\"", StartupSync.Quote(ExePath));
+        Assert.Equal("\"" + ExePath + "\" --silent", StartupSync.Command(ExePath));
     }
 }
