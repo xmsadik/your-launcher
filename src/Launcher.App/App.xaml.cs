@@ -73,6 +73,9 @@ public partial class App : Application
         _singleInstance.ShowRequested += () => Dispatcher.BeginInvoke(() => _mainWindow?.RequestShow());
         _singleInstance.StartListening();
 
+        // Before ConfigService: it creates config.json on a fresh install, which would then look like an update.
+        var updated = VersionMarker.CheckAndRecord(configDir, AppVersion);
+
         var configService = new ConfigService(configDir);
         _configService = configService;
         var launchService = new LaunchService();
@@ -153,7 +156,23 @@ public partial class App : Application
         {
             _mainWindow.ShowLauncher();
         }
+
+        // Store updates install silently, so say once what changed (a click opens the release notes).
+        if (updated)
+        {
+            _trayService.ShowBalloon(
+                "Your Launcher",
+                $"Updated to {AppVersionText}. Click to see what's new.",
+                TrayBalloonKind.Updated);
+        }
     }
+
+    private static Version AppVersion => typeof(App).Assembly.GetName().Version ?? new Version(0, 0, 0, 0);
+
+    /// <summary>Three-part version as tagged on GitHub (v0.1.1), from Directory.Build.props' &lt;Version&gt;.</summary>
+    private static string AppVersionText => AppVersion.ToString(3);
+
+    private const string ReleasesUrl = "https://github.com/xmsadik/your-launcher/releases/tag/v";
 
     protected override void OnExit(ExitEventArgs e)
     {
@@ -191,6 +210,10 @@ public partial class App : Application
             else if (kind == TrayBalloonKind.UnhandledError && _errorLog is not null)
             {
                 TryShellOpen(_errorLog.FilePath, "error.log");
+            }
+            else if (kind == TrayBalloonKind.Updated)
+            {
+                OpenReleaseNotes();
             }
         };
         tray.IsRecoveryAvailable = () => _viewModel?.CanRecoverFromCorruption ?? false;
@@ -243,6 +266,19 @@ public partial class App : Application
         catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException)
         {
             Debug.WriteLine($"[YourLauncher] Could not open {what}: {ex.Message}");
+        }
+    }
+
+    /// <summary>A URL, so not through <see cref="TryShellOpen"/> - that maps %APPDATA% file paths for the package.</summary>
+    private static void OpenReleaseNotes()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ReleasesUrl + AppVersionText) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            Debug.WriteLine($"[YourLauncher] Could not open the release notes: {ex.Message}");
         }
     }
 

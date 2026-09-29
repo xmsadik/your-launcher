@@ -7,6 +7,7 @@ namespace YourLauncher.Core.Tests.Icons;
 /// class can safely run alongside the rest of the suite (xUnit doesn't parallelize tests within one class
 /// by default, so these never race each other).
 /// </summary>
+[Collection(ProcessEnvironmentCollection.Name)]
 public class PathResolverTests : IDisposable
 {
     private readonly string? _originalPath;

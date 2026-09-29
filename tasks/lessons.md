@@ -17,3 +17,7 @@
 - Rule: never copy real user data (bookmark/folder/file names, paths, account names) into repo files, tests or
   commit messages — describe results with counts and neutral examples.
 - Rule: before a repo goes public, scan files *and* full history (`git log -p --all`) for personal/customer data.
+- 2026-09-29 (0.1.1 release): `pack-store.ps1` writes the same `dist\YourLauncher_<v>_<arch>.msix` paths as
+  `pack.ps1`, so running it after `pack.ps1 -Sign` silently replaced the signed GitHub packages with unsigned ones.
+- Rule: build the Store bundle first, the `-Sign`ed packages last, and check each with `signtool verify /pa`
+  before uploading (for self-signed, "terminated in a root ... not trusted" = signed).

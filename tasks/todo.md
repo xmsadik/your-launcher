@@ -660,3 +660,12 @@ Referans: `desktop-tiler-cmdpal` Store gönderimi (2026-09-25). Aynı kalıp: MS
 - [x] **6. Gönderim (2026-09-28):** kullanıcı `YourLauncher_0.1.0.0_Bundle.msixbundle`'ı Partner Center'a yükledi; **sertifikasyon onayı bekleniyor.**
 - [x] **7. Yayında (2026-09-29):** Store onayı geldi — https://apps.microsoft.com/detail/9p98gw6rjhh2 (Store ID `9P98GW6RJHH2`). README'ye Store linki eklendi; GitHub release `v0.1.0` (imzalı x64 MSIX + `.cer`).
   Eski not — **Onay sonrası:** ret gelirse mesajı analiz et (olası konular: runFullTrust gerekçesi, ilk açılışta başlangıca otomatik ekleme, yalnızca Windows 11). Onaylanırsa: README'ye Store linki; GitHub için `pack.ps1 -Sign` ile imzalı MSIX release (198 MB tek dosya exe sorununu da önemsizleştirir).
+
+## 0.1.1 (2026-09-29)
+
+- [x] **winget:** README'de `winget install 9P98GW6RJHH2 --source msstore` (Store kaydı winget'te otomatik). `winget-pkgs`'e GitHub MSIX manifesti gönderilmedi — self-signed paket winget doğrulamasından geçmez; Store kaynağı yeterli.
+- [x] **arm64 GitHub paketi:** release'e x64 + arm64 imzalı MSIX + `.cer`.
+- [x] **"What's new":** `Core/Diagnostics/VersionMarker.cs` — config klasöründe `last-version.txt`; eski sürüm (veya marker yok ama config.json var = 0.1.0'dan güncelleme) → tray balonu "Updated to X. Click to see what's new." → tıklayınca GitHub release sayfası. Taze kurulum/aynı sürüm/downgrade/bozuk marker → balon yok. ConfigService'ten önce çağrılır (taze kurulumda config.json oluşmadan). 7 test.
+- [x] **Kararsız testler:** kök neden — `TargetCheckTests` ve `PathResolverTests` process geneli `PATH`'i paralel değiştiriyordu; perf testi paralel yük altında zamanlanıyordu. `TestCollections.cs`: `Process environment` ve `Timing` koleksiyonları (`DisableParallelization`); perf testi sorgu başına 5 ölçümün en iyisini alır (16 ms bütçe aynı).
+- Doğrulama: Release build 0 hata; `dotnet test` 3 kez art arda 319/319 yeşil. Duman testi: scratch config + `last-version.txt`=0.1.0.0 ile `--silent` → marker 0.1.1.0 oldu, uygulama çalıştı (balonun ekranda görünmesi gözle doğrulanmadı).
+- [ ] **Store:** `dist\store\YourLauncher_0.1.1.0_Bundle.msixbundle`'ı Partner Center'da yeni gönderim olarak kullanıcı yükleyecek.

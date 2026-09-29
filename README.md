@@ -3,7 +3,15 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
-**Get it from the Microsoft Store:** https://apps.microsoft.com/detail/9p98gw6rjhh2
+**Get it from the Microsoft Store:** https://apps.microsoft.com/detail/9p98gw6rjhh2 — or from a terminal:
+
+```powershell
+winget install 9P98GW6RJHH2 --source msstore
+```
+
+Self-signed MSIX packages (x64 and arm64) for sideloading are attached to each
+[GitHub release](https://github.com/xmsadik/your-launcher/releases). After an update the tray shows a one-time
+"Updated to X" balloon; clicking it opens that version's release notes.
 
 This is **Phase 6 (Polish)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
 fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/cut-paste/

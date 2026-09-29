@@ -14,6 +14,7 @@ public enum TrayBalloonKind
     None,
     HotkeyFailure,
     UnhandledError,
+    Updated,
 }
 
 /// <summary>

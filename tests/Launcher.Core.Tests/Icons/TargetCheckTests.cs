@@ -2,6 +2,7 @@ using YourLauncher.Core.Icons;
 
 namespace YourLauncher.Core.Tests.Icons;
 
+[Collection(ProcessEnvironmentCollection.Name)]
 public class TargetCheckTests : IDisposable
 {
     private readonly string? _originalPath;
