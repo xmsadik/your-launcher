@@ -3,6 +3,8 @@
 A keyboard-first Windows launcher. Nothing is indexed automatically — you build your own tree of
 folders, apps, files/paths, shell commands and URLs, and open it instantly with a global hotkey.
 
+**Get it from the Microsoft Store:** https://apps.microsoft.com/detail/9p98gw6rjhh2
+
 This is **Phase 6 (Polish)** per `tasks/todo.md`: Phase 1's hotkey/panel/navigation/launching, Phase 2's
 fuzzy Turkish-aware whole-tree search, Phase 3's fully keyboard-driven add/edit/delete/move/cut-paste/
 duplicate of nodes, Phase 4's automatic system icons + `Ctrl+I` icon picker, Phase 5's single-instance
