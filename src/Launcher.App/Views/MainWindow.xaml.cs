@@ -792,14 +792,14 @@ public partial class MainWindow : Window
         var style = ThemedMenuFactory.CreateMenuItemStyle();
         var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
 
-        var isSeparator = item.IsSeparator;
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected(), enabled: !isSeparator));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly && !isSeparator));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly && !isSeparator));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Cut", style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly));
+        // Provider rows (calculator, system commands, ...) are not tree nodes: only Open applies to them.
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected(), enabled: item.CanLaunch));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly && item.CanEdit));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly && item.CanEdit));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Cut", style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly && item.IsNode));
         menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Duplicate", style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Delete", style, () => _viewModel.BeginDelete(), "Del", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Duplicate", style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly && item.IsNode));
+        menu.Items.Add(ThemedMenuFactory.CreateItem("Delete", style, () => _viewModel.BeginDelete(), "Del", enabled: !readOnly && item.IsNode));
         menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
 
         var canOpenLocation = TryResolveOpenLocationPath(item.Node, out var locationPath);
@@ -830,7 +830,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>"Open file location" (spec §10 item 7): app/path targets only, resolved with the same EnvExpander + PathResolver/TargetCheck chain the missing-target badge uses, so both always agree on what's actually there.</summary>
-    private static bool TryResolveOpenLocationPath(Node node, out string path)
+    private static bool TryResolveOpenLocationPath(Node? node, out string path)
     {
         var target = node switch
         {
@@ -954,7 +954,12 @@ public partial class MainWindow : Window
         var dragged = _listDragCandidate;
         _listDragCandidate = null; // DoDragDrop below runs its own message loop - one drag per press.
 
-        var data = new DataObject(InternalDragFormat, dragged.Node.Id);
+        if (dragged.Node is not { } draggedNode)
+        {
+            return; // provider rows are not tree members - nothing to move.
+        }
+
+        var data = new DataObject(InternalDragFormat, draggedNode.Id);
         DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move);
         ClearDropIndicators();
     }
@@ -969,7 +974,7 @@ public partial class MainWindow : Window
         e.Handled = true;
 
         var sourceId = (string)e.Data.GetData(InternalDragFormat)!;
-        if (sourceId == targetItem.Node.Id)
+        if (targetItem.Node is not { } targetNode || sourceId == targetNode.Id)
         {
             e.Effects = DragDropEffects.None;
             ClearDropIndicators();
@@ -1018,8 +1023,13 @@ public partial class MainWindow : Window
         // elements resets DropIndicator until the next DragOver, so the stored value can be stale here.
         var indicator = IndicatorAt(e, container, targetItem);
 
+        if (targetItem.Node is not { } targetNode)
+        {
+            return;
+        }
+
         var sourceId = (string)e.Data.GetData(InternalDragFormat)!;
-        _viewModel.MoveDraggedNode(sourceId, targetItem.Node.Id, indicator);
+        _viewModel.MoveDraggedNode(sourceId, targetNode.Id, indicator);
     }
 
     private void ClearDropIndicators()

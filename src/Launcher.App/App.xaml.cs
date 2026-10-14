@@ -10,6 +10,7 @@ using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Diagnostics;
+using YourLauncher.Core.Providers;
 using YourLauncher.Core.Startup;
 
 namespace YourLauncher.App;
@@ -107,7 +108,10 @@ public partial class App : Application
             BeginHotkeyCapture,
             EndHotkeyCaptureRestore,
             ShellLinkResolver.Resolve,
-            () => _startupService?.StatusNote);
+            () => _startupService?.StatusNote,
+            syncProviders: Array.Empty<IResultProvider>(), // later phases register calculator / system commands / windows here
+            asyncProviders: Array.Empty<IAsyncResultProvider>(), // ...and file search / plugins here
+            usageScore: usageService.GetScore);
         _viewModel = viewModel;
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;

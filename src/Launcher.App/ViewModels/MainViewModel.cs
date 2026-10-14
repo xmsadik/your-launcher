@@ -2,11 +2,13 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.Providers;
 using YourLauncher.Core.Search;
 
 namespace YourLauncher.App.ViewModels;
@@ -43,6 +45,9 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IconService _iconService;
     private readonly Func<string, string?> _fileDescriptionLookup;
     private readonly Action<string> _recordUsage;
+    private readonly Func<string, double> _usageScore;
+    private readonly IReadOnlyList<IResultProvider> _syncProviders;
+    private readonly IReadOnlyList<IAsyncResultProvider> _asyncProviders;
     private readonly Action _pruneUsage;
     private readonly Func<string, string?> _tryApplyHotkey;
     private readonly Action _beginHotkeyCapture;
@@ -56,6 +61,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     private Node? _pendingDeleteNode;
     private Node? _pendingLaunchNode;
+
+    /// <summary>The provider row waiting on the launch-confirm bar (mutually exclusive with <see cref="_pendingLaunchNode"/>).</summary>
+    private ProviderResult? _pendingLaunchProvider;
+
+    /// <summary>Cancels the in-flight debounce + query of every async provider; replaced on each list rebuild (UI thread only).</summary>
+    private CancellationTokenSource? _asyncProvidersCts;
     private Node? _iconPickerNode;
     private LauncherConfig? _pendingImportConfig;
 
@@ -250,7 +261,10 @@ public sealed partial class MainViewModel : ObservableObject
         Action beginHotkeyCapture,
         Action endHotkeyCaptureRestore,
         Func<string, ShellLinkInfo> resolveShellLink,
-        Func<string?>? startupNote = null)
+        Func<string?>? startupNote = null,
+        IReadOnlyList<IResultProvider>? syncProviders = null,
+        IReadOnlyList<IAsyncResultProvider>? asyncProviders = null,
+        Func<string, double>? usageScore = null)
     {
         _configService = configService;
         _config = configService.Config;
@@ -259,6 +273,9 @@ public sealed partial class MainViewModel : ObservableObject
         _iconService = iconService;
         _fileDescriptionLookup = fileDescriptionLookup;
         _recordUsage = recordUsage;
+        _usageScore = usageScore ?? (_ => 0);
+        _syncProviders = syncProviders ?? Array.Empty<IResultProvider>();
+        _asyncProviders = asyncProviders ?? Array.Empty<IAsyncResultProvider>();
         _pruneUsage = pruneUsage;
         _tryApplyHotkey = tryApplyHotkey;
         _beginHotkeyCapture = beginHotkeyCapture;
@@ -338,6 +355,7 @@ public sealed partial class MainViewModel : ObservableObject
         DetachSettings();
         _pendingDeleteNode = null;
         _pendingLaunchNode = null;
+        _pendingLaunchProvider = null;
         _pendingImportConfig = null;
         CurrentPage = PanelPage.List;
 
@@ -439,7 +457,18 @@ public sealed partial class MainViewModel : ObservableObject
     public void EnterSelected()
     {
         var item = SelectedItem;
-        if (item is null || item.IsSeparator)
+        if (item is null || !item.CanLaunch)
+        {
+            return;
+        }
+
+        if (item.Provider is { } provider)
+        {
+            RunProvider(provider);
+            return;
+        }
+
+        if (item.Node is not { } node)
         {
             return;
         }
@@ -452,16 +481,16 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else
             {
-                Launch(item.Node);
+                Launch(node);
             }
         }
-        else if (item.Node is FolderNode folder)
+        else if (node is FolderNode folder)
         {
             EnterFolder(folder);
         }
         else
         {
-            Launch(item.Node);
+            Launch(node);
         }
     }
 
@@ -518,7 +547,7 @@ public sealed partial class MainViewModel : ObservableObject
     public void ShowSelectedInFolder()
     {
         var item = SelectedItem;
-        if (item is null || item.ParentChain.Count == 0)
+        if (item is null || !item.CanShowInFolder)
         {
             return;
         }
@@ -538,6 +567,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (node.ConfirmLaunch)
         {
             _pendingLaunchNode = node;
+            _pendingLaunchProvider = null;
             ConfirmMessage = $"Launch '{node.Name}'? Enter = launch, Esc = cancel";
             CurrentPage = PanelPage.ConfirmLaunch;
             return;
@@ -550,12 +580,18 @@ public sealed partial class MainViewModel : ObservableObject
     public void ConfirmPendingLaunch()
     {
         var node = _pendingLaunchNode;
+        var provider = _pendingLaunchProvider;
         _pendingLaunchNode = null;
+        _pendingLaunchProvider = null;
         CurrentPage = PanelPage.List;
 
         if (node is not null)
         {
             LaunchNow(node);
+        }
+        else if (provider is not null)
+        {
+            RunProviderNow(provider);
         }
     }
 
@@ -563,7 +599,57 @@ public sealed partial class MainViewModel : ObservableObject
     public void CancelPendingLaunch()
     {
         _pendingLaunchNode = null;
+        _pendingLaunchProvider = null;
         CurrentPage = PanelPage.List;
+    }
+
+    /// <summary>Enter on a provider row: same confirm-bar rule as a node, then <see cref="RunProviderNow"/>.</summary>
+    private void RunProvider(ProviderResult provider)
+    {
+        if (provider.ConfirmLaunch)
+        {
+            _pendingLaunchNode = null;
+            _pendingLaunchProvider = provider;
+            ConfirmMessage = string.Format(Strings.ProviderConfirmRun, provider.Title);
+            CurrentPage = PanelPage.ConfirmLaunch;
+            return;
+        }
+
+        RunProviderNow(provider);
+    }
+
+    /// <summary>
+    /// Runs the provider action. A provider is third-party-shaped code (plugins come later), so an exception
+    /// must end up on the error line, never crash the panel. Usage is recorded under the provider id only
+    /// when the action reports success; <see cref="ProviderResult.CloseAfterRun"/> false keeps the panel open
+    /// regardless of settings.closeAfterLaunch.
+    /// </summary>
+    private void RunProviderNow(ProviderResult provider)
+    {
+        bool ran;
+        try
+        {
+            ran = provider.Execute();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[YourLauncher] Provider action '{provider.Id}' threw: {ex}");
+            ErrorMessage = string.Format(Strings.ProviderActionError, provider.Title, ex.Message);
+            return;
+        }
+
+        if (!ran)
+        {
+            ErrorMessage = string.Format(Strings.ProviderActionFailed, provider.Title);
+            return;
+        }
+
+        _recordUsage(provider.Id);
+
+        if (provider.CloseAfterRun && _config.Settings.CloseAfterLaunch)
+        {
+            RequestHide?.Invoke();
+        }
     }
 
     private void LaunchNow(Node node)
@@ -1511,6 +1597,7 @@ public sealed partial class MainViewModel : ObservableObject
         // Every row created below captures this value (spec §7.4) - bump it first so a background
         // icon/missing-check that finishes after the *next* rebuild never touches a row that's no longer shown.
         _listGeneration++;
+        CancelAsyncProviders();
 
         // Clearing Items resets the ListBox's own selection; force a change notification so the
         // OneWay SelectedIndex binding re-applies even when the new index equals the old one.
@@ -1525,9 +1612,10 @@ public sealed partial class MainViewModel : ObservableObject
             Debug.WriteLine(
                 $"[YourLauncher] Search '{SearchText}' -> {results.Count} result(s) in {stopwatch.Elapsed.TotalMilliseconds:F2} ms");
 
-            foreach (var result in results)
+            // Nodes keep the search engine's order; providers slot in around them by fixed tier (design rule 3).
+            foreach (var entry in ResultMerger.Merge(results.Count, QuerySyncProviders(SearchText), _usageScore))
             {
-                Items.Add(ToSearchListItem(result));
+                Items.Add(entry.Provider is { } provider ? ToProviderListItem(provider) : ToSearchListItem(results[entry.NodeIndex]));
             }
         }
         else
@@ -1544,6 +1632,116 @@ public sealed partial class MainViewModel : ObservableObject
 
         IsEmpty = Items.Count == 0;
         SelectedIndex = Items.Count > 0 ? 0 : -1;
+
+        if (IsSearchMode)
+        {
+            StartAsyncProviders(SearchText);
+        }
+    }
+
+    private List<ProviderResult> QuerySyncProviders(string query)
+    {
+        var all = new List<ProviderResult>();
+        foreach (var provider in _syncProviders)
+        {
+            try
+            {
+                all.AddRange(provider.Query(query));
+            }
+            catch (Exception ex)
+            {
+                // One broken provider must not blank the whole result list.
+                Debug.WriteLine($"[YourLauncher] Provider {provider.GetType().Name} failed: {ex.Message}");
+            }
+        }
+
+        return all;
+    }
+
+    /// <summary>Cancels every pending async query (new keystroke, search cleared, panel hidden - all of which rebuild the list). The CTS is only cancelled, not disposed: it owns no timer or handle, and a disposed one would throw if a late task touched its token.</summary>
+    private void CancelAsyncProviders()
+    {
+        _asyncProvidersCts?.Cancel();
+        _asyncProvidersCts = null;
+    }
+
+    private void StartAsyncProviders(string query)
+    {
+        if (_asyncProviders.Count == 0)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _asyncProvidersCts = cts;
+        var generation = _listGeneration;
+        foreach (var provider in _asyncProviders)
+        {
+            _ = RunAsyncProviderAsync(provider, query, generation, cts.Token);
+        }
+    }
+
+    /// <summary>
+    /// Debounces per provider (node results never wait), queries off the UI thread, and hands the batch back
+    /// to the dispatcher. Failures are swallowed on purpose: a slow or broken background source must be
+    /// invisible, not an error line on every keystroke.
+    /// </summary>
+    private async Task RunAsyncProviderAsync(IAsyncResultProvider provider, string query, int generation, CancellationToken ct)
+    {
+        try
+        {
+            if (provider.DebounceMs > 0)
+            {
+                await Task.Delay(provider.DebounceMs, ct).ConfigureAwait(false);
+            }
+
+            var results = await provider.QueryAsync(query, ct).ConfigureAwait(false);
+            if (ct.IsCancellationRequested)
+            {
+                return;
+            }
+
+            _ = _dispatcher.BeginInvoke(() => AppendAsyncResults(results, generation));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[YourLauncher] Async provider {provider.GetType().Name} failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Appends late results to the END of the list. Skipped when the list was rebuilt meanwhile (generation
+    /// changed). Never reorders existing rows and never moves the selection - except the one case where the
+    /// list was empty, so the user can press Enter on the first arrival.
+    /// </summary>
+    private void AppendAsyncResults(IReadOnlyList<ProviderResult> results, int generation)
+    {
+        if (generation != _listGeneration || !IsSearchMode)
+        {
+            return;
+        }
+
+        var shown = Items.Where(i => i.Provider is not null).Select(i => i.Provider!.Id).ToHashSet(StringComparer.Ordinal);
+        var ordered = ResultMerger.OrderAppended(results, _usageScore, shown);
+        if (ordered.Count == 0)
+        {
+            return;
+        }
+
+        var wasEmpty = Items.Count == 0;
+        foreach (var result in ordered)
+        {
+            Items.Add(ToProviderListItem(result));
+        }
+
+        if (wasEmpty)
+        {
+            IsEmpty = false;
+            SelectedIndex = 0;
+        }
     }
 
     /// <summary>Fallback glyph shown behind IconImage/EmojiText, and EmojiText itself (spec §4.3 display priority: IconImage -> EmojiText -> Glyph). A custom glyph value that isn't a valid curated code point (spec §7.12, e.g. a hand-edited config) falls back to the type default.</summary>
@@ -1592,6 +1790,20 @@ public sealed partial class MainViewModel : ObservableObject
             IsCut = ReferenceEquals(result.Node, CutNode),
         };
         item.ConfigureIconLoading(_iconService, result.Node.Icon, _listGeneration, () => _listGeneration);
+        return item;
+    }
+
+    private ListItemViewModel ToProviderListItem(ProviderResult result)
+    {
+        var item = new ListItemViewModel
+        {
+            Provider = result,
+            Name = result.Title,
+            Glyph = result.Glyph,
+            SecondaryText = result.Subtitle,
+            HighlightPositions = result.HighlightPositions,
+        };
+        item.ConfigureIconLoading(_iconService, null, _listGeneration, () => _listGeneration);
         return item;
     }
 

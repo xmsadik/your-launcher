@@ -48,11 +48,15 @@ public static class UsageScorer
         return entry.UseCount * weight;
     }
 
-    /// <summary>Drops every recorded entry whose node id no longer exists in the tree (called after a delete or an import, and once at startup).</summary>
+    /// <summary>
+    /// Drops every recorded entry whose node id no longer exists in the tree (called after a delete or an import, and once at startup).
+    /// Provider result ids ("sys:lock", "calc:result", ...) are not tree nodes and always contain ':' while node ids are GUIDs
+    /// and never do, so those entries are kept - otherwise system commands could never rise by frequent use.
+    /// </summary>
     public static void Prune(UsageData data, IReadOnlyCollection<string> existingIds)
     {
         var existing = existingIds as HashSet<string> ?? new HashSet<string>(existingIds);
-        foreach (var id in data.Entries.Keys.Where(id => !existing.Contains(id)).ToList())
+        foreach (var id in data.Entries.Keys.Where(id => !id.Contains(':') && !existing.Contains(id)).ToList())
         {
             data.Entries.Remove(id);
         }

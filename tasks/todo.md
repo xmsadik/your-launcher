@@ -1,4 +1,5 @@
 ## Görev dosyaları
+- 2026-10-14 · Yeni özellikler (11 özellik, 6 faz) · DEVAM EDİYOR · [dosya](2026-10-14-yeni-ozellikler.md)
 - 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
 
 # Your Launcher — Uygulama Planı

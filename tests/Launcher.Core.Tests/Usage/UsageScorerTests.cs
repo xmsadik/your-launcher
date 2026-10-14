@@ -136,4 +136,19 @@ public class UsageScorerTests
         Assert.Equal(1, roundTripped.Entries["b"].UseCount);
         Assert.Equal(Now, roundTripped.Entries["a"].LastUsedUtc);
     }
+
+    [Fact]
+    public void Prune_KeepsProviderIdsContainingColon_DropsMissingNodeIds()
+    {
+        var data = new UsageData();
+        UsageScorer.Record(data, "sys:lock", Now);
+        UsageScorer.Record(data, "gone-guid", Now);
+        UsageScorer.Record(data, "kept-guid", Now);
+
+        UsageScorer.Prune(data, new HashSet<string> { "kept-guid" });
+
+        Assert.Contains("sys:lock", data.Entries.Keys);
+        Assert.Contains("kept-guid", data.Entries.Keys);
+        Assert.DoesNotContain("gone-guid", data.Entries.Keys);
+    }
 }

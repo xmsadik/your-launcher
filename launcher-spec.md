@@ -26,10 +26,11 @@ Windows için, global kısayol tuşu ile açılan, **tamamen kullanıcının ken
 - Konfigürasyon **insan tarafından okunabilir tek bir JSON dosyasında** tutulmalı; elle düzenlenebilmeli, yedeklenebilmeli, başka makineye kopyalanabilmeli.
 
 ### Hedef Olmayanlar
-- Kurulu uygulamaları, Başlat menüsünü, dosya sistemini otomatik indekslemek.
-- Web araması, hesap makinesi, plugin sistemi, eklenti mağazası.
+- Kurulu uygulamaları ve Başlat menüsünü otomatik indekslemek.
+- Eklenti mağazası.
 - Bulut senkronizasyonu (JSON dosyası kullanıcı tarafından OneDrive vb. ile senkronlanabilir; bunun için ekstra iş yapılmayacak).
-- Çoklu tema motoru (sadece açık/koyu, sistem temasını takip).
+
+> Not (2026-10-14): Hesap makinesi, parametreli öğelerle web araması, dosya araması, eklenti (plugin) sistemi ve çoklu tema kullanıcı kararıyla hedefe alındı; ayrıntılar `tasks/2026-10-14-yeni-ozellikler.md` içinde.
 
 ---
 

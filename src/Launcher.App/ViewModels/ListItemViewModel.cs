@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Icons;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.Providers;
 
 namespace YourLauncher.App.ViewModels;
 
@@ -25,7 +26,11 @@ public sealed partial class ListItemViewModel : ObservableObject
     private Func<int>? _currentGeneration;
     private bool _loadStarted;
 
-    public required Node Node { get; init; }
+    /// <summary>The tree node behind this row; null for a provider row (calculator, system command, ...), which never lives in config.json.</summary>
+    public Node? Node { get; init; }
+
+    /// <summary>Set instead of <see cref="Node"/> for a provider row.</summary>
+    public ProviderResult? Provider { get; init; }
     public required string Name { get; init; }
 
     /// <summary>Fallback glyph: the node's custom glyph value, or the type's default glyph.</summary>
@@ -43,6 +48,18 @@ public sealed partial class ListItemViewModel : ObservableObject
     public IReadOnlyList<FolderNode> ParentChain { get; init; } = Array.Empty<FolderNode>();
 
     public bool IsFolder => Node is FolderNode;
+
+    /// <summary>True for a real tree node (cut/paste/duplicate/delete/drag/move all need this); provider rows are never tree members.</summary>
+    public bool IsNode => Node is not null;
+
+    /// <summary>F2 / Ctrl+I / the Edit and Change icon menu items: a real, non-separator node only.</summary>
+    public bool CanEdit => Node is not (null or SeparatorNode);
+
+    /// <summary>Enter / double-click / the Open menu item: anything except a separator.</summary>
+    public bool CanLaunch => Provider is not null || Node is not (null or SeparatorNode);
+
+    /// <summary>Ctrl+Enter (search mode): only a node found by search has a containing folder to jump to.</summary>
+    public bool CanShowInFolder => Node is not null && ParentChain.Count > 0;
 
     /// <summary>Rendered as a plain divider line instead of icon + name.</summary>
     public bool IsSeparator => Node is SeparatorNode;
@@ -102,8 +119,8 @@ public sealed partial class ListItemViewModel : ObservableObject
 
         _loadStarted = true;
 
-        var key = IconKey.For(_iconSpec, Node);
-        if (key is not null)
+        var (key, iconNode) = ResolveIconSource();
+        if (key is not null && iconNode is not null)
         {
             if (_iconService.TryGetCached(key, out var cached))
             {
@@ -111,21 +128,42 @@ public sealed partial class ListItemViewModel : ObservableObject
             }
             else
             {
-                _ = LoadIconAsync();
+                _ = LoadIconAsync(iconNode);
             }
         }
 
-        if (Node is AppNode or PathNode)
+        if (Node is AppNode or PathNode) // provider rows are never checked for a missing target.
         {
             _ = LoadMissingCheckAsync();
         }
     }
 
-    private async Task LoadIconAsync()
+    /// <summary>
+    /// What to hand IconService. A node row uses the node itself; a provider row with an <c>IconPath</c> uses a
+    /// throwaway, never-stored PathNode so the existing shell-icon cache ("sys|path") is reused as is;
+    /// otherwise (null key) the row just shows its glyph.
+    /// </summary>
+    private (string? Key, Node? IconNode) ResolveIconSource()
+    {
+        if (Node is not null)
+        {
+            return (IconKey.For(_iconSpec, Node), Node);
+        }
+
+        if (Provider?.IconPath is { Length: > 0 } path)
+        {
+            var pseudo = new PathNode { Name = Provider.Title, Target = path };
+            return (IconKey.For(null, pseudo), pseudo);
+        }
+
+        return (null, null);
+    }
+
+    private async Task LoadIconAsync(Node iconNode)
     {
         var generation = _generation;
         var currentGeneration = _currentGeneration!;
-        var image = await _iconService!.GetAsync(_iconSpec, Node).ConfigureAwait(true);
+        var image = await _iconService!.GetAsync(_iconSpec, iconNode).ConfigureAwait(true);
 
         if (currentGeneration() != generation)
         {
