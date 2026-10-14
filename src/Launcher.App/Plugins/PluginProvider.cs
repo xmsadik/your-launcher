@@ -33,6 +33,8 @@ internal sealed class PluginProvider : IAsyncResultProvider
 
     public int DebounceMs => _plugin.Manifest.DebounceMs;
 
+    public bool ClaimOnly => true;
+
     public string? PendingText => string.Format(Strings.PluginSearching, _plugin.Manifest.Name);
 
     public bool TryClaim(string query, out string innerQuery) =>
