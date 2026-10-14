@@ -21,3 +21,23 @@
   `pack.ps1`, so running it after `pack.ps1 -Sign` silently replaced the signed GitHub packages with unsigned ones.
 - Rule: build the Store bundle first, the `-Sign`ed packages last, and check each with `signtool verify /pa`
   before uploading (for self-signed, "terminated in a root ... not trusted" = signed).
+
+## 2026-10-14 — Python string inside a shell heredoc silently dropped a report
+- What happened: a long Turkish report was inserted with a Python heredoc; a Windows path in it (`examples\\plugins\\uuid`)
+  formed a `\u` escape, Python failed, and the chained `git commit` still ran, so the commit message claimed a
+  report that was not in the file.
+- Rule: write long text with the Write tool (or a raw file), never as a Python/heredoc string literal; chain
+  `git commit` with `&&` only after a step that really checks the content landed.
+
+## 2026-10-14 — Agents write binary protocols from memory
+- What happened: the Everything IPC backend was written from memory and only tested against a fake server
+  written from the same memory.
+- Rule: for a third-party wire format, check constants and struct layout against the vendor's official header
+  or docs before shipping, and say plainly when no real instance was available to test against.
+
+## 2026-10-14 — Check the user's actual machine before trusting an API's documented behavior
+- What happened: SetSuspendState(false) hibernates on Modern Standby machines; `powercfg /a` showed the user's
+  laptop has no S3. Likewise GlazeWM's cloaked windows share the cloak reason with Store-app ghosts; listing the
+  real windows showed the class names that separate them.
+- Rule: when a feature depends on OS state (power states, window manager behavior), measure it on the user's
+  machine with a read-only probe before choosing the rule.

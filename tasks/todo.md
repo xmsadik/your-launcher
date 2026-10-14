@@ -2,6 +2,36 @@
 - 2026-10-14 · Yeni özellikler (11 özellik, 6 faz) · TAMAMLANDI · [dosya](2026-10-14-yeni-ozellikler.md)
 - 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
 
+## Devam noktası (güncel: 2026-10-14)
+
+**Nerede kaldık:** 0.2.0 tamamlandı ve GitHub'da yayımlandı. Store gönderimini kullanıcı yapacak. Yayından
+sonra bir sorun çıkarsa buradan devam edilecek.
+
+- **Kod:** `main` = `origin/main`. Son kod commit'i `13fe682`, sürüm commit'i `c326163`. 792 test geçiyor.
+  Kullanıcı elle testi 2026-10-14'te geçti.
+- **GitHub:** https://github.com/xmsadik/your-launcher/releases/tag/v0.2.0 (imzalı x64 + arm64 MSIX + `.cer`).
+- **Store:** paket `dist\store\YourLauncher_0.2.0.0_Bundle.msixbundle`. Kullanıcı yükleyecek. Paket `en-US`
+  ve `tr-TR` bildiriyor, bu yüzden Partner Center Türkçe sayfa da ister. Metinler `tasks/store-submission.md`
+  içinde. Ekran görüntülerini kullanıcı her iki dilde çekecek.
+- **0.2.0'ın içeriği ve tasarım kuralları:** `tasks/2026-10-14-yeni-ozellikler.md` (A bölümü "Tasarım
+  kuralları", B bölümü rapor). Temalar: `tasks/2026-10-14-temalar-ve-opaklik.md`.
+
+**Yayın sonrası olası konular ve ilk bakılacak yer**
+
+| Belirti | İlk bakılacak yer |
+|---|---|
+| Store reddi: `runFullTrust` gerekçesi | `tasks/store-submission.md` gerekçe metni; yeni API'ler: EnumWindows, Windows Search |
+| Store reddi: Türkçe sayfa ya da ekran görüntüsü eksik | Paket `tr-TR` bildiriyor; Türkçe sayfa doldurulmalı |
+| Everything ile dosya araması sonuç vermiyor | `Providers/FileSearch/EverythingBackend.cs`; biçim resmi SDK'ya göre doğrulandı ama gerçek Everything ile denenmedi |
+| Windows Search sonuçları gürültülü (AppData vb.) | `WindowsSearchBackend.cs` sorgusu; filtre eklenmedi |
+| Eklenti Store sürümünde çalışmıyor | `PackageContext.ToPhysicalPath(probeFile: "plugin.json")`; MSIX'te denenmedi |
+| Uyku yerine hazırda bekletme | `SystemCommandProvider.Sleep`; Modern Standby'da ekranı kapatıyor |
+| Türkçe metin taşıyor | `Strings.tr.resx`; ayarlar etiket sütunu 180 px |
+| Kısayol tuşu çalışmıyor ya da çakışıyor | `HotkeyService`, `HotkeyConflicts`; AltGr notu README'de |
+
+**Bilerek bırakılan açık konular:** Dil değişikliği yeniden başlatma gerektiriyor. Everything ada göre sıralıyor.
+Boşta bellek 80 MB hedefinin üzerinde. `icons\` klasöründe sahipsiz kalan dosyalar temizlenmiyor.
+
 # Your Launcher — Uygulama Planı
 
 Kaynak: `launcher-spec.md`. Bu plan onaylanmadan implementasyona başlanmaz.
@@ -545,7 +575,7 @@ gereği bu oturumda **bilerek yapılmadı**.
   Explorer'dan gerçek sürükle-bırak (`.lnk`/`.url`/`.exe`/klasör/txt), liste içi sıralama/klasöre taşıma,
   drop sonrası panelin önde kalması. Bunlar kullanıcının son manuel testine kaldı.
 
-## Devam noktası (güncellendi 2026-09-27, tüm aşamalar + ek özellikler push edildi)
+## Devam noktası — eski kayıt (2026-09-27; güncel olanı dosyanın başında)
 - Aşama 1–5 commit+push: `94454b6`. Aşama 6A **yerel commit** `0597745` (push edilmedi).
 - Aşama 6B `7925d86`; sonrasında: Esc paneli kapatır (`ebedc11`), öğe başına "Ask before launching" onayı (`d3155aa`), yer imi içe aktarma (bu commit).
 - 2026-09-27 ek işler (hepsi push edildi): Chrome `AccountBookmarks` desteği + aynı adlı profilleri ayırma (`719fbde`),
