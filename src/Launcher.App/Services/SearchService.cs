@@ -22,5 +22,8 @@ public sealed class SearchService
 
     public void Rebuild(LauncherConfig config) => _index = FlatIndex.Build(config.Root);
 
+    /// <summary>Parameterized nodes whose keyword/name is the first word of <paramref name="query"/> ("jira ABC-123"); see <see cref="QueryTrigger"/>.</summary>
+    public IReadOnlyList<QueryTriggerMatch> MatchQueryTriggers(string query) => QueryTrigger.Match(_index, query);
+
     public IReadOnlyList<SearchResult> Search(string query, int limit = 50) => _engine.Search(_index, query, limit);
 }

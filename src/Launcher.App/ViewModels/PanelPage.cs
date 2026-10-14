@@ -16,4 +16,5 @@ public enum PanelPage
     Settings,
     ConfirmImport,
     ConfirmLaunch,
+    StartMenuPicker,
 }

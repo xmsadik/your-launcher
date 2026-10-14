@@ -89,6 +89,29 @@ public class ResultMergerTests
     }
 
     [Fact]
+    public void Merge_RanksByUsageKey_WhileIdsStayDistinct()
+    {
+        // Two windows of one app have distinct ids (so neither is dropped as a duplicate) but share a usage key.
+        var results = new[]
+        {
+            R("win:other:1", ResultTier.Windows, 5, "A"),
+            new ProviderResult { Id = "win:chrome:2", UsageKey = "win:chrome", Title = "B", Glyph = "x", Tier = ResultTier.Windows, Score = 5, Execute = () => true },
+            new ProviderResult { Id = "win:chrome:3", UsageKey = "win:chrome", Title = "C", Glyph = "x", Tier = ResultTier.Windows, Score = 5, Execute = () => true },
+        };
+
+        var merged = ResultMerger.Merge(0, results, key => key == "win:chrome" ? 2.0 : 0.0);
+
+        Assert.Equal(new[] { "win:chrome:2", "win:chrome:3", "win:other:1" }, Describe(merged));
+    }
+
+    [Fact]
+    public void ProviderResult_UsageKeyDefaultsToId_AndNeedsColon()
+    {
+        Assert.Equal("sys:lock", R("sys:lock", ResultTier.SystemCommands).UsageKey);
+        Assert.Throws<ArgumentException>(() => new ProviderResult { Id = "win:a", UsageKey = "nocolon", Title = "t", Glyph = "x", Execute = () => true });
+    }
+
+    [Fact]
     public void ProviderResult_IdWithoutColon_Throws()
     {
         Assert.Throws<ArgumentException>(() => R("nocolon", ResultTier.SystemCommands));

@@ -322,6 +322,11 @@
                 <local:SettingsView x:Name="SettingsViewHost" DataContext="{Binding Settings}" />
             </Grid>
 
+            <!-- Start-menu import picker - same reasoning as above. -->
+            <Grid Grid.Row="2" Visibility="{Binding ShowStartMenuPickerPage, Converter={StaticResource BoolToVis}}">
+                <local:StartMenuPickerView x:Name="StartMenuPickerViewHost" DataContext="{Binding StartMenuPicker}" />
+            </Grid>
+
             <!-- Error line -->
             <TextBlock Grid.Row="3"
                        Text="{Binding ErrorMessage}"

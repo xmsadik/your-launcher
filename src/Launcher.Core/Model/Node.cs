@@ -25,6 +25,21 @@ public abstract class Node
     [JsonPropertyOrder(12)]
     public IconSpec? Icon { get; set; }
 
+    private string? _hotkey;
+
+    /// <summary>
+    /// Optional global hotkey that launches this node without opening the panel (same syntax as
+    /// settings.hotkey, e.g. "Ctrl+Alt+J"). Only launchable nodes use it - folders and separators ignore it.
+    /// Blank text is stored as null so config.json omits the property instead of writing "hotkey": "".
+    /// </summary>
+    [JsonPropertyOrder(8)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Hotkey
+    {
+        get => _hotkey;
+        set => _hotkey = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
     /// <summary>Ask "Launch '...'? Enter = launch" before launching (e.g. shutdown/restart items). Folders ignore it; omitted from config.json while false.</summary>
     [JsonPropertyOrder(9)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

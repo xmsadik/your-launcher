@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Icons;
@@ -35,7 +36,11 @@ public sealed partial class EditorViewModel : ObservableObject
 {
     private readonly Node? _originalNode;
     private readonly Func<string, string?> _fileDescriptionLookup;
+    private readonly Func<Node?, string, string?>? _validateHotkey;
+    private readonly Action? _beginHotkeyCapture;
+    private readonly Action? _endHotkeyCaptureRestore;
     private string? _lastSuggestedName;
+    private bool _capturingHotkey;
 
     public EditorMode Mode { get; }
     public NodeKind Kind { get; }
@@ -76,6 +81,13 @@ public sealed partial class EditorViewModel : ObservableObject
     [ObservableProperty]
     private bool _runAsAdmin;
 
+    /// <summary>Per-item global hotkey text ("Ctrl+Alt+J"); empty = none. Captured by the hotkey box, never typed.</summary>
+    [ObservableProperty]
+    private string _hotkeyText = "";
+
+    [ObservableProperty]
+    private string? _hotkeyError;
+
     /// <summary>Every type except folder - shown outside Advanced so it's easy to spot on shutdown/restart-style items.</summary>
     [ObservableProperty]
     private bool _confirmLaunch;
@@ -109,12 +121,22 @@ public sealed partial class EditorViewModel : ObservableObject
     /// <summary>Raised by <see cref="RequestCancel"/>.</summary>
     public event Action? Cancelled;
 
-    private EditorViewModel(EditorMode mode, NodeKind kind, Node? originalNode, Func<string, string?> fileDescriptionLookup)
+    private EditorViewModel(
+        EditorMode mode,
+        NodeKind kind,
+        Node? originalNode,
+        Func<string, string?> fileDescriptionLookup,
+        Func<Node?, string, string?>? validateHotkey,
+        Action? beginHotkeyCapture,
+        Action? endHotkeyCaptureRestore)
     {
         Mode = mode;
         Kind = kind;
         _originalNode = originalNode;
         _fileDescriptionLookup = fileDescriptionLookup;
+        _validateHotkey = validateHotkey;
+        _beginHotkeyCapture = beginHotkeyCapture;
+        _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
 
         (IconPreviewGlyph, IconPreviewEmoji, IconDescription) = DescribeIcon(kind, originalNode?.Icon);
 
@@ -127,6 +149,7 @@ public sealed partial class EditorViewModel : ObservableObject
         KeywordsText = string.Join(", ", originalNode.Keywords);
         Description = originalNode.Description ?? "";
         ConfirmLaunch = originalNode.ConfirmLaunch;
+        HotkeyText = originalNode.Hotkey ?? "";
 
         switch (originalNode)
         {
@@ -170,11 +193,24 @@ public sealed partial class EditorViewModel : ObservableObject
         }
     }
 
-    public static EditorViewModel ForAdd(NodeKind kind, Func<string, string?> fileDescriptionLookup) =>
-        new(EditorMode.Add, kind, null, fileDescriptionLookup);
+    /// <param name="validateHotkey">(node being edited or null when adding, hotkey text) -> error text or null; owns the "already used" rules because only the tree knows the other hotkeys.</param>
+    /// <param name="beginHotkeyCapture">Hotkey box got focus: suspend the global hotkeys so the combination can be typed.</param>
+    /// <param name="endHotkeyCaptureRestore">Hotkey box lost focus (or the editor closed): bring them back.</param>
+    public static EditorViewModel ForAdd(
+        NodeKind kind,
+        Func<string, string?> fileDescriptionLookup,
+        Func<Node?, string, string?>? validateHotkey = null,
+        Action? beginHotkeyCapture = null,
+        Action? endHotkeyCaptureRestore = null) =>
+        new(EditorMode.Add, kind, null, fileDescriptionLookup, validateHotkey, beginHotkeyCapture, endHotkeyCaptureRestore);
 
-    public static EditorViewModel ForEdit(Node node, Func<string, string?> fileDescriptionLookup) =>
-        new(EditorMode.Edit, KindOf(node), node, fileDescriptionLookup);
+    public static EditorViewModel ForEdit(
+        Node node,
+        Func<string, string?> fileDescriptionLookup,
+        Func<Node?, string, string?>? validateHotkey = null,
+        Action? beginHotkeyCapture = null,
+        Action? endHotkeyCaptureRestore = null) =>
+        new(EditorMode.Edit, KindOf(node), node, fileDescriptionLookup, validateHotkey, beginHotkeyCapture, endHotkeyCaptureRestore);
 
     private static NodeKind KindOf(Node node) => node switch
     {
@@ -224,6 +260,45 @@ public sealed partial class EditorViewModel : ObservableObject
 
     public bool ShowConfirmLaunch => !IsFolder;
 
+    /// <summary>Folders cannot be launched, so only the other types get a hotkey.</summary>
+    public bool ShowHotkey => !IsFolder;
+
+    /// <summary>{query} works in a URL, a command and app arguments - the three fields that show the hint.</summary>
+    public string QueryHint => Strings.EditorQueryHint;
+
+    public string HotkeyHint => Strings.EditorHotkeyHint;
+
+    /// <summary>The hotkey box got focus: suspends every global hotkey so pressing the node's own (or the panel's) combination is captured instead of firing.</summary>
+    public void BeginHotkeyCapture()
+    {
+        if (_capturingHotkey)
+        {
+            return;
+        }
+
+        _capturingHotkey = true;
+        _beginHotkeyCapture?.Invoke();
+    }
+
+    /// <summary>The hotkey box lost focus, or the editor is closing: registers the global hotkeys again. A no-op unless a capture is in progress.</summary>
+    public void EndHotkeyCapture()
+    {
+        if (!_capturingHotkey)
+        {
+            return;
+        }
+
+        _capturingHotkey = false;
+        _endHotkeyCaptureRestore?.Invoke();
+    }
+
+    /// <summary>Backspace in the hotkey box: the item gets no hotkey (unlike the settings page, where it resets to the saved one).</summary>
+    public void ClearHotkey()
+    {
+        HotkeyText = "";
+        HotkeyError = null;
+    }
+
     /// <summary>app/path focus Target first on open (so browse/paste then name auto-fills); everything else focuses Name.</summary>
     public bool FocusTargetFirst => IsApp || IsPath;
 
@@ -272,14 +347,20 @@ public sealed partial class EditorViewModel : ObservableObject
             return;
         }
 
+        EndHotkeyCapture();
         Saved?.Invoke(node);
     }
 
-    public void RequestCancel() => Cancelled?.Invoke();
+    public void RequestCancel()
+    {
+        EndHotkeyCapture();
+        Cancelled?.Invoke();
+    }
 
     private bool TrySave(out Node savedNode)
     {
         NameError = null;
+        HotkeyError = null;
         WarningMessage = "";
 
         var trimmedName = Name.Trim();
@@ -288,6 +369,20 @@ public sealed partial class EditorViewModel : ObservableObject
             NameError = "Name is required";
             savedNode = null!;
             return false;
+        }
+
+        var hotkey = IsFolder || string.IsNullOrWhiteSpace(HotkeyText) ? null : HotkeyText.Trim();
+        if (hotkey is not null)
+        {
+            // A bare key would hijack that key in every program (the capture box never produces one; this guards the text anyway).
+            HotkeyError = !HotkeyService.TryParse(hotkey, out var modifiers, out _) || modifiers == 0
+                ? string.Format(Strings.EditorHotkeyInvalid, hotkey)
+                : _validateHotkey?.Invoke(_originalNode, hotkey);
+            if (HotkeyError is not null)
+            {
+                savedNode = null!;
+                return false;
+            }
         }
 
         var keywords = KeywordsText
@@ -300,6 +395,7 @@ public sealed partial class EditorViewModel : ObservableObject
         node.Keywords = keywords;
         node.Description = description;
         node.ConfirmLaunch = !IsFolder && ConfirmLaunch;
+        node.Hotkey = hotkey;
 
         ApplyTypeSpecificFields(node);
 

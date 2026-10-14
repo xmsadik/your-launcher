@@ -68,4 +68,116 @@
     <value>Empty Recycle Bin</value>
     <comment>System command title.</comment>
   </data>
+  <data name="EditorQueryHint" xml:space="preserve">
+    <value>Use {query} for text typed after a keyword</value>
+    <comment>Editor hint under the URL, command and arguments fields; {query} is a literal placeholder, do not translate it.</comment>
+  </data>
+  <data name="EditorHotkeyLabel" xml:space="preserve">
+    <value>Hotkey</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorHotkeyHint" xml:space="preserve">
+    <value>Press a key combination, Backspace clears</value>
+    <comment>Editor hint next to the item hotkey box.</comment>
+  </data>
+  <data name="EditorHotkeyConflictMain" xml:space="preserve">
+    <value>{0} is already the panel hotkey.</value>
+    <comment>Editor error. {0} = hotkey.</comment>
+  </data>
+  <data name="EditorHotkeyConflictItem" xml:space="preserve">
+    <value>{0} is already used by '{1}'.</value>
+    <comment>Editor error. {0} = hotkey, {1} = other item name.</comment>
+  </data>
+  <data name="EditorHotkeyInvalid" xml:space="preserve">
+    <value>'{0}' is not a valid key combination.</value>
+    <comment>Editor error. {0} = hotkey text.</comment>
+  </data>
+  <data name="HotkeyItemInvalid" xml:space="preserve">
+    <value>Hotkey '{1}' for '{0}' is not a valid key combination.</value>
+    <comment>Tray balloon. {0} = item name, {1} = hotkey.</comment>
+  </data>
+  <data name="HotkeyItemInUse" xml:space="preserve">
+    <value>Hotkey {1} for '{0}' is already in use by another program.</value>
+    <comment>Tray balloon. {0} = item name, {1} = hotkey.</comment>
+  </data>
+  <data name="HotkeyItemConflictMain" xml:space="preserve">
+    <value>Hotkey {1} for '{0}' is the panel hotkey, so it was skipped.</value>
+    <comment>Tray balloon. {0} = item name, {1} = hotkey.</comment>
+  </data>
+  <data name="HotkeyItemConflictItem" xml:space="preserve">
+    <value>Hotkey {1} for '{0}' is already used by '{2}', so it was skipped.</value>
+    <comment>Tray balloon. {0} = item name, {1} = hotkey, {2} = the item that owns it.</comment>
+  </data>
+  <data name="HotkeyItemsMore" xml:space="preserve">
+    <value>...and {0} more.</value>
+    <comment>Tray balloon tail. {0} = number of further problems.</comment>
+  </data>
+  <data name="WindowSubtitle" xml:space="preserve">
+    <value>Switch to window · {0}</value>
+    <comment>{0} = process name (e.g. chrome). Subtitle of an open-window row.</comment>
+  </data>
+  <data name="WindowSubtitleNoApp" xml:space="preserve">
+    <value>Switch to window</value>
+    <comment>Subtitle of an open-window row whose application could not be determined.</comment>
+  </data>
+  <data name="SettingsImportStartMenu" xml:space="preserve">
+    <value>Import from Start menu…</value>
+    <comment>Settings page button: opens the Start-menu app picker.</comment>
+  </data>
+  <data name="StartMenuFolderName" xml:space="preserve">
+    <value>Start menu</value>
+    <comment>Name of the root folder the Start-menu import creates.</comment>
+  </data>
+  <data name="StartMenuBreadcrumb" xml:space="preserve">
+    <value>Import from Start menu</value>
+    <comment>Breadcrumb suffix on the Start-menu picker page.</comment>
+  </data>
+  <data name="StartMenuPickerHint" xml:space="preserve">
+    <value>Type to filter  Space toggle  Ctrl+A all  ↵ import  Esc cancel</value>
+    <comment>Hint bar text on the Start-menu picker page.</comment>
+  </data>
+  <data name="StartMenuFilterPlaceholder" xml:space="preserve">
+    <value>Filter apps…</value>
+    <comment>Placeholder of the picker's filter box.</comment>
+  </data>
+  <data name="StartMenuLoading" xml:space="preserve">
+    <value>Reading the Start menu…</value>
+    <comment>Status line while the Start menu is being scanned.</comment>
+  </data>
+  <data name="StartMenuImporting" xml:space="preserve">
+    <value>Importing…</value>
+    <comment>Status line after Enter while the selected shortcuts are being resolved.</comment>
+  </data>
+  <data name="StartMenuNoApps" xml:space="preserve">
+    <value>No apps found in the Start menu.</value>
+    <comment>Status line when the scan found nothing.</comment>
+  </data>
+  <data name="StartMenuNoMatches" xml:space="preserve">
+    <value>No apps match the filter.</value>
+    <comment>Status line when the filter hides every app.</comment>
+  </data>
+  <data name="StartMenuSelectedCount" xml:space="preserve">
+    <value>{0} of {1} selected</value>
+    <comment>{0} = checked apps, {1} = all apps found.</comment>
+  </data>
+  <data name="StartMenuKindStore" xml:space="preserve">
+    <value>Store app</value>
+    <comment>Right-hand label of a packaged app in the picker.</comment>
+  </data>
+  <data name="StartMenuKindDesktop" xml:space="preserve">
+    <value>Desktop app</value>
+    <comment>Right-hand label of a classic desktop app in the picker.</comment>
+  </data>
+  <data name="StartMenuScanFailed" xml:space="preserve">
+    <value>Could not read the Start menu: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="StartMenuImportFailed" xml:space="preserve">
+    <value>Could not import from the Start menu: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="StartMenuImportDone" xml:space="preserve">
+    <value>Start menu import: {0} added, {1} updated, {2} removed (folder '{3}').</value>
+    <comment>{0} added, {1} updated, {2} removed nodes; {3} = folder name.</comment>
+  </data>
 </root>

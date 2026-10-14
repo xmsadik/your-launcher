@@ -20,8 +20,11 @@ public sealed class LaunchService
     /// <summary>Fired from a background thread when a <c>window: hidden</c> command finishes with a non-zero exit code (spec §8.2/§10 item 8); subscribers must marshal to the UI thread themselves.</summary>
     public event Action<string, int>? HiddenCommandExited;
 
-    /// <summary>Returns true if a process was started. Folders are not launchable and return false without side effects.</summary>
-    public bool Launch(Node node, Settings settings)
+    /// <summary>
+    /// Returns true if a process was started. Folders are not launchable and return false without side effects.
+    /// <paramref name="query"/> fills a parameterized node's <c>{query}</c> placeholder (null = nothing typed = empty).
+    /// </summary>
+    public bool Launch(Node node, Settings settings, string? query = null)
     {
         LaunchPlan plan;
         var isHiddenCommand = false;
@@ -29,16 +32,16 @@ public sealed class LaunchService
         switch (node)
         {
             case AppNode app:
-                plan = CommandLineBuilder.BuildForApp(app);
+                plan = CommandLineBuilder.BuildForApp(app, query);
                 break;
             case PathNode path:
                 plan = CommandLineBuilder.BuildForPath(path);
                 break;
             case UrlNode url:
-                plan = CommandLineBuilder.BuildForUrl(url);
+                plan = CommandLineBuilder.BuildForUrl(url, query);
                 break;
             case CommandNode command:
-                plan = CommandLineBuilder.BuildForCommand(command, settings);
+                plan = CommandLineBuilder.BuildForCommand(command, settings, query: query);
                 isHiddenCommand = command.Window == WindowMode.Hidden;
                 break;
             default:

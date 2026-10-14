@@ -9,6 +9,7 @@ using YourLauncher.App.Interop;
 using YourLauncher.Core.Icons;
 using YourLauncher.Core.Launch;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.StartMenu;
 
 namespace YourLauncher.App.Services;
 
@@ -229,6 +230,14 @@ public sealed class IconService
         if (expanded.Length == 0)
         {
             return null;
+        }
+
+        // A packaged Store app imported from the Start menu: shell:AppsFolder\<AUMID> has no file whose
+        // extension could stand in for it, so ask the shell for the item's own icon.
+        if (expanded.StartsWith(StartMenuApp.AppsFolderPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var hIcon = StartMenuScanner.RunStaBlocking(() => AppsFolder.GetIconHandle(expanded)); // shell items expect an STA; this runs on a pool thread.
+            return hIcon != IntPtr.Zero ? BitmapFromHIcon(hIcon) : null;
         }
 
         if (TargetCheck.ShouldCheckExistence(expanded))

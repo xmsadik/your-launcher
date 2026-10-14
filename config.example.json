@@ -46,6 +46,7 @@
                 "type": "app",
                 "name": "Notepad",
                 "target": "C:\\Windows\\notepad.exe",
+                "hotkey": "Ctrl+Shift+Alt+N", // starts Notepad from anywhere, without opening the panel (avoid plain Ctrl+Alt+key: that is AltGr)
                 "keywords": ["defter", "not"],
               },
             ],
@@ -117,6 +118,15 @@
         "name": "Anthropic",
         "target": "https://www.anthropic.com",
         "keywords": ["ai", "claude"],
+      },
+      {
+        // Parameterized item: type "gh dotnet runtime" and Enter opens the search results. {query} is
+        // replaced (URL-encoded) by the text after the keyword; do not put quotes around it.
+        "id": "github-search",
+        "type": "url",
+        "name": "GitHub Search",
+        "target": "https://github.com/search?q={query}",
+        "keywords": ["gh"],
       },
     ],
   },

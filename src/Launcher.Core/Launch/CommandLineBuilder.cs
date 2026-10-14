@@ -5,19 +5,26 @@ namespace YourLauncher.Core.Launch;
 
 /// <summary>
 /// Builds a <see cref="LaunchPlan"/> per node type, per spec §8.2. Environment variables in target,
-/// workingDirectory and command are expanded here, at plan-build time (spec §8.3).
+/// workingDirectory and command are expanded here, at plan-build time (spec §8.3). A parameterized item's
+/// <c>{query}</c> placeholder (<see cref="QueryTemplate"/>) is filled in AFTER that expansion, so the typed
+/// text is never environment-expanded; a null query means "nothing typed" and substitutes an empty value.
 /// </summary>
 public static class CommandLineBuilder
 {
-    public static LaunchPlan BuildForApp(AppNode node)
+    public static LaunchPlan BuildForApp(AppNode node, string? query = null)
     {
         var target = EnvExpander.Expand(node.Target) ?? "";
         var workingDirectory = EnvExpander.Expand(node.WorkingDirectory) ?? TryGetDirectoryName(target);
+        var arguments = EnvExpander.Expand(node.Arguments);
+        if (arguments is not null)
+        {
+            arguments = QueryTemplate.Apply(arguments, query ?? "", QueryTemplate.QuoteArgument);
+        }
 
         return new LaunchPlan
         {
             FileName = target,
-            Arguments = EnvExpander.Expand(node.Arguments),
+            Arguments = arguments,
             WorkingDirectory = workingDirectory,
             UseShellExecute = true,
             Verb = node.RunAsAdmin ? "runas" : null,
@@ -30,9 +37,9 @@ public static class CommandLineBuilder
         UseShellExecute = true,
     };
 
-    public static LaunchPlan BuildForUrl(UrlNode node) => new()
+    public static LaunchPlan BuildForUrl(UrlNode node, string? query = null) => new()
     {
-        FileName = EnvExpander.Expand(node.Target) ?? "",
+        FileName = QueryTemplate.ForUrl(EnvExpander.Expand(node.Target) ?? "", query ?? ""),
         UseShellExecute = true,
     };
 
@@ -56,10 +63,11 @@ public static class CommandLineBuilder
         return shell;
     }
 
-    public static LaunchPlan BuildForCommand(CommandNode node, Settings settings, Func<string, bool>? isOnPath = null)
+    public static LaunchPlan BuildForCommand(CommandNode node, Settings settings, Func<string, bool>? isOnPath = null, string? query = null)
     {
         var shell = ResolveShell(node, settings, isOnPath);
         var command = EnvExpander.Expand(node.Command) ?? "";
+        command = QueryTemplate.Apply(command, query ?? "", shell == ShellKind.Cmd ? QueryTemplate.ForCmd : QueryTemplate.ForPowerShell);
         var workingDirectory = EnvExpander.Expand(node.WorkingDirectory);
         var hidden = node.Window == WindowMode.Hidden;
         var keepOpenVisible = !hidden && node.KeepOpen;

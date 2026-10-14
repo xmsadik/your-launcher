@@ -469,7 +469,7 @@ file location) still work.
 | Key | Behavior |
 |---|---|
 | `↑` / `↓` | Move through ranked results, wraps at the ends; focus stays in the box |
-| `Enter` | Result is a folder → clear search and navigate into it; anything else → launch it |
+| `Enter` | Result is a folder → clear search and navigate into it; anything else → launch it. On a parameterized item without a query (see "Parameterized items") it fills the search box with `<keyword> ` instead of launching |
 | `Ctrl+Enter` | Clear search, open the result's containing folder, and select it there |
 | `Esc` | Clear the search box, back to nav mode in the folder you were in before searching |
 | `Backspace` | Normal text deletion; box becomes empty → back to nav mode |
@@ -511,6 +511,7 @@ Theme, Background opacity and Use Windows accent color preview live: the panel c
 | `Enter` | Save (inserts a newline instead, inside the multi-line Command field) |
 | `Ctrl+Enter` | Save — works everywhere, including inside the Command field |
 | `Alt+A` (or click) | Toggle the "Advanced ▸" section |
+| in the **Hotkey** box | Press the combination (at least one of `Ctrl`/`Alt`/`Shift`, plus a key); `Backspace` clears it; `Tab`, `Enter` and `Esc` keep their normal meaning. See "Item hotkeys" |
 | `Esc` | Cancel, back to the list with the previous selection |
 
 ### Settings page (`Ctrl+,`, Phase 6)
@@ -656,6 +657,68 @@ such a node — Enter, double-click or the context menu's Open — first shows a
 "Launch '<name>'? Enter = launch, Esc = cancel"; any key other than Enter cancels. Meant for items like
 shut down / restart / log out. The field is omitted from config.json while false.
 
+### Parameterized items (`{query}`)
+
+A `url` node's `target`, a `command` node's `command`, or an `app` node's `arguments` may contain the
+placeholder `{query}`. Such an item is launched together with text you type after one of its keywords:
+
+```json
+{ "id": "jira", "type": "url", "name": "Jira", "keywords": ["j"],
+  "target": "https://example.atlassian.net/browse/{query}" }
+```
+
+Type `j ABC-123` (or `jira ABC-123`) and the first row is **Jira** with the resolved address
+(`https://example.atlassian.net/browse/ABC-123`) as its second line; Enter opens it. The ordinary fuzzy
+results follow below it.
+
+**Trigger rules.** The first whitespace-separated word of the search text must equal one of the item's
+`keywords`, or its whole `name`, ignoring case and Turkish diacritics (`SIRKET` = `şirket`); whole words
+only, no prefixes. The rest of the text, trimmed, is the query and must not be empty. Keywords and names
+that contain a space can never be a trigger. If several items share the trigger they all appear, in tree
+order. Enter on a parameterized item **without** a query (nav mode, or a fuzzy match) does not launch it
+with an empty value: the search box is filled with `<first one-word keyword, else name> ` so you can type
+the query. (An item with no one-word keyword or name has nothing to prefill and launches with an empty
+query.)
+
+**How the text is inserted.** Substitution happens *after* `%ENV%` variables in the template are
+expanded, so a query such as `%PATH%` stays those literal characters. Each target escapes the query so that
+what you typed arrives as **one literal value**:
+
+| Target | Rule | Query `O'Neil & "co" 50%` becomes |
+|---|---|---|
+| `url` | `Uri.EscapeDataString` (everything but letters, digits, `-._~` is percent-encoded) | `O%27Neil%20%26%20%22co%22%2050%25` |
+| `command` with `pwsh` / `powershell` | a single-quoted string literal, `'` doubled (typographic quotes `‘ ’ ‚ ‛` too) | `'O''Neil & "co" 50%'` |
+| `command` with `cmd` | quoted as one Windows argument, then every cmd metacharacter (`" ^ & \| < > ( ) ! %`) is caret-escaped; line breaks become spaces | `^"O'Neil ^& \^"co\^" 50^%^"` |
+| `app` `arguments` | one Windows command-line argument (`CommandLineToArgvW` rules): quoted only if it contains a space, tab or quote; `"` becomes `"` and backslashes before a quote are doubled | `"O'Neil & "co" 50%"` |
+
+Because the escaping adds the quoting itself, write the placeholder bare — **never wrap `{query}` in
+quotes** (`echo {query}`, not `echo "{query}"`; `--find {query}`, not `--find "{query}"`). In a PowerShell
+command `{query}` is an expression you can pass on, e.g. `Start-Process chrome -ArgumentList {query}`.
+`{query}` is matched exactly (lower case); a `{query}` typed inside the query itself is not expanded again.
+The editor shows the hint "Use {query} for text typed after a keyword" under those three fields.
+
+### Item hotkeys
+
+Every non-folder node accepts an optional `"hotkey"` (editor: the **Hotkey** box; same syntax as
+`settings.hotkey`, e.g. `"Ctrl+Alt+J"`, modifiers in any order). Pressing it launches that item directly
+**without opening the panel** and counts toward its usage. The field is omitted from config.json while
+empty; folders and separators ignore it. Click the box and press the combination (it needs at least one
+of `Ctrl`/`Alt`/`Shift`); `Backspace` clears it. While the box has focus all global hotkeys are suspended
+so you can press combinations that are already in use.
+
+- An item with **Ask before launching** shows the panel with the confirm bar instead; a parameterized
+  item shows the panel with `<keyword> ` typed so you can add the query.
+- On Turkish and many European keyboard layouts `Ctrl+Alt` is AltGr, so a plain `Ctrl+Alt+<key>` item hotkey can swallow typing of characters system-wide; prefer `Ctrl+Shift+Alt+<key>` or `Ctrl+Shift+F<n>`.
+- If the panel is already open on the editor, settings or another page, an item hotkey that needs the panel just brings it to the front.
+- A failed launch (the panel is hidden) is reported in a tray balloon.
+- The editor refuses to save a hotkey that equals the panel hotkey or another item's. Hand-edited config.json
+  files and imports can still contain such clashes (or invalid / already-taken combinations): the first
+  item in tree order keeps it, the others are skipped, and one tray balloon lists the problems (it is not
+  repeated until the set of problems changes).
+- Duplicating (`Ctrl+D`) does not copy the hotkey. Registrations follow the tree: they are re-synced at
+  startup, after any edit, delete, move, paste, duplicate, import or bookmark/Start-menu import, after
+  saving settings, and when config.json is reloaded.
+
 ## Bookmark import
 
 The settings page's **Import bookmarks…** button (next to Export…/Import…, same read-only rule) imports
@@ -686,6 +749,32 @@ skipped, and any folder that ends up with nothing in it (recursively) is dropped
 imported folder (even if you've since renamed or moved it) and swaps just its contents, keeping the name/
 icon/position you gave it; it does not create a second copy. Importing a *different* source (a different
 browser, profile, or HTML file) always adds a new folder alongside whatever's already there.
+
+## Start-menu import
+
+The settings page's **Import from Start menu…** button (next to Import bookmarks…, same read-only rule) lists
+the apps in your Start menu and adds the ones you tick to the tree. One-time import — nothing is indexed
+or watched automatically.
+
+- **What is listed.** Classic desktop apps come from the `.lnk` shortcuts under both Start-menu Programs
+  folders (per-user and all-users, recursive); Store/packaged apps come from the shell's `shell:AppsFolder`.
+  `AppsFolder` also lists desktop apps, but only as an opaque id or path; the `.lnk` carries the real target,
+  arguments, working directory and icon, so desktop apps are taken from shortcuts and `AppsFolder` contributes
+  only entries with a package-style id (`Family_hash!App`). No package-query API or manifest capability is
+  used. Reading `AppsFolder` can take a few seconds the first time; the list shows "Reading the Start menu…".
+- **Picker page.** Type to filter (every word must appear in the name), `↑`/`↓`/`PgUp`/`PgDn` move, `Space`
+  toggles the highlighted app, `Ctrl+A` checks everything shown (or unchecks it when it already is), `Enter`
+  imports, `Esc` cancels. Nothing is checked on the first import; on a re-import the apps imported before are
+  checked.
+- **What is created.** A root folder named "Start menu". A shortcut becomes an app node exactly like a `.lnk`
+  dropped onto the panel (target, arguments, working directory, icon; the `.lnk` itself when it has no
+  resolvable target). A Store app becomes a path node that opens `shell:AppsFolder\<AppUserModelID>`, and its
+  icon is read from the shell.
+- **Re-importing** updates the same folder in place (found by id, even if you renamed or moved it): new
+  selections are added, still-selected apps get their target refreshed (your renames, icons, keywords,
+  arguments and usage history stay), and apps that were in the list but that you un-ticked are removed.
+  Imported items whose app was not in this scan (uninstalled, shortcut renamed, a source that failed to
+  load) are left alone, as are items you added to that folder yourself. A failed scan cannot be imported.
 
 ## Search (spec §7, Phase 2)
 
@@ -728,6 +817,19 @@ enabled), `sign out` (`oturumu kapat`), `restart` (`yeniden başlat`), `shut dow
 `empty recycle bin` (`geri dönüşüm`). Sign out, Restart, Shut down and Empty Recycle Bin ask for
 confirmation (Enter = run, Esc = cancel) first. On Modern Standby laptops (no S3 sleep) Sleep turns the display off,
 which is how Windows enters standby there; `SetSuspendState` would hibernate instead.
+
+### Window switcher
+
+Open windows are matched against the query (fuzzy, window title and process name; the title ranks higher) and
+listed below your items and the system commands. Enter brings the window to the foreground, restoring it first
+if it is minimized, and closes the panel. The window list is Alt+Tab-like: visible, not cloaked (other virtual
+desktops and suspended Store apps are left out), titled, not owned by another window, not a tool window
+(unless it asks for a taskbar button), and never the launcher itself. Store apps are listed under their real
+app rather than `ApplicationFrameHost`. Nothing is listed for an empty query. Using any window of an app
+raises all of that app's windows in later rankings. The window list is re-read at most every 0.75 s while you
+type, so a keystroke costs about a millisecond. The row's icon is the process executable's; for elevated
+processes (which a normal-rights launcher cannot inspect) the row shows a generic window glyph and no process
+name, and bringing such a window forward may be refused by Windows.
 
 ## Memory and publish size (Phase 5/6, spec §8/§15)
 
@@ -831,13 +933,18 @@ src/Launcher.Core/               # net10.0, no UI references
                                   # TreeOps also gained MoveToGroupIndex (in-list drag, Phase 6B)
   Bookmarks/                     # ChromiumBookmarkLocator, ChromiumBookmarkParser, NetscapeBookmarkParser
                                   # (HTML export), BookmarkImport (add/replace-in-place), BookmarkImportException
+  Providers/WindowMatcher.cs     # window filter (Alt+Tab rules) + fuzzy matching for the window switcher
+  StartMenu/                     # StartMenuApp (key/node mapping), StartMenuImport (update-in-place merge)
 src/Launcher.App/                # net10.0-windows, WPF
   Interop/Win32.cs               # RegisterHotKey, cursor/monitor, SHGetFileInfo/ExtractIconEx/SHDefExtractIconW/DestroyIcon,
                                   # Shell_NotifyIcon/NOTIFYICONDATA, DWM (Mica/rounded corners), named-pipe/mutex interop (Phase 5)
   Interop/ShellLink.cs           # IShellLinkW/IPersistFile interop for resolving dropped .lnk files (Phase 6B)
+  Interop/AppsFolder.cs          # IShellItem/IEnumShellItems interop: shell:AppsFolder listing + item icons (Start-menu import)
+  Providers/WindowSwitcherProvider.cs  # EnumWindows snapshot, foreground switch (window switcher)
   Services/                      # HotkeyService, ConfigService, LaunchService, SearchService, IconService, IconGlyphs,
                                   # SingleInstanceService, TrayService, StartupService, ConfigWatcherService (Phase 5),
                                   # ThemeService, UsageService (debounced atomic usage.json writer, Phase 6A)
+  Services/StartMenuScanner.cs   # .lnk + AppsFolder scan, node building on an STA thread (Start-menu import)
   Services/ThemedMenuFactory.cs  # Shared theme-aware ContextMenu/MenuItem style factory (tray menu + list context menu, Phase 6B)
   ViewModels/                    # MainViewModel, ListItemViewModel, PanelPage, TypePickerViewModel, EditorViewModel,
                                   # IconPickerViewModel, SettingsViewModel (Phase 6A)

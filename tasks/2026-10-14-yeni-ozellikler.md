@@ -56,9 +56,9 @@ ajanlarına, plan eleştirisi ve diff incelemesi ayrı bir ajana verilir; son do
   arka plan provider desteği, liste satırının öğe dışı sonucu gösterebilmesi. `launcher-spec.md` §2 güncellemesi.
 - [x] **Faz 1 — Hızlı kazançlar:** #1 canlı önizleme, #5 Windows vurgu rengi, #3 sistem komutları,
   #7 hesap makinesi (Core'da kendi ifade ayrıştırıcısı; `eval` yok).
-- [ ] **Faz 2 — Öğe özellikleri:** #2 parametreli öğeler, #4 öğeye özel kısayol tuşu (çakışma ve kayıt
+- [x] **Faz 2 — Öğe özellikleri:** #2 parametreli öğeler, #4 öğeye özel kısayol tuşu (çakışma ve kayıt
   hatası ana kısayoldaki gibi kullanıcıya gösterilir).
-- [ ] **Faz 3 — Windows entegrasyonu:** #6 pencere geçişi, #8 Başlat menüsünden içe aktarma (bookmark
+- [x] **Faz 3 — Windows entegrasyonu:** #6 pencere geçişi, #8 Başlat menüsünden içe aktarma (bookmark
   içe aktarmayla aynı düzen: tekrar içe aktarınca aynı klasörü günceller).
 - [ ] **Faz 4 — Büyük işler:** #10 dosya araması, #11 eklenti sistemi.
 - [ ] **Faz 5 — Türkçe arayüz:** #9. En sona konuldu çünkü önceki fazların ekleyeceği yeni metinler de

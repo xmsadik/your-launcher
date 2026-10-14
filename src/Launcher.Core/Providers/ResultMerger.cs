@@ -20,7 +20,7 @@ public static class ResultMerger
     /// <summary>
     /// Calculator first, then <paramref name="nodeCount"/> node results in the order the search engine gave
     /// them, then system commands, then windows (then any sync background results). Inside a provider tier:
-    /// score desc, usage desc, title. Results claiming <see cref="ResultTier.Nodes"/> are dropped: node rows
+    /// score desc, usage (by <see cref="ProviderResult.UsageKey"/>) desc, title. Results claiming <see cref="ResultTier.Nodes"/> are dropped: node rows
     /// come only from the search engine. A duplicate <see cref="ProviderResult.Id"/> keeps its first occurrence.
     /// </summary>
     public static IReadOnlyList<MergedEntry> Merge(int nodeCount, IEnumerable<ProviderResult> providerResults, Func<string, double> usage)
@@ -65,7 +65,7 @@ public static class ResultMerger
             .Where(r => r.Tier != ResultTier.Nodes && seen.Add(r.Id))
             .OrderBy(r => r.Tier)
             .ThenByDescending(r => r.Score)
-            .ThenByDescending(r => usage(r.Id))
+            .ThenByDescending(r => usage(r.UsageKey))
             .ThenBy(r => r.Title, TitleComparer)
             .ToList();
     }

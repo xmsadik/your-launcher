@@ -29,6 +29,12 @@ public sealed partial class ListItemViewModel : ObservableObject
     /// <summary>The tree node behind this row; null for a provider row (calculator, system command, ...), which never lives in config.json.</summary>
     public Node? Node { get; init; }
 
+    /// <summary>
+    /// Set on a parameterized node's "jira ABC-123" row: the text after the trigger word. Enter launches
+    /// <see cref="Node"/> with it substituted for <c>{query}</c>; a normal row leaves it null.
+    /// </summary>
+    public string? Query { get; init; }
+
     /// <summary>Set instead of <see cref="Node"/> for a provider row.</summary>
     public ProviderResult? Provider { get; init; }
     public required string Name { get; init; }

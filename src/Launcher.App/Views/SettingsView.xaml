@@ -168,12 +168,13 @@
         </Grid>
 
         <!-- Buttons -->
-        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-            <Button Content="Open config folder" Style="{StaticResource ActionButton}" Click="OpenConfigFolderButton_OnClick" />
-            <Button Content="Export…" Style="{StaticResource ActionButton}" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
-            <Button Content="Import…" Style="{StaticResource ActionButton}" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
-            <Button x:Name="ImportBookmarksButton" Content="Import bookmarks…" Style="{StaticResource ActionButton}" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />
-        </StackPanel>
+        <WrapPanel Margin="0,6,0,0">
+            <Button Content="Open config folder" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenConfigFolderButton_OnClick" />
+            <Button Content="Export…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button Content="Import…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button x:Name="ImportBookmarksButton" Content="Import bookmarks…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button Content="{x:Static loc:Strings.SettingsImportStartMenu}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportStartMenuButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+        </WrapPanel>
 
         <!-- Status / error line -->
         <TextBlock Text="{Binding ErrorMessage}"

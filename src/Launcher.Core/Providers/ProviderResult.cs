@@ -21,6 +21,22 @@ public sealed class ProviderResult
 
     private readonly string _id = "";
 
+    /// <summary>
+    /// What usage history (recording and ranking) is keyed by; defaults to <see cref="Id"/>. Differs from the id
+    /// when several rows must stay distinct but count as the same thing for "frequently used" - e.g. two open
+    /// windows of one app have different ids ("win:chrome:1a2b") yet share the usage key "win:chrome". Like the
+    /// id it must contain ':' so the startup usage prune keeps it.
+    /// </summary>
+    public string UsageKey
+    {
+        get => _usageKey ?? Id;
+        init => _usageKey = value.Contains(':')
+            ? value
+            : throw new ArgumentException("A provider usage key must contain ':' (e.g. \"win:chrome\").", nameof(value));
+    }
+
+    private readonly string? _usageKey;
+
     public required string Title { get; init; }
 
     public string Subtitle { get; init; } = "";

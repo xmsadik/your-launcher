@@ -102,6 +102,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// </summary>
     public event Action<FolderNode, string, string>? BookmarksParsed;
 
+    /// <summary>
+    /// Raised by "Import from Start menu…". Unlike the bookmark import nothing is parsed here: MainViewModel
+    /// opens the picker page, scans the Start menu and applies the user's selection (it owns the tree).
+    /// </summary>
+    public event Action? StartMenuImportRequested;
+
     public SettingsViewModel(
         Settings current,
         string configDirectory,
@@ -306,6 +312,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     // same shape as RequestImport above; applying the result to the tree is MainViewModel's job
     // (BookmarksParsed), since only it can touch the current folder / save / rebuild the search index.
     // ---------------------------------------------------------------------------------------------
+
+    public void RequestImportStartMenu() => StartMenuImportRequested?.Invoke();
 
     /// <summary>Every Chromium-family browser profile (+ Opera/Opera GX) with a readable <c>Bookmarks</c> file on this machine, for the button's menu (bookmark spec §2).</summary>
     public IReadOnlyList<BookmarkSource> DiscoverBookmarkSources() => ChromiumBookmarkLocator.Discover(

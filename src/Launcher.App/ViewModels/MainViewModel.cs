@@ -6,10 +6,13 @@ using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Hotkeys;
 using YourLauncher.Core.Icons;
+using YourLauncher.Core.Launch;
 using YourLauncher.Core.Model;
 using YourLauncher.Core.Providers;
 using YourLauncher.Core.Search;
+using YourLauncher.Core.StartMenu;
 
 namespace YourLauncher.App.ViewModels;
 
@@ -63,6 +66,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     private Node? _pendingDeleteNode;
     private Node? _pendingLaunchNode;
+
+    /// <summary>The {query} text of the launch waiting on the confirm bar (null for a plain launch).</summary>
+    private string? _pendingLaunchQuery;
 
     /// <summary>The provider row waiting on the launch-confirm bar (mutually exclusive with <see cref="_pendingLaunchNode"/>).</summary>
     private ProviderResult? _pendingLaunchProvider;
@@ -128,6 +134,9 @@ public sealed partial class MainViewModel : ObservableObject
     private SettingsViewModel? _settings;
 
     [ObservableProperty]
+    private StartMenuPickerViewModel? _startMenuPicker;
+
+    [ObservableProperty]
     private Node? _cutNode;
 
     [ObservableProperty]
@@ -135,6 +144,12 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private string _importConfirmMessage = "";
+
+    /// <summary>Raised after the tree was saved (add, edit, delete, move, paste, import, ...): per-item hotkeys may have changed, so App re-syncs its registrations.</summary>
+    public event Action? ItemHotkeysMayHaveChanged;
+
+    /// <summary>Asks the search box to put its caret after the text just prefilled (the view owns the TextBox).</summary>
+    public event Action? SearchCaretToEndRequested;
 
     /// <summary>Raised after a settings save succeeds (spec §10 item 2) - App handles StartupService.SetEnabled + ThemeService.Apply, since this VM stays free of Win32/registry/WPF-resource references.</summary>
     public event Action? SettingsApplied;
@@ -152,6 +167,7 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(ShowEditorPage));
         OnPropertyChanged(nameof(ShowIconPickerPage));
         OnPropertyChanged(nameof(ShowSettingsPage));
+        OnPropertyChanged(nameof(ShowStartMenuPickerPage));
         OnPropertyChanged(nameof(ShowConfirmBar));
         OnPropertyChanged(nameof(ShowConfirmImportBar));
         OnPropertyChanged(nameof(IsConfirmBarActive));
@@ -184,6 +200,7 @@ public sealed partial class MainViewModel : ObservableObject
         PanelPage.Editor => BreadcrumbPath + (Editor?.Mode == EditorMode.Add ? " · New item" : " · Edit"),
         PanelPage.IconPicker => BreadcrumbPath + " · Icon",
         PanelPage.Settings => BreadcrumbPath + " · Settings",
+        PanelPage.StartMenuPicker => BreadcrumbPath + " · " + Strings.StartMenuBreadcrumb,
         _ => BreadcrumbPath,
     };
 
@@ -193,6 +210,7 @@ public sealed partial class MainViewModel : ObservableObject
         PanelPage.TypePicker => TypePickerHint,
         PanelPage.IconPicker => IconPickerHint,
         PanelPage.Settings => SettingsHint,
+        PanelPage.StartMenuPicker => Strings.StartMenuPickerHint,
         _ => IsSearchMode ? SearchHint : (CutNode is not null ? $"Cut: {CutNode.Name} — go to a folder and press Ctrl+V" : NavHint),
     };
 
@@ -218,6 +236,8 @@ public sealed partial class MainViewModel : ObservableObject
     public bool ShowIconPickerPage => CurrentPage == PanelPage.IconPicker;
 
     public bool ShowSettingsPage => CurrentPage == PanelPage.Settings;
+
+    public bool ShowStartMenuPickerPage => CurrentPage == PanelPage.StartMenuPicker;
 
     public int MaxVisibleItems => _config.Settings.MaxVisibleItems;
 
@@ -359,8 +379,10 @@ public sealed partial class MainViewModel : ObservableObject
         DetachEditor();
         DetachIconPicker();
         DetachSettings();
+        DetachStartMenuPicker();
         _pendingDeleteNode = null;
         _pendingLaunchNode = null;
+        _pendingLaunchQuery = null;
         _pendingLaunchProvider = null;
         _pendingImportConfig = null;
         CurrentPage = PanelPage.List;
@@ -487,7 +509,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
             else
             {
-                Launch(node);
+                Launch(node, item.Query);
             }
         }
         else if (node is FolderNode folder)
@@ -568,32 +590,53 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Nodes marked <see cref="Node.ConfirmLaunch"/> (e.g. shutdown/restart) go through the inline confirm bar first; everything else launches immediately.</summary>
-    private void Launch(Node node)
+    /// <summary>
+    /// A parameterized node launched without a query (plain Enter from nav mode or a fuzzy result) does not
+    /// run with an empty value: it puts "&lt;keyword&gt; " into the search box so the user can type the
+    /// query (see <see cref="PrefillQuery"/>). Only a node with no one-word keyword/name to type launches empty.
+    /// </summary>
+    private void Launch(Node node, string? query = null)
     {
+        if (query is null && QueryTemplate.IsQueryNode(node) && QueryTemplate.TryGetTrigger(node, out var trigger))
+        {
+            PrefillQuery(trigger);
+            return;
+        }
+
         if (node.ConfirmLaunch)
         {
             _pendingLaunchNode = node;
+            _pendingLaunchQuery = query;
             _pendingLaunchProvider = null;
             ConfirmMessage = $"Launch '{node.Name}'? Enter = launch, Esc = cancel";
             CurrentPage = PanelPage.ConfirmLaunch;
             return;
         }
 
-        LaunchNow(node);
+        LaunchNow(node, query);
+    }
+
+    /// <summary>Puts "&lt;trigger&gt; " in the search box, caret at the end, ready for the query to be typed.</summary>
+    private void PrefillQuery(string trigger)
+    {
+        SearchText = trigger + " ";
+        SearchCaretToEndRequested?.Invoke();
     }
 
     /// <summary>Enter on the launch-confirm bar.</summary>
     public void ConfirmPendingLaunch()
     {
         var node = _pendingLaunchNode;
+        var query = _pendingLaunchQuery;
         var provider = _pendingLaunchProvider;
         _pendingLaunchNode = null;
+        _pendingLaunchQuery = null;
         _pendingLaunchProvider = null;
         CurrentPage = PanelPage.List;
 
         if (node is not null)
         {
-            LaunchNow(node);
+            LaunchNow(node, query);
         }
         else if (provider is not null)
         {
@@ -605,6 +648,7 @@ public sealed partial class MainViewModel : ObservableObject
     public void CancelPendingLaunch()
     {
         _pendingLaunchNode = null;
+        _pendingLaunchQuery = null;
         _pendingLaunchProvider = null;
         CurrentPage = PanelPage.List;
     }
@@ -615,6 +659,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (provider.ConfirmLaunch)
         {
             _pendingLaunchNode = null;
+            _pendingLaunchQuery = null;
             _pendingLaunchProvider = provider;
             ConfirmMessage = string.Format(Strings.ProviderConfirmRun, provider.Title);
             CurrentPage = PanelPage.ConfirmLaunch;
@@ -626,7 +671,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>
     /// Runs the provider action. A provider is third-party-shaped code (plugins come later), so an exception
-    /// must end up on the error line, never crash the panel. Usage is recorded under the provider id only
+    /// must end up on the error line, never crash the panel. Usage is recorded under the provider's usage key (its id unless it says otherwise) only
     /// when the action reports success; <see cref="ProviderResult.CloseAfterRun"/> false keeps the panel open
     /// regardless of settings.closeAfterLaunch.
     /// </summary>
@@ -650,7 +695,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        _recordUsage(provider.Id);
+        _recordUsage(provider.UsageKey);
 
         if (provider.CloseAfterRun && _config.Settings.CloseAfterLaunch)
         {
@@ -658,9 +703,53 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    private void LaunchNow(Node node)
+    /// <summary>
+    /// A per-item global hotkey fired. Runs the node directly - the panel stays hidden - and records usage,
+    /// unless it needs the panel (<see cref="HotkeyLaunchResult.NeedsPanel"/>). Unlike <see cref="LaunchNow"/> it never
+    /// asks the panel to hide: there is nothing to hide, and a visible panel is left as the user has it.
+    /// </summary>
+    public HotkeyLaunchResult LaunchFromHotkey(string nodeId, out string? error)
     {
-        var launched = _launchService.Launch(node, _config.Settings);
+        error = null;
+        var node = TreeOps.FindById(_config.Root, nodeId);
+        if (node is null or FolderNode or SeparatorNode)
+        {
+            return HotkeyLaunchResult.NotFound;
+        }
+
+        if (NeedsPanelForHotkey(node))
+        {
+            return HotkeyLaunchResult.NeedsPanel;
+        }
+
+        ClearErrorMessage();
+        if (_launchService.Launch(node, _config.Settings))
+        {
+            _recordUsage(node.Id);
+            return HotkeyLaunchResult.Launched;
+        }
+
+        // LaunchService reports failures through ErrorOccurred (which fills ErrorMessage); a cancelled UAC prompt reports nothing.
+        error = string.IsNullOrEmpty(ErrorMessage) ? null : ErrorMessage;
+        return HotkeyLaunchResult.Failed;
+    }
+
+    /// <summary>"Ask before launching" nodes need the confirm bar; parameterized nodes need the query typed (when they have a keyword to type it after).</summary>
+    private static bool NeedsPanelForHotkey(Node node) =>
+        node.ConfirmLaunch || (QueryTemplate.IsQueryNode(node) && QueryTemplate.TryGetTrigger(node, out _));
+
+    /// <summary>The panel was just shown for a <see cref="HotkeyLaunchResult.NeedsPanel"/> node: raise its confirm bar, or prefill "&lt;keyword&gt; " in the search box.</summary>
+    public void ShowHotkeyNodeInPanel(string nodeId)
+    {
+        if (TreeOps.FindById(_config.Root, nodeId) is { } node and not (FolderNode or SeparatorNode))
+        {
+            Launch(node);
+        }
+    }
+
+    private void LaunchNow(Node node, string? query = null)
+    {
+        var launched = _launchService.Launch(node, _config.Settings, query);
         if (launched)
         {
             // Spec §8.4/§10 item 10: recorded for every successful launch. Folders never reach here
@@ -742,7 +831,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        AttachEditor(EditorViewModel.ForEdit(SelectedNode, _fileDescriptionLookup));
+        AttachEditor(EditorViewModel.ForEdit(SelectedNode, _fileDescriptionLookup, ValidateNodeHotkey, _beginHotkeyCapture, _endHotkeyCaptureRestore));
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -872,7 +961,24 @@ public sealed partial class MainViewModel : ObservableObject
         TypePicker = null;
     }
 
-    private void OpenEditorForAdd(NodeKind kind) => AttachEditor(EditorViewModel.ForAdd(kind, _fileDescriptionLookup));
+    private void OpenEditorForAdd(NodeKind kind) =>
+        AttachEditor(EditorViewModel.ForAdd(kind, _fileDescriptionLookup, ValidateNodeHotkey, _beginHotkeyCapture, _endHotkeyCaptureRestore));
+
+    /// <summary>
+    /// The editor's "refuse to save" rule for a node hotkey: it may not equal the panel hotkey or another
+    /// node's hotkey (a hand-edited config can still contain duplicates - those are reported by App when it
+    /// registers, first one wins). Returns the error text, or null when the hotkey is free.
+    /// </summary>
+    private string? ValidateNodeHotkey(Node? editing, string hotkey)
+    {
+        var others = HotkeyConflicts.Collect(_config.Root).Where(h => !ReferenceEquals(h.Node, editing));
+        return HotkeyConflicts.FindOwner(hotkey, _config.Settings.Hotkey, others) switch
+        {
+            null => null,
+            { Node: null } => string.Format(Strings.EditorHotkeyConflictMain, hotkey),
+            { Node: { } owner } => string.Format(Strings.EditorHotkeyConflictItem, hotkey, owner.Name),
+        };
+    }
 
     private void AttachEditor(EditorViewModel editor)
     {
@@ -889,6 +995,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        Editor.EndHotkeyCapture(); // the hotkey box may still hold the global hotkeys suspended (page left without a blur).
         Editor.Saved -= OnEditorSaved;
         Editor.Cancelled -= OnEditorCancelled;
         Editor = null;
@@ -968,6 +1075,7 @@ public sealed partial class MainViewModel : ObservableObject
         vm.Cancelled += OnSettingsCancelled;
         vm.ImportParsed += OnImportParsed;
         vm.BookmarksParsed += OnBookmarksParsed;
+        vm.StartMenuImportRequested += OnStartMenuImportRequested;
         Settings = vm;
         CurrentPage = PanelPage.Settings;
     }
@@ -979,11 +1087,13 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        Settings.EndHotkeyCapture(); // the hotkey box may still hold the global hotkeys suspended.
         Settings.EndPreview(); // before the detach: puts the saved theme back no matter how the page is left.
         Settings.Saved -= OnSettingsSaved;
         Settings.Cancelled -= OnSettingsCancelled;
         Settings.ImportParsed -= OnImportParsed;
         Settings.BookmarksParsed -= OnBookmarksParsed;
+        Settings.StartMenuImportRequested -= OnStartMenuImportRequested;
         Settings = null;
     }
 
@@ -1138,6 +1248,119 @@ public sealed partial class MainViewModel : ObservableObject
             ? $"Imported {count} bookmarks from {sourceLabel} (replaced the previous import)."
             : $"Imported {count} bookmarks into '{folder.Name}'.";
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Start-menu import (Settings page's "Import from Start menu…" button): scan -> user ticks apps in
+    // StartMenuPickerView -> StartMenuImport.Apply updates the "Start menu" root folder in place.
+    // ---------------------------------------------------------------------------------------------
+
+    private async void OnStartMenuImportRequested()
+    {
+        DetachSettings();
+
+        if (BlockIfReadOnly())
+        {
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
+        var picker = new StartMenuPickerViewModel();
+        picker.Confirmed += (apps, seen) => OnStartMenuConfirmed(picker, apps, seen);
+        picker.Cancelled += OnStartMenuPickerCancelled;
+        StartMenuPicker = picker;
+        CurrentPage = PanelPage.StartMenuPicker;
+
+        try
+        {
+            var apps = await StartMenuScanner.ScanAsync();
+            if (StartMenuPicker == picker)
+            {
+                picker.SetApps(apps, StartMenuImport.ExistingImportedIds(_config.Root));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[YourLauncher] Start-menu scan failed: {ex}");
+            if (StartMenuPicker == picker)
+            {
+                picker.SetFailed(string.Format(Strings.StartMenuScanFailed, ex.Message));
+            }
+        }
+    }
+
+    private async void OnStartMenuConfirmed(StartMenuPickerViewModel picker, IReadOnlyList<StartMenuApp> apps, IReadOnlyList<StartMenuApp> seenApps)
+    {
+        if (StartMenuPicker != picker || BlockIfReadOnly())
+        {
+            return;
+        }
+
+        picker.BeginImporting();
+
+        IReadOnlyList<(string Key, Node Node)> built;
+        try
+        {
+            built = await StartMenuScanner.BuildNodesAsync(apps, _resolveShellLink);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[YourLauncher] Start-menu import failed: {ex}");
+            DetachStartMenuPicker();
+            CurrentPage = PanelPage.List;
+            ErrorMessage = string.Format(Strings.StartMenuImportFailed, ex.Message);
+            return;
+        }
+
+        // Esc (or hide) while the nodes were being built: the user walked away, so nothing is applied.
+        if (StartMenuPicker != picker || BlockIfReadOnly())
+        {
+            return;
+        }
+
+        if (RefuseSaveIfReloadPending())
+        {
+            DetachStartMenuPicker();
+            CurrentPage = PanelPage.List;
+            return;
+        }
+
+        DetachStartMenuPicker();
+        var result = StartMenuImport.Apply(_config.Root, Strings.StartMenuFolderName, built, seenApps.Select(a => a.Key));
+
+        SaveAndRebuildIndex();
+        _iconService.Invalidate(); // a re-import may have changed targets whose icons were cached.
+        _pruneUsage(); // removed items drop out of the usage history.
+
+        // A removed node may have been the one marked for cut.
+        if (CutNode is not null && TreeOps.FindParent(_config.Root, CutNode) is null)
+        {
+            CutNode = null;
+        }
+
+        var parentFolder = TreeOps.FindParent(_config.Root, result.Folder) ?? _config.Root;
+        var chain = FindFolderChain(_config.Root, parentFolder, new List<FolderNode>());
+        if (chain is not null)
+        {
+            _folderStack.Clear();
+            _folderStack.AddRange(chain);
+        }
+
+        CurrentPage = PanelPage.List;
+        SearchText = "";
+        UpdateBreadcrumb();
+        RefreshItems();
+        SelectNode(result.Folder);
+
+        ErrorMessage = string.Format(Strings.StartMenuImportDone, result.Added, result.Updated, result.Removed, result.Folder.Name);
+    }
+
+    private void OnStartMenuPickerCancelled()
+    {
+        DetachStartMenuPicker();
+        CurrentPage = PanelPage.List;
+    }
+
+    private void DetachStartMenuPicker() => StartMenuPicker = null;
 
     /// <summary>Root-to-<paramref name="target"/> chain of folders (inclusive), or null if target isn't reachable from current - used to point <see cref="_folderStack"/> at wherever a bookmark import's resulting folder now lives.</summary>
     private static List<FolderNode>? FindFolderChain(FolderNode current, FolderNode target, List<FolderNode> chain)
@@ -1437,7 +1660,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Ctrl+R / tray "Reload config", and the config file watcher's own external-change signal.</summary>
     public void RequestReload()
     {
-        if (CurrentPage is PanelPage.Editor or PanelPage.TypePicker or PanelPage.IconPicker)
+        if (CurrentPage is PanelPage.Editor or PanelPage.TypePicker or PanelPage.IconPicker or PanelPage.StartMenuPicker)
         {
             _reloadPending = true;
             ErrorMessage = "config.json changed — will reload once you finish this.";
@@ -1510,6 +1733,17 @@ public sealed partial class MainViewModel : ObservableObject
         {
             ErrorMessage = result.Error ?? "Could not recover config.";
         }
+    }
+
+    /// <summary>
+    /// Called by MainWindow.HideLauncher(): a hotkey capture box that still has focus when the panel hides
+    /// (Alt+Tab away, tray click) never gets its LostFocus, which would leave every global hotkey unregistered
+    /// until the next time the panel opens. Idempotent.
+    /// </summary>
+    public void EndHotkeyCaptures()
+    {
+        Editor?.EndHotkeyCapture();
+        Settings?.EndHotkeyCapture();
     }
 
     /// <summary>Called by MainWindow.HideLauncher() so a reload deferred by a still-open editor is applied once the panel is hidden, even without an explicit Cancel/Save (spec §10 item 5).</summary>
@@ -1593,6 +1827,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         _searchService.Rebuild(_config);
+        ItemHotkeysMayHaveChanged?.Invoke();
     }
 
     private void SelectNode(Node node)
@@ -1621,10 +1856,19 @@ public sealed partial class MainViewModel : ObservableObject
             Debug.WriteLine(
                 $"[YourLauncher] Search '{SearchText}' -> {results.Count} result(s) in {stopwatch.Elapsed.TotalMilliseconds:F2} ms");
 
-            // Nodes keep the search engine's order; providers slot in around them by fixed tier (design rule 3).
-            foreach (var entry in ResultMerger.Merge(results.Count, QuerySyncProviders(SearchText), _usageScore))
+            // "<keyword> <query>" parameterized rows lead the node block (design rule 6); the fuzzy hits follow in
+            // the search engine's order, minus those same nodes, and providers slot in around the whole block
+            // by fixed tier (design rule 3). Both node groups are one block to the merger, hence the offset.
+            var triggers = _searchService.MatchQueryTriggers(SearchText);
+            var triggered = triggers.Select(t => t.Node).ToHashSet();
+            var fuzzy = triggered.Count == 0 ? results : results.Where(r => !triggered.Contains(r.Node)).ToList();
+            foreach (var entry in ResultMerger.Merge(triggers.Count + fuzzy.Count, QuerySyncProviders(SearchText), _usageScore))
             {
-                Items.Add(entry.Provider is { } provider ? ToProviderListItem(provider) : ToSearchListItem(results[entry.NodeIndex]));
+                Items.Add(entry.Provider is { } provider
+                    ? ToProviderListItem(provider)
+                    : entry.NodeIndex < triggers.Count
+                        ? ToQueryTriggerListItem(triggers[entry.NodeIndex])
+                        : ToSearchListItem(fuzzy[entry.NodeIndex - triggers.Count]));
             }
         }
         else
@@ -1799,6 +2043,25 @@ public sealed partial class MainViewModel : ObservableObject
             IsCut = ReferenceEquals(result.Node, CutNode),
         };
         item.ConfigureIconLoading(_iconService, result.Node.Icon, _listGeneration, () => _listGeneration);
+        return item;
+    }
+
+    /// <summary>The "jira ABC-123" row: the node's own title and icon, with the resolved target as its second line; Enter launches it with the query.</summary>
+    private ListItemViewModel ToQueryTriggerListItem(QueryTriggerMatch match)
+    {
+        var (glyph, emoji) = GetIconDisplay(match.Node);
+        var item = new ListItemViewModel
+        {
+            Node = match.Node,
+            Name = match.Node.Name,
+            Glyph = glyph,
+            EmojiText = emoji,
+            SecondaryText = Truncate(QueryTemplate.Preview(match.Node, match.Query), 80),
+            ParentChain = match.ParentChain,
+            Query = match.Query,
+            IsCut = ReferenceEquals(match.Node, CutNode),
+        };
+        item.ConfigureIconLoading(_iconService, match.Node.Icon, _listGeneration, () => _listGeneration);
         return item;
     }
 

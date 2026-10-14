@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
+using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Model;
 
@@ -67,6 +68,12 @@ public partial class EditorView : UserControl
             return;
         }
 
+        // The hotkey box captures every other key itself (even Alt+A); only Esc/Enter keep their editor meaning.
+        if (ReferenceEquals(Keyboard.FocusedElement, HotkeyBox) && e.Key is not (Key.Escape or Key.Enter))
+        {
+            return;
+        }
+
         if (e.Key == Key.Escape)
         {
             vm.RequestCancel();
@@ -121,6 +128,31 @@ public partial class EditorView : UserControl
         if (ViewModel is { } vm && WindowCombo.SelectedIndex >= 0)
         {
             vm.Window = (WindowMode)WindowCombo.SelectedIndex;
+        }
+    }
+
+    private void HotkeyBox_OnGotFocus(object sender, RoutedEventArgs e) => ViewModel?.BeginHotkeyCapture();
+
+    private void HotkeyBox_OnLostFocus(object sender, RoutedEventArgs e) => ViewModel?.EndHotkeyCapture();
+
+    /// <summary>Same capture rules as the settings page's box (<see cref="HotkeyCapture"/>); Tab/Esc/Enter keep their editor meaning (focus move, cancel, save); Backspace clears the hotkey.</summary>
+    private void HotkeyBox_OnPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        var vm = ViewModel;
+        if (vm is null)
+        {
+            return;
+        }
+
+        switch (HotkeyCapture.Interpret(e, out var text))
+        {
+            case HotkeyCaptureAction.Backspace:
+                vm.ClearHotkey();
+                break;
+            case HotkeyCaptureAction.Captured:
+                vm.HotkeyText = text;
+                vm.HotkeyError = null;
+                break;
         }
     }
 

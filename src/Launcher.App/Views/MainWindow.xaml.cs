@@ -67,6 +67,9 @@ public partial class MainWindow : Window
             }
         };
 
+        // A prefilled search text ("jira ") leaves the caret at the start; the user types the query after it.
+        _viewModel.SearchCaretToEndRequested += () => SearchBox.CaretIndex = SearchBox.Text.Length;
+
         _viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.CurrentPage))
@@ -130,6 +133,7 @@ public partial class MainWindow : Window
     {
         _viewModel.RememberCurrentLocation();
         _viewModel.ClearCutState();
+        _viewModel.EndHotkeyCaptures();
         _viewModel.FlushPendingReloadIfAny();
         Hide();
     }
@@ -262,6 +266,10 @@ public partial class MainWindow : Window
 
             case PanelPage.Settings:
                 SettingsViewHost.FocusFirstField();
+                break;
+
+            case PanelPage.StartMenuPicker:
+                StartMenuPickerViewHost.FocusFirstField();
                 break;
 
             case PanelPage.List:

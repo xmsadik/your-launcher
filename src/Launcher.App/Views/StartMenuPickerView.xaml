@@ -1,0 +1,116 @@
+<UserControl x:Class="YourLauncher.App.Views.StartMenuPickerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:YourLauncher.App.Localization"
+             xmlns:local="clr-namespace:YourLauncher.App.Views"
+             Focusable="False"
+             PreviewKeyDown="StartMenuPickerView_OnPreviewKeyDown">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Filter box (the page's only focus target; the list is driven from its key handler). -->
+        <Grid Grid.Row="0" Margin="12,8,12,4">
+            <TextBlock Text="{x:Static loc:Strings.StartMenuFilterPlaceholder}"
+                       Foreground="{DynamicResource SecondaryTextBrush}"
+                       VerticalAlignment="Center"
+                       Margin="7,0,0,0"
+                       IsHitTestVisible="False">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilterText}" Value="">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBox x:Name="FilterBox"
+                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                     Background="Transparent"
+                     Foreground="{DynamicResource ForegroundBrush}"
+                     CaretBrush="{DynamicResource ForegroundBrush}"
+                     BorderBrush="{DynamicResource PanelBorderBrush}"
+                     BorderThickness="1"
+                     Padding="6,4" />
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Text="{Binding StatusText}"
+                   Foreground="{DynamicResource SecondaryTextBrush}"
+                   FontSize="12"
+                   Margin="14,0,12,4" />
+
+        <ListBox x:Name="PickList"
+                 Grid.Row="2"
+                 ItemsSource="{Binding Items}"
+                 SelectedIndex="{Binding SelectedIndex, Mode=OneWay}"
+                 Focusable="False"
+                 Foreground="{DynamicResource ForegroundBrush}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 MaxHeight="288"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 VirtualizingPanel.IsVirtualizing="True">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Focusable" Value="False" />
+                    <Setter Property="Padding" Value="12,6" />
+                    <Setter Property="Height" Value="{x:Static local:MainWindow.RowHeight}" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="PickItem_OnPreviewMouseLeftButtonDown" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Bd"
+                                        Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="3,0,0,0"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBackgroundBrush}" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding CheckGlyph}"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0,8,0" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding KindText}"
+                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>

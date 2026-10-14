@@ -268,6 +268,7 @@ public static class TreeOps
         var clone = DeepClone(node);
         clone.Name = node is SeparatorNode ? node.Name : node.Name + " (copy)";
         AssignNewIds(clone);
+        ClearHotkeys(clone);
 
         var index = parent.Children.IndexOf(node);
         parent.Children.Insert(index + 1, clone);
@@ -280,6 +281,19 @@ public static class TreeOps
         var json = JsonSerializer.Serialize(node, LauncherJsonContext.Default.Node);
         return JsonSerializer.Deserialize(json, LauncherJsonContext.Default.Node)
             ?? throw new InvalidOperationException("Deep clone round-trip produced a null node.");
+    }
+
+    /// <summary>A global hotkey can only belong to one node, so a copy (and every node inside a copied folder) starts without one.</summary>
+    private static void ClearHotkeys(Node node)
+    {
+        node.Hotkey = null;
+        if (node is FolderNode folder)
+        {
+            foreach (var child in folder.Children)
+            {
+                ClearHotkeys(child);
+            }
+        }
     }
 
     private static void AssignNewIds(Node node)

@@ -5,12 +5,14 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Providers;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Diagnostics;
+using YourLauncher.Core.Hotkeys;
 using YourLauncher.Core.Model;
 using YourLauncher.Core.Providers;
 using YourLauncher.Core.Startup;
@@ -39,6 +41,12 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private string _lastHotkeyText = "";
     private string _lastHotkeyFailureMessage = "";
+
+    /// <summary>True while a hotkey capture box has focus: every global hotkey is unregistered and re-syncs wait for the blur.</summary>
+    private bool _hotkeyCaptureActive;
+
+    /// <summary>What the last per-item hotkey balloon said, so the same unchanged problems are reported once, not on every save.</summary>
+    private string _lastItemHotkeyProblems = "";
     private ErrorLog? _errorLog;
     private DateTime _lastErrorBalloonUtc = DateTime.MinValue;
 
@@ -111,7 +119,7 @@ public partial class App : Application
             EndHotkeyCaptureRestore,
             ShellLinkResolver.Resolve,
             () => _startupService?.StatusNote,
-            syncProviders: [new CalculatorProvider(), new SystemCommandProvider()], // later phases add the window switcher here
+            syncProviders: [new CalculatorProvider(), new SystemCommandProvider(), new WindowSwitcherProvider()],
             asyncProviders: Array.Empty<IAsyncResultProvider>(), // ...and file search / plugins here
             usageScore: usageService.GetScore,
             previewTheme: PreviewTheme,
@@ -133,6 +141,8 @@ public partial class App : Application
         // working immediately, even if the very first registration attempt at startup failed.
         _hotkeyService = new HotkeyService();
         _hotkeyService.HotkeyPressed += () => _mainWindow?.ToggleLauncher();
+        _hotkeyService.ItemHotkeyPressed += OnItemHotkeyPressed;
+        viewModel.ItemHotkeysMayHaveChanged += () => SyncItemHotkeys();
         _lastHotkeyText = configService.Config.Settings.Hotkey;
         if (!_hotkeyService.TryRegister(_mainWindow, _lastHotkeyText))
         {
@@ -145,6 +155,11 @@ public partial class App : Application
             _mainWindow.ShowLauncher();
             viewModel.OpenSettingsWithHotkeyError(message);
         }
+
+        // Per-item hotkeys (after the main one so it wins a clash): registered here, then kept in step by
+        // viewModel.ItemHotkeysMayHaveChanged (every tree save), OnConfigReloadedAppLevel, OnSettingsApplied
+        // and the capture-box end/restore below.
+        SyncItemHotkeys();
 
         _startupService = new StartupService();
         _startupService.Sync(configService.Config.Settings.StartWithWindows);
@@ -186,7 +201,7 @@ public partial class App : Application
     {
         if (_mainWindow is not null)
         {
-            _hotkeyService?.Unregister(_mainWindow);
+            _hotkeyService?.UnregisterAll(_mainWindow);
         }
 
         _usageService?.Dispose(); // flushes any pending debounced write (spec §10 item 10).
@@ -358,6 +373,8 @@ public partial class App : Application
             ReRegisterHotkey(newHotkey);
         }
 
+        SyncItemHotkeys(); // the reloaded tree may carry different (or conflicting) item hotkeys.
+
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
 
         ApplyConfiguredTheme();
@@ -392,6 +409,7 @@ public partial class App : Application
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
         ApplyConfiguredTheme();
+        SyncItemHotkeys(); // settings.hotkey is now final: items that clash with it are skipped, ones that no longer do are registered.
     }
 
     /// <summary>Spec §10 item 13: unregister the old hotkey first; if the new one fails, try to restore the old one so the app never ends up with no working hotkey at all.</summary>
@@ -434,23 +452,47 @@ public partial class App : Application
     // HotkeyService/Win32 references, so these three delegates are the only bridge.
     // ---------------------------------------------------------------------------------------------
 
-    /// <summary>The hotkey capture box's GotFocus: unregister the live hotkey so WM_HOTKEY doesn't eat the combination being typed.</summary>
-    private void BeginHotkeyCapture() => _hotkeyService?.Unregister(_mainWindow!);
+    /// <summary>
+    /// A hotkey capture box's GotFocus (settings page or item editor): unregister EVERY global hotkey, so
+    /// WM_HOTKEY doesn't eat the combination being typed - the panel's, the edited item's, and (so a stray press
+    /// can't launch something mid-capture) all other items'.
+    /// </summary>
+    private void BeginHotkeyCapture()
+    {
+        _hotkeyCaptureActive = true;
+        _hotkeyService?.UnregisterAll(_mainWindow!);
+    }
 
-    /// <summary>The hotkey capture box's LostFocus (blur without a save that changed it): re-register whatever is still the current hotkey.</summary>
+    /// <summary>The capture box's LostFocus (blur without a save that changed it): re-register the current main hotkey and the item hotkeys.</summary>
     private void EndHotkeyCaptureRestore()
     {
-        if (_hotkeyService is null || _mainWindow is null || string.IsNullOrEmpty(_lastHotkeyText))
+        _hotkeyCaptureActive = false;
+        if (_hotkeyService is null || _mainWindow is null)
         {
             return;
         }
 
-        _hotkeyService.TryRegister(_mainWindow, _lastHotkeyText);
+        if (!string.IsNullOrEmpty(_lastHotkeyText))
+        {
+            _hotkeyService.TryRegister(_mainWindow, _lastHotkeyText);
+        }
+
+        SyncItemHotkeys(_lastHotkeyText);
     }
 
     /// <summary>Settings page Save (spec §10 item 2): unregisters the old hotkey (a no-op if capture already did), tries the new one, restores the old on failure. Returns an error string on failure, null on success.</summary>
     private string? TryApplyHotkey(string newHotkeyText)
     {
+        _hotkeyCaptureActive = false; // this call resolves the capture; every path below ends with the item hotkeys re-synced.
+
+        // An item already owns that combination: say who, instead of RegisterHotKey's bare "in use".
+        if (HotkeyConflicts.FindOwner(newHotkeyText, "", HotkeyConflicts.Collect(_configService!.Config.Root)) is { Node: { } owner })
+        {
+            _hotkeyService!.TryRegister(_mainWindow!, _lastHotkeyText);
+            SyncItemHotkeys(_lastHotkeyText);
+            return string.Format(Strings.EditorHotkeyConflictItem, newHotkeyText, owner.Name);
+        }
+
         _hotkeyService!.Unregister(_mainWindow!);
 
         if (_hotkeyService.TryRegister(_mainWindow!, newHotkeyText))
@@ -458,6 +500,7 @@ public partial class App : Application
             _lastHotkeyText = newHotkeyText;
             _lastHotkeyFailureMessage = "";
             _trayService?.UpdateTooltip(TrayTooltip(newHotkeyText));
+            SyncItemHotkeys(newHotkeyText);
             return null;
         }
 
@@ -468,7 +511,114 @@ public partial class App : Application
             message += " The previous hotkey could not be restored either.";
         }
 
+        SyncItemHotkeys(_lastHotkeyText);
         return message;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Per-item hotkeys: registrations follow the tree. SyncItemHotkeys is the single place that turns
+    // "which nodes have a hotkey" into Windows registrations; it runs at startup, on every tree save
+    // (editor save, delete, paste, duplicate, import, bookmark/Start-menu import, drops, ...), on config
+    // reload/recover, after a settings save, and when a capture box gives the hotkeys back.
+    // ---------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Registers exactly the hotkeys the tree asks for. First come, first served: the main hotkey owns its
+    /// combination, then items in tree order; a later duplicate is skipped and reported, as is any hotkey
+    /// that is not a valid combination or that another program already owns. Problems are reported once per
+    /// distinct set (tray balloon), so re-syncing on every save does not repeat them.
+    /// </summary>
+    /// <param name="mainHotkey">The main hotkey as actually registered, when it differs from the saved settings (settings page mid-save).</param>
+    private void SyncItemHotkeys(string? mainHotkey = null)
+    {
+        if (_hotkeyService is null || _mainWindow is null || _configService is null || _hotkeyCaptureActive)
+        {
+            return; // a capture box has the hotkeys suspended; its blur re-syncs.
+        }
+
+        var config = _configService.Config;
+        var all = HotkeyConflicts.Collect(config.Root);
+        var conflicts = HotkeyConflicts.Find(mainHotkey ?? config.Settings.Hotkey, all);
+        var skipped = conflicts.Select(c => c.Node).ToHashSet();
+        var wanted = all.Where(h => !skipped.Contains(h.Node)).Select(h => new ItemHotkeyRequest(h.Node.Id, h.Hotkey)).ToList();
+
+        var failures = _hotkeyService.SyncItems(_mainWindow, wanted);
+
+        var names = all.ToDictionary(h => h.Node.Id, h => h.Node.Name, StringComparer.Ordinal);
+        var problems = new List<string>();
+        foreach (var conflict in conflicts)
+        {
+            problems.Add(conflict.Other is { } other
+                ? string.Format(Strings.HotkeyItemConflictItem, conflict.Node.Name, conflict.Hotkey, other.Name)
+                : string.Format(Strings.HotkeyItemConflictMain, conflict.Node.Name, conflict.Hotkey));
+        }
+
+        foreach (var failure in failures)
+        {
+            var name = names.GetValueOrDefault(failure.NodeId, failure.NodeId);
+            problems.Add(string.Format(
+                failure.Reason == ItemHotkeyFailureReason.Invalid ? Strings.HotkeyItemInvalid : Strings.HotkeyItemInUse,
+                name,
+                failure.Hotkey));
+        }
+
+        ReportItemHotkeyProblems(problems);
+    }
+
+    private void ReportItemHotkeyProblems(IReadOnlyList<string> problems)
+    {
+        var signature = string.Join("\n", problems);
+        if (signature == _lastItemHotkeyProblems)
+        {
+            return;
+        }
+
+        _lastItemHotkeyProblems = signature;
+        if (problems.Count == 0)
+        {
+            return;
+        }
+
+        // Balloons hold ~250 characters: the first two problems, then a count of the rest.
+        var shown = problems.Take(2).ToList();
+        if (problems.Count > shown.Count)
+        {
+            shown.Add(string.Format(Strings.HotkeyItemsMore, problems.Count - shown.Count));
+        }
+
+        _trayService?.ShowBalloon("Your Launcher", string.Join("\n", shown), warning: true);
+    }
+
+    /// <summary>
+    /// A per-item hotkey fired: launch that node without showing the panel, record usage. Nodes that
+    /// need the panel ("Ask before launching", or a {query} to type) show it with the confirm bar / the keyword
+    /// prefilled instead. A failed launch has no panel to show its error on, so it goes to the tray.
+    /// </summary>
+    private void OnItemHotkeyPressed(string nodeId)
+    {
+        if (_viewModel is null || _mainWindow is null)
+        {
+            return;
+        }
+
+        switch (_viewModel.LaunchFromHotkey(nodeId, out var error))
+        {
+            case HotkeyLaunchResult.NeedsPanel:
+                if (_mainWindow.IsVisible && _viewModel.CurrentPage != PanelPage.List)
+                {
+                    // Editor/settings/picker/confirm bar open: showing the panel would reset it and drop unsaved work.
+                    _mainWindow.RequestShow();
+                    break;
+                }
+
+                _mainWindow.ShowLauncher(); // resets to a clean root first, so the prefill/confirm below is not wiped.
+                _viewModel.ShowHotkeyNodeInPanel(nodeId);
+                break;
+
+            case HotkeyLaunchResult.Failed when error is not null:
+                _trayService?.ShowBalloon("Your Launcher", error, warning: true);
+                break;
+        }
     }
 
     /// <summary>

@@ -113,9 +113,9 @@ public partial class SettingsView : UserControl
     private void HotkeyBox_OnLostFocus(object sender, RoutedEventArgs e) => ViewModel?.EndHotkeyCapture();
 
     /// <summary>
-    /// Spec §10 item 1: Tab/Shift+Tab/Esc/Enter/Backspace are not capturable (they keep their normal
-    /// meaning - focus move, page cancel, page save, reset-to-saved); everything else needs at least one
-    /// modifier (Ctrl/Alt/Shift - Win is never offered, it's reserved by Windows) plus one non-modifier key.
+    /// Spec §10 item 1: Tab/Shift+Tab/Esc/Enter keep their normal meaning (focus move, page cancel, page
+    /// save), Backspace resets to the saved hotkey; the key-to-text rules live in <see cref="HotkeyCapture"/>
+    /// (shared with the item editor's hotkey box).
     /// </summary>
     private void HotkeyBox_OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -125,52 +125,16 @@ public partial class SettingsView : UserControl
             return;
         }
 
-        if (e.Key is Key.Tab or Key.Escape or Key.Enter)
+        switch (HotkeyCapture.Interpret(e, out var text))
         {
-            return; // let these bubble to the page-level handler / normal focus traversal.
+            case HotkeyCaptureAction.Backspace:
+                vm.ResetHotkeyToSaved();
+                break;
+            case HotkeyCaptureAction.Captured:
+                vm.HotkeyText = text;
+                break;
         }
-
-        if (e.Key == Key.Back)
-        {
-            vm.ResetHotkeyToSaved();
-            e.Handled = true;
-            return;
-        }
-
-        // Alt-held keys arrive as "system keys" (e.Key == Key.System, real key in e.SystemKey) - same WPF
-        // quirk EditorView's Alt+A handling already works around.
-        var effectiveKey = e.Key == Key.System ? e.SystemKey : e.Key;
-        e.Handled = true; // every remaining branch below is this box's business, not the page's.
-
-        if (IsModifierKey(effectiveKey))
-        {
-            return; // ignore modifier-only presses (spec §10 item 1).
-        }
-
-        var modifiers = Keyboard.Modifiers;
-        if (modifiers == ModifierKeys.None)
-        {
-            return; // require >= 1 modifier.
-        }
-
-        if (modifiers.HasFlag(ModifierKeys.Windows))
-        {
-            return; // Win is never offered as a capturable modifier (reserved by Windows, spec §10 item 1).
-        }
-
-        var parts = new List<string>();
-        if (modifiers.HasFlag(ModifierKeys.Control)) parts.Add("Ctrl");
-        if (modifiers.HasFlag(ModifierKeys.Alt)) parts.Add("Alt");
-        if (modifiers.HasFlag(ModifierKeys.Shift)) parts.Add("Shift");
-        parts.Add(effectiveKey.ToString()); // WPF Key enum name - HotkeyService.TryParse uses Enum.TryParse<Key>.
-        vm.HotkeyText = string.Join("+", parts);
     }
-
-    private static bool IsModifierKey(Key key) => key is Key.LeftCtrl or Key.RightCtrl
-        or Key.LeftAlt or Key.RightAlt
-        or Key.LeftShift or Key.RightShift
-        or Key.LWin or Key.RWin
-        or Key.System or Key.None;
 
     private void ThemeCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -301,6 +265,9 @@ public partial class SettingsView : UserControl
 
         OpenThemedContextMenu(menu);
     }
+
+    /// <summary>"Import from Start menu…": hands over to MainViewModel, which swaps this page for the app picker.</summary>
+    private void ImportStartMenuButton_OnClick(object sender, RoutedEventArgs e) => ViewModel?.RequestImportStartMenu();
 
     private void ImportBookmarksFromHtml(SettingsViewModel vm)
     {
