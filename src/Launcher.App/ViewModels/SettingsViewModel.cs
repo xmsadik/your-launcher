@@ -20,6 +20,11 @@ namespace YourLauncher.App.ViewModels;
 /// unregisters the old hotkey (a no-op if capture already did that), tries to register the new text, and
 /// restores the old one on failure, returning an error string in that case (mirrors
 /// <see cref="EditorViewModel"/>'s injected <c>fileDescriptionLookup</c> pattern).
+///
+/// The other exception is the live theme preview: changing Theme, Opacity or UseWindowsAccent re-themes the
+/// panel immediately through <see cref="_previewTheme"/>, and <see cref="EndPreview"/> (called by
+/// MainViewModel whenever this page is detached, however that happens) puts the saved look back via
+/// <see cref="_restoreTheme"/>. Nothing here writes the config - Save still goes through <see cref="Saved"/>.
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
@@ -29,8 +34,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action _beginHotkeyCapture;
     private readonly Action _endHotkeyCaptureRestore;
     private readonly Func<string> _exportJson;
+    private readonly Action<Theme, int, bool> _previewTheme;
+    private readonly Action _restoreTheme;
 
     private bool _capturingHotkey;
+    private bool _previewing;
 
     [ObservableProperty]
     private string _hotkeyText;
@@ -40,6 +48,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private int _opacity;
+
+    [ObservableProperty]
+    private bool _useWindowsAccent;
 
     [ObservableProperty]
     private bool _startWithWindows;
@@ -99,6 +110,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         Action beginHotkeyCapture,
         Action endHotkeyCaptureRestore,
         Func<string> exportJson,
+        Action<Theme, int, bool> previewTheme,
+        Action restoreTheme,
         string? hotkeyErrorToShow = null)
     {
         ConfigDirectory = configDirectory;
@@ -107,11 +120,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         _beginHotkeyCapture = beginHotkeyCapture;
         _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
         _exportJson = exportJson;
+        _previewTheme = previewTheme;
+        _restoreTheme = restoreTheme;
 
         _originalHotkeyText = current.Hotkey;
         _hotkeyText = current.Hotkey;
         _theme = current.Theme;
         _opacity = current.Opacity;
+        _useWindowsAccent = current.UseWindowsAccent;
         _startWithWindows = current.StartWithWindows;
         _closeAfterLaunch = current.CloseAfterLaunch;
         _maxVisibleItems = current.MaxVisibleItems;
@@ -128,6 +144,40 @@ public sealed partial class SettingsViewModel : ObservableObject
             _errorMessage = hotkeyErrorToShow;
             FocusHotkeyFirst = true;
         }
+    }
+
+    partial void OnThemeChanged(Theme value) => Preview();
+
+    partial void OnOpacityChanged(int value) => Preview();
+
+    partial void OnUseWindowsAccentChanged(bool value) => Preview();
+
+    /// <summary>
+    /// Applies the page's current Theme/Opacity/UseWindowsAccent to the live panel. The opacity box binds on
+    /// every keystroke, so a half-typed value ("5" on the way to "50") is out of range and simply skipped -
+    /// the preview keeps the last valid value; unparsable text never reaches the property at all.
+    /// </summary>
+    private void Preview()
+    {
+        if (Opacity < Settings.MinOpacity || Opacity > 100)
+        {
+            return;
+        }
+
+        _previewing = true;
+        _previewTheme(Theme, Opacity, UseWindowsAccent);
+    }
+
+    /// <summary>Puts the saved theme/opacity/accent back if a preview changed it; a no-op otherwise. MainViewModel calls this on every exit from the page (save, cancel, hide, import...).</summary>
+    public void EndPreview()
+    {
+        if (!_previewing)
+        {
+            return;
+        }
+
+        _previewing = false;
+        _restoreTheme();
     }
 
     /// <summary>The hotkey box's GotFocus (spec §10 item 1): unregisters the live hotkey so typing the new combination doesn't get eaten by WM_HOTKEY.</summary>
@@ -195,6 +245,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             Hotkey = HotkeyText,
             Theme = Theme,
             Opacity = Opacity,
+            UseWindowsAccent = UseWindowsAccent,
             StartWithWindows = StartWithWindows,
             CloseAfterLaunch = CloseAfterLaunch,
             MaxVisibleItems = MaxVisibleItems,

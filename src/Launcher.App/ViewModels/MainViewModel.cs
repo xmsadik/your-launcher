@@ -51,6 +51,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly Action _pruneUsage;
     private readonly Func<string, string?> _tryApplyHotkey;
     private readonly Action _beginHotkeyCapture;
+    private readonly Action<Theme, int, bool> _previewTheme;
+    private readonly Action _restoreTheme;
     private readonly Action _endHotkeyCaptureRestore;
     private readonly Func<string, ShellLinkInfo> _resolveShellLink;
 
@@ -264,7 +266,9 @@ public sealed partial class MainViewModel : ObservableObject
         Func<string?>? startupNote = null,
         IReadOnlyList<IResultProvider>? syncProviders = null,
         IReadOnlyList<IAsyncResultProvider>? asyncProviders = null,
-        Func<string, double>? usageScore = null)
+        Func<string, double>? usageScore = null,
+        Action<Theme, int, bool>? previewTheme = null,
+        Action? restoreTheme = null)
     {
         _configService = configService;
         _config = configService.Config;
@@ -279,6 +283,8 @@ public sealed partial class MainViewModel : ObservableObject
         _pruneUsage = pruneUsage;
         _tryApplyHotkey = tryApplyHotkey;
         _beginHotkeyCapture = beginHotkeyCapture;
+        _previewTheme = previewTheme ?? ((_, _, _) => { });
+        _restoreTheme = restoreTheme ?? (() => { });
         _endHotkeyCaptureRestore = endHotkeyCaptureRestore;
         _resolveShellLink = resolveShellLink;
         _startupNote = startupNote ?? (() => null);
@@ -952,6 +958,8 @@ public sealed partial class MainViewModel : ObservableObject
             _beginHotkeyCapture,
             _endHotkeyCaptureRestore,
             () => ConfigSerializer.Serialize(_config),
+            _previewTheme,
+            _restoreTheme,
             hotkeyErrorToShow)
         {
             StartupNote = _startupNote() ?? "",
@@ -971,6 +979,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        Settings.EndPreview(); // before the detach: puts the saved theme back no matter how the page is left.
         Settings.Saved -= OnSettingsSaved;
         Settings.Cancelled -= OnSettingsCancelled;
         Settings.ImportParsed -= OnImportParsed;

@@ -52,9 +52,9 @@ Kapsam dışı:
 Her fazın sonunda: derleme, tüm testler, bağımsız kod incelemesi, commit. Uygulama (kodlama) Sonnet alt
 ajanlarına, plan eleştirisi ve diff incelemesi ayrı bir ajana verilir; son doğruluk kararı bende.
 
-- [ ] **Faz 0 — Altyapı:** `IResultProvider` arayüzü, sonuç birleştirme ve sıralama kuralları, senkron ve
+- [x] **Faz 0 — Altyapı:** `IResultProvider` arayüzü, sonuç birleştirme ve sıralama kuralları, senkron ve
   arka plan provider desteği, liste satırının öğe dışı sonucu gösterebilmesi. `launcher-spec.md` §2 güncellemesi.
-- [ ] **Faz 1 — Hızlı kazançlar:** #1 canlı önizleme, #5 Windows vurgu rengi, #3 sistem komutları,
+- [x] **Faz 1 — Hızlı kazançlar:** #1 canlı önizleme, #5 Windows vurgu rengi, #3 sistem komutları,
   #7 hesap makinesi (Core'da kendi ifade ayrıştırıcısı; `eval` yok).
 - [ ] **Faz 2 — Öğe özellikleri:** #2 parametreli öğeler, #4 öğeye özel kısayol tuşu (çakışma ve kayıt
   hatası ana kısayoldaki gibi kullanıcıya gösterilir).

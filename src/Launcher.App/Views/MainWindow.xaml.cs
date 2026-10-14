@@ -29,10 +29,10 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly ThemeService _themeService;
-    private readonly Func<Settings> _currentSettings;
     private int _suppressAutoHideCount;
 
     private const int WM_SETTINGCHANGE = 0x001A;
+    private const int WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
 
     /// <summary>Private DataObject format for the in-list drag (spec §7/§10 item 8) - distinct from <see cref="DataFormats.FileDrop"/> so the two drop paths (Explorer files vs. reordering) never collide.</summary>
     private const string InternalDragFormat = "YourLauncher.InternalNodeDrag";
@@ -50,11 +50,10 @@ public partial class MainWindow : Window
     /// <summary>Fixed row height so the list can be capped at exactly settings.maxVisibleItems rows.</summary>
     public const double RowHeight = 36;
 
-    public MainWindow(MainViewModel viewModel, ThemeService themeService, Func<Settings> currentSettings)
+    public MainWindow(MainViewModel viewModel, ThemeService themeService)
     {
         _viewModel = viewModel;
         _themeService = themeService;
-        _currentSettings = currentSettings;
         DataContext = viewModel;
         InitializeComponent();
         ItemsList.MaxHeight = RowHeight * Math.Max(1, viewModel.MaxVisibleItems);
@@ -430,19 +429,18 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Spec §10 item 4: WM_SETTINGCHANGE with lParam "ImmersiveColorSet" fires whenever the user flips
-    /// Windows' light/dark app mode - re-resolves and re-applies the theme only while Theme.System is the
-    /// configured setting (Light/Dark are pinned regardless of what the OS does).
+    /// Windows' light/dark app mode, and WM_DWMCOLORIZATIONCOLORCHANGED when the accent color changes -
+    /// re-applies what is currently applied, but only while that depends on Windows (Theme.System or the
+    /// Windows accent; Light/Dark with the palette accent are pinned regardless of what the OS does).
+    /// Re-applying the *last applied* values rather than the saved config also keeps a live settings preview intact.
     /// </summary>
     private IntPtr SettingChangeWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_SETTINGCHANGE && lParam != IntPtr.Zero && _currentSettings().Theme == Theme.System)
+        var windowsColorsChanged = msg == WM_DWMCOLORIZATIONCOLORCHANGED
+            || (msg == WM_SETTINGCHANGE && lParam != IntPtr.Zero && Marshal.PtrToStringUni(lParam) == "ImmersiveColorSet");
+        if (windowsColorsChanged && _themeService.FollowsWindowsColors)
         {
-            var setting = Marshal.PtrToStringUni(lParam);
-            if (setting == "ImmersiveColorSet")
-            {
-                var dark = _themeService.Apply(Theme.System, _currentSettings().Opacity);
-                ApplyTheme(dark);
-            }
+            ApplyTheme(_themeService.Reapply());
         }
 
         return IntPtr.Zero;

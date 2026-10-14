@@ -46,6 +46,9 @@ public sealed class Settings
 
     public const int MinOpacity = 40;
 
+    /// <summary>When true the panel's accent color follows the Windows accent color instead of the palette's own accent (the rest of the palette is unchanged).</summary>
+    public bool UseWindowsAccent { get; set; } = false;
+
     public bool StartWithWindows { get; set; } = true;
 
     public bool CloseAfterLaunch { get; set; } = true;

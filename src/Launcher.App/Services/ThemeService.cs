@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Win32;
+using Windows.UI.ViewManagement;
 using YourLauncher.Core.Model;
 using YourLauncher.Core.Theming;
 
@@ -24,14 +25,31 @@ public sealed class ThemeService
     /// <summary>The last-resolved effective theme (true = dark), kept for callers that need it outside the Apply call itself (e.g. MainWindow re-applying the DWM dark-mode flag after a later HWND-level change).</summary>
     public bool IsDark { get; private set; } = true;
 
+    // What the last Apply was called with, so Reapply can redo it when Windows' colors change while the
+    // settings page is previewing something other than the saved config (the saved config would be wrong then).
+    private Theme _lastTheme = Theme.System;
+    private int _lastOpacity = 90;
+    private bool _lastUseWindowsAccent;
+
+    /// <summary>True when what is currently applied depends on a Windows setting (System theme or Windows accent), i.e. a Windows color change should trigger <see cref="Reapply"/>.</summary>
+    public bool FollowsWindowsColors => _lastTheme == Theme.System || _lastUseWindowsAccent;
+
+    /// <summary>Re-applies the last-applied theme/opacity/accent (re-reading the Windows values) and returns whether the palette is dark.</summary>
+    public bool Reapply() => Apply(_lastTheme, _lastOpacity, _lastUseWindowsAccent);
+
     /// <summary>
     /// Resolves <paramref name="theme"/> (System reads the registry) and swaps the merged palette
     /// dictionary accordingly; <paramref name="opacity"/> (percent, clamped to
     /// <see cref="Settings.MinOpacity"/>-100) becomes the alpha of <c>PanelBackgroundTintBrush</c>, the
-    /// panel background used over the Mica/Acrylic backdrop. Returns whether the palette is dark.
+    /// panel background used over the Mica/Acrylic backdrop. With <paramref name="useWindowsAccent"/> the
+    /// palette's accent is replaced by the Windows accent color (falls back to the palette accent if it can't
+    /// be read). Returns whether the palette is dark.
     /// </summary>
-    public bool Apply(Theme theme, int opacity)
+    public bool Apply(Theme theme, int opacity, bool useWindowsAccent = false)
     {
+        _lastTheme = theme;
+        _lastOpacity = opacity;
+        _lastUseWindowsAccent = useWindowsAccent;
         var palette = ThemeCatalog.Get(theme == Theme.System ? (IsSystemThemeDark() ? Theme.Dark : Theme.Light) : theme);
         IsDark = palette.IsDark;
 
@@ -45,7 +63,7 @@ public sealed class ThemeService
             ["PanelBorderBrush"] = Brush(Parse(palette.Border)),
             ["ForegroundBrush"] = Brush(Parse(palette.Foreground)),
             ["SecondaryTextBrush"] = Brush(Parse(palette.SecondaryText)),
-            ["AccentBrush"] = Brush(Parse(palette.Accent)),
+            ["AccentBrush"] = Brush(useWindowsAccent && TryGetWindowsAccent(palette.IsDark) is { } windowsAccent ? windowsAccent : Parse(palette.Accent)),
             ["SelectionBackgroundBrush"] = Brush(Parse(palette.Selection)),
             ["HoverBackgroundBrush"] = Brush(Parse(palette.Hover)),
             ["ErrorBrush"] = Brush(Parse(palette.Error)),
@@ -63,6 +81,25 @@ public sealed class ThemeService
         merged.Add(dictionary);
         _activeDictionary = dictionary;
         return palette.IsDark;
+    }
+
+    /// <summary>
+    /// The Windows accent color via WinRT UISettings. The raw accent is often too dark or too light against
+    /// the panel, so the theme-matched shade is used: AccentDark1 on light palettes and AccentLight2 on
+    /// dark ones (the same variants Windows' own apps pick for text/links on each background). Null on any
+    /// failure (unsupported OS, no WinRT) so the caller keeps the palette accent.
+    /// </summary>
+    private static Color? TryGetWindowsAccent(bool darkPalette)
+    {
+        try
+        {
+            var c = new UISettings().GetColorValue(darkPalette ? UIColorType.AccentLight2 : UIColorType.AccentDark1);
+            return Color.FromRgb(c.R, c.G, c.B);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 
     private static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);

@@ -5,11 +5,13 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Providers;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Diagnostics;
+using YourLauncher.Core.Model;
 using YourLauncher.Core.Providers;
 using YourLauncher.Core.Startup;
 
@@ -85,7 +87,7 @@ public partial class App : Application
         // Theme (spec §11/§10 item 2-4): resolved and applied before the window is constructed, so its
         // very first layout already uses the right DynamicResource brushes.
         _themeService = new ThemeService();
-        _themeService.Apply(configService.Config.Settings.Theme, configService.Config.Settings.Opacity);
+        ApplyConfiguredTheme();
 
         // Usage (spec §8.4/§10 item 10): constructed before SearchService so its GetScore can be handed
         // straight into the constructor; pruned once here against whatever config.json loaded with.
@@ -109,14 +111,16 @@ public partial class App : Application
             EndHotkeyCaptureRestore,
             ShellLinkResolver.Resolve,
             () => _startupService?.StatusNote,
-            syncProviders: Array.Empty<IResultProvider>(), // later phases register calculator / system commands / windows here
+            syncProviders: [new CalculatorProvider(), new SystemCommandProvider()], // later phases add the window switcher here
             asyncProviders: Array.Empty<IAsyncResultProvider>(), // ...and file search / plugins here
-            usageScore: usageService.GetScore);
+            usageScore: usageService.GetScore,
+            previewTheme: PreviewTheme,
+            restoreTheme: ApplyConfiguredTheme);
         _viewModel = viewModel;
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;
 
-        _mainWindow = new MainWindow(viewModel, _themeService, () => _configService!.Config.Settings);
+        _mainWindow = new MainWindow(viewModel, _themeService);
         viewModel.RequestHide += () => _mainWindow?.HideLauncher();
 
         // Force HWND creation without showing the window yet, so the hotkey and tray icon have a handle to bind to.
@@ -356,8 +360,26 @@ public partial class App : Application
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
 
-        var dark = _themeService!.Apply(_configService.Config.Settings.Theme, _configService.Config.Settings.Opacity);
-        _mainWindow.ApplyTheme(dark);
+        ApplyConfiguredTheme();
+    }
+
+    /// <summary>
+    /// Applies the *saved* theme, opacity and Windows-accent setting (and the DWM dark flag, once the window
+    /// exists). The one place that turns config into a look: startup, reload, settings save, and the
+    /// settings page's "put the saved look back" after a live preview all come through here.
+    /// </summary>
+    private void ApplyConfiguredTheme()
+    {
+        var settings = _configService!.Config.Settings;
+        var dark = _themeService!.Apply(settings.Theme, settings.Opacity, settings.UseWindowsAccent);
+        _mainWindow?.ApplyTheme(dark);
+    }
+
+    /// <summary>Live preview from the settings page (not saved): same path as the real thing, just with the page's unsaved values.</summary>
+    private void PreviewTheme(Theme theme, int opacity, bool useWindowsAccent)
+    {
+        var dark = _themeService!.Apply(theme, opacity, useWindowsAccent);
+        _mainWindow?.ApplyTheme(dark);
     }
 
     /// <summary>Settings-page save (spec §10 item 2): the hotkey itself is already applied by <see cref="TryApplyHotkey"/> before this fires - only the Win32/WPF-resource side effects MainViewModel can't reach directly are left.</summary>
@@ -369,8 +391,7 @@ public partial class App : Application
         }
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
-        var dark = _themeService!.Apply(_configService.Config.Settings.Theme, _configService.Config.Settings.Opacity);
-        _mainWindow.ApplyTheme(dark);
+        ApplyConfiguredTheme();
     }
 
     /// <summary>Spec §10 item 13: unregister the old hotkey first; if the new one fails, try to restore the old one so the app never ends up with no working hotkey at all.</summary>

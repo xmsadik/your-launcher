@@ -92,6 +92,22 @@ public class ThemeCatalogTests
         Assert.Equal(90, result.Config.Settings.Opacity);
     }
 
+    [Fact]
+    public void Settings_UseWindowsAccent_DefaultsToFalseAndRoundTrips()
+    {
+        Assert.False(new Settings().UseWindowsAccent);
+
+        var missing = ConfigSerializer.Deserialize("""{ "version": 1, "settings": { "opacity": 80 }, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");
+        Assert.True(missing.Success);
+        Assert.False(missing.Config!.Settings.UseWindowsAccent);
+
+        var config = new LauncherConfig();
+        config.Settings.UseWindowsAccent = true;
+        var json = ConfigSerializer.Serialize(config);
+        Assert.Contains("\"useWindowsAccent\": true", json);
+        Assert.True(ConfigSerializer.Deserialize(json).Config!.Settings.UseWindowsAccent);
+    }
+
     private static IEnumerable<(string Name, string Hex)> Colors(ThemePalette p) =>
     [
         (nameof(p.Background), p.Background), (nameof(p.Border), p.Border), (nameof(p.Foreground), p.Foreground),

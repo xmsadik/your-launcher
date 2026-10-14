@@ -498,7 +498,10 @@ file location) still work.
 | `↑` / `↓` | Move the selection, wraps at the ends |
 | `Enter` | Create the highlighted type |
 | `F` / `A` / `P` / `C` / `U` | Create Folder / App / File or folder / Command / URL immediately |
-| `Esc` | Cancel, back to the list |
+| `Esc` | Cancel, back to the list (a previewed theme, opacity or accent is reverted) |
+| `↑` / `↓`, while the Background opacity box has focus | Adjusts the value by 5, clamped 40-100 |
+
+Theme, Background opacity and Use Windows accent color preview live: the panel changes as soon as you pick or type a value, and only Save keeps it. Cancel or closing the panel restores the saved look.
 
 ### Editor page
 
@@ -623,6 +626,7 @@ Shape (spec §4.2–§4.5):
                                  // tokyoNightDay | dracula | nord | gruvboxDark | gruvboxLight | oneDark |
                                  // solarizedDark | solarizedLight | monokai | githubDark | githubLight | rosePine
     "opacity": 90,               // 40-100: panel background over the Win11 22H2+ Mica/Acrylic backdrop (no effect on Win10)
+    "useWindowsAccent": false,   // true: accent color follows the Windows accent color (updates live)
     "startWithWindows": true,     // Phase 5
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,
@@ -703,6 +707,27 @@ field's matched positions are highlighted. Ties break by: usage score (frecency 
 order. The whole tree is
 flattened once into a `FlatIndex` per config load, not re-walked per keystroke; 5,000 nodes stay well
 under the spec's 16 ms budget (median ~8 ms / p95 ~10 ms measured in `SearchPerformanceTests`).
+
+### Calculator
+
+Type a math expression and a **= result** row appears first in the list; Enter copies the result
+(`.` as the decimal point, so it pastes into code and spreadsheets) and closes the panel. Supported:
+`+ - * / %` (modulo), `^` (power, right-associative), unary minus, parentheses, decimals with `.` **or**
+`,` (`3,5*2` = 7; there are no multi-argument functions, so a comma is always a decimal point and
+`1,000` means 1.0), `0x1F` hex and `0b101` binary literals, the functions `sqrt abs round floor ceil sin
+cos tan log` (base 10) `ln` (trig in radians) and the constants `pi` and `e`. Integer results also show
+their hex value in the subtitle. A row only appears when the whole query parses and contains at least one
+operator or function plus a number, so `notepad`, `2048 game`, `7-zip`, `192.168.1.1` or a bare `42` never
+trigger it. Division by zero and overflow give no row. The evaluator is a hand-written parser (no `eval`).
+
+### System commands
+
+Type a command name to get a row below the matching shortcuts (matching is the same Turkish-aware fuzzy
+search): `lock` (`kilitle`), `sleep` (`uyku`), `hibernate` (`hazırda beklet`, only when hibernation is
+enabled), `sign out` (`oturumu kapat`), `restart` (`yeniden başlat`), `shut down` (`kapat`) and
+`empty recycle bin` (`geri dönüşüm`). Sign out, Restart, Shut down and Empty Recycle Bin ask for
+confirmation (Enter = run, Esc = cancel) first. On Modern Standby laptops (no S3 sleep) Sleep turns the display off,
+which is how Windows enters standby there; `SetSuspendState` would hibernate instead.
 
 ## Memory and publish size (Phase 5/6, spec §8/§15)
 

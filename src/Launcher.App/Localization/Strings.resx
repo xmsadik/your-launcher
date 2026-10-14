@@ -24,4 +24,48 @@
     <value>Could not run '{0}': {1}</value>
     <comment>{0} = result title, {1} = exception message. Shown on the error line when a provider action throws.</comment>
   </data>
+  <data name="SettingsUseWindowsAccent" xml:space="preserve">
+    <value>Use Windows accent color</value>
+    <comment>Settings page checkbox label; the panel accent follows the Windows accent color.</comment>
+  </data>
+  <data name="CalcSubtitle" xml:space="preserve">
+    <value>{0} &#183; Enter to copy</value>
+    <comment>{0} = the expression as typed. Subtitle of the calculator row.</comment>
+  </data>
+  <data name="CalcSubtitleHex" xml:space="preserve">
+    <value>{0} &#183; {1} &#183; Enter to copy</value>
+    <comment>{0} = the expression as typed, {1} = the integer result in hex (e.g. 0x30). Subtitle of the calculator row.</comment>
+  </data>
+  <data name="SysCmdSubtitle" xml:space="preserve">
+    <value>System command</value>
+    <comment>Subtitle shared by all built-in system command rows.</comment>
+  </data>
+  <data name="SysCmdLock" xml:space="preserve">
+    <value>Lock</value>
+    <comment>System command title: lock the PC.</comment>
+  </data>
+  <data name="SysCmdSleep" xml:space="preserve">
+    <value>Sleep</value>
+    <comment>System command title.</comment>
+  </data>
+  <data name="SysCmdHibernate" xml:space="preserve">
+    <value>Hibernate</value>
+    <comment>System command title.</comment>
+  </data>
+  <data name="SysCmdSignOut" xml:space="preserve">
+    <value>Sign out</value>
+    <comment>System command title: log off the current user.</comment>
+  </data>
+  <data name="SysCmdRestart" xml:space="preserve">
+    <value>Restart</value>
+    <comment>System command title.</comment>
+  </data>
+  <data name="SysCmdShutDown" xml:space="preserve">
+    <value>Shut down</value>
+    <comment>System command title.</comment>
+  </data>
+  <data name="SysCmdEmptyRecycleBin" xml:space="preserve">
+    <value>Empty Recycle Bin</value>
+    <comment>System command title.</comment>
+  </data>
 </root>

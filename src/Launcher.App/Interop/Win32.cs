@@ -31,6 +31,49 @@ internal static partial class Win32
     [LibraryImport("user32.dll")]
     public static partial short GetAsyncKeyState(int vKey);
 
+    // ---- System commands: session/power/recycle-bin calls behind the built-in "sys:*" rows.
+    public const uint EWX_LOGOFF = 0x00000000;
+    public const uint SHERB_NOCONFIRMATION = 0x00000001;
+    public const uint SHERB_NOPROGRESSUI = 0x00000002;
+    public const uint SHERB_NOSOUND = 0x00000004;
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool LockWorkStation();
+
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool ExitWindowsEx(uint uFlags, uint dwReason);
+
+    /// <summary>Blocks until the machine resumes; hibernate=true hibernates, false sleeps (when the platform supports S3).</summary>
+    [LibraryImport("powrprof.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool SetSuspendState([MarshalAs(UnmanagedType.U1)] bool hibernate, [MarshalAs(UnmanagedType.U1)] bool forceCritical, [MarshalAs(UnmanagedType.U1)] bool disableWakeEvent);
+
+    [LibraryImport("powrprof.dll")]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool IsPwrHibernateAllowed();
+
+    /// <summary>
+    /// Fills a SYSTEM_POWER_CAPABILITIES (all leading fields are 1-byte BOOLEANs: SystemS1..S3 at offsets
+    /// 3..5, AoAc - Modern Standby - at 20). Called with a generously sized buffer rather than a full struct
+    /// declaration since only those flags are read.
+    /// </summary>
+    [LibraryImport("powrprof.dll")]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static unsafe partial bool GetPwrCapabilities(byte* capabilities);
+
+    public const int SystemPowerCapabilitiesBufferSize = 256;
+    public const int PowerCapabilitiesS1Offset = 3;
+    public const int PowerCapabilitiesS3Offset = 5;
+    public const uint WM_SYSCOMMAND = 0x0112;
+    public static readonly IntPtr SC_MONITORPOWER = new(0xF170);
+    public static readonly IntPtr HWND_BROADCAST = new(0xFFFF);
+
+    /// <summary>Returns an HRESULT (0 = S_OK); pszRootPath null empties the bin of every drive.</summary>
+    [LibraryImport("shell32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int SHEmptyRecycleBin(IntPtr hwnd, string? pszRootPath, uint dwFlags);
+
     // ---- Icons (Phase 4): SHGetFileInfo/ExtractIconEx/SHDefExtractIconW pull in a fixed-size string
     // field (SHFILEINFO.szDisplayName) that the LibraryImport source generator can't marshal on its own,
     // so these use the classic DllImport rather than the LibraryImport style used above.
