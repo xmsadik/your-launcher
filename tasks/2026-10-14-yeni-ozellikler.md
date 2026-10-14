@@ -1,6 +1,6 @@
 # Yeni özellikler: önizleme, parametreli öğeler, sistem komutları, pencere geçişi, hesap makinesi, dosya araması, eklentiler ve Türkçe arayüz
 
-**Durum:** DEVAM EDİYOR
+**Durum:** TAMAMLANDI
 **Tarih:** 2026-10-14 (son güncelleme: 2026-10-14)
 **Etkilenen yer:** `src/Launcher.Core`, `src/Launcher.App`, `tests/Launcher.Core.Tests`, `README.md`, `launcher-spec.md`. SAP'a yazma yok.
 
@@ -61,9 +61,9 @@ ajanlarına, plan eleştirisi ve diff incelemesi ayrı bir ajana verilir; son do
 - [x] **Faz 3 — Windows entegrasyonu:** #6 pencere geçişi, #8 Başlat menüsünden içe aktarma (bookmark
   içe aktarmayla aynı düzen: tekrar içe aktarınca aynı klasörü günceller).
 - [x] **Faz 4 — Büyük işler:** #10 dosya araması, #11 eklenti sistemi.
-- [ ] **Faz 5 — Türkçe arayüz:** #9. En sona konuldu çünkü önceki fazların ekleyeceği yeni metinler de
+- [x] **Faz 5 — Türkçe arayüz:** #9. En sona konuldu çünkü önceki fazların ekleyeceği yeni metinler de
   çevrilecek; erken yapılırsa her fazda iki dilde metin tutmak gerekir.
-- [ ] Faz sonu: README güncellemesi, rapor.
+- [x] Faz sonu: README güncellemesi, rapor.
 
 ### Tasarım kuralları (plan eleştirisinden sonra, 2026-10-14)
 Plan bağımsız bir ajana eleştirtildi; aşağıdaki kurallar o eleştiriden çıktı ve tüm fazlar için bağlayıcı.
@@ -126,3 +126,90 @@ Plan bağımsız bir ajana eleştirtildi; aşağıdaki kurallar o eleştiriden �
 - 2026-10-14: Kullanıcı dört kararın hepsinde önerilen seçeneği seçti (tablodaki Cevap sütunu).
 
 ## B. RAPOR (iş bittikten sonra)
+### Sonuç
+11 özelliğin hepsi eklendi ve beş commit halinde main dalında. Kod derleniyor, 788 birim testin tamamı
+geçiyor. Uygulamanın arayüzünde elle test henüz yapılmadı.
+
+### Yapılanlar
+| Faz | Commit | İçerik |
+|---|---|---|
+| 0 | `103e19c` | Aramaya öğe dışı sonuç altyapısı, sabit sıralama katmanları, metin kaynak dosyası |
+| 1 | `db451e8` | Canlı tema önizlemesi, Windows vurgu rengi, hesap makinesi, sistem komutları |
+| 2-3 | `2cde466` | `{query}` öğeleri, öğeye özel kısayol, pencere geçişi, Başlat menüsünden içe aktarma |
+| 4 | `8db2e53` | Dosya araması (`f ` öneki; Everything, yoksa Windows Search), eklenti sistemi |
+| 5 | `9c3046b` | Türkçe arayüz, `language` ayarı, Türkçe dosyaların pakete girmesi |
+
+Önemli ayrıntılar:
+- **Uyku komutu:** Bu makine Modern Standby kullanıyor ve klasik uyku (S3) yok. Burada "Sleep" ekranı
+  kapatarak bekleme moduna geçer; `SetSuspendState` bu makinelerde hazırda beklemeye geçirirdi.
+- **Everything:** İletişim biçimi resmi SDK başlık dosyasıyla (`everything_ipc.h`) karşılaştırıldı ve
+  birebir tutuyor. Everything'in kendi DLL'i pakete eklenmedi.
+- **Yeni NuGet paketi:** `System.Data.OleDb`, Windows Search sorguları için.
+- **Store paketi:** Yeni bir yetki (capability) eklenmedi. Manifest'e yalnızca `tr-TR` kaynak dili eklendi.
+- **Hesap makinesi:** `,` her zaman ondalık ayırıcıdır, yani `1,000` = 1. Tarih benzeri girdiler
+  (`2024-10-14`) bir sonuç satırı üretir.
+- **Dil değişikliği:** Uygulama yeniden başlatılınca geçerli olur. Ayarlar sayfası bunu bir notla söyler.
+
+### Nasıl doğrulandı
+- Her fazdan sonra tam derleme (0 uyarı) ve tüm testler çalıştırıldı. Test sayısı 384'ten 788'e çıktı.
+- Faz 2-3 ve Faz 4 diff'leri bağımsız bir ajana eleştirel olarak incelettirildi. 14 bulgunun hepsi düzeltildi;
+  başlıcaları: başarısız taramada içe aktarılan öğelerin silinmesi, dışarıdan değişen config'in ezilmesi,
+  kısayol kaydının dışarıda kalması, Store'da eklenti klasörünün yanlış çözülmesi.
+- Gerçek veriyle denenenler:
+  - Windows Search sorguları, sıcakken yaklaşık 130-200 ms.
+  - Pencere listeleme, 0,5-2 ms.
+  - Başlat menüsü okuma.
+  - Örnek eklenti ile zaman aşımına uğrayan ve hatalı eklentiler. Zaman aşımında alt süreçler de kapatıldı.
+  - `{query}` kaçışı, gerçek `cmd.exe` ve argv üzerinden.
+  - Release single-file yayınında Türkçe kaynakların pakette olması.
+  - Uygulamanın `language: tr` ile açılması.
+- **Doğrulanmadı:**
+  - Arayüzdeki akışların hiçbiri elle denenmedi. Masaüstünde fare/klavye kullanılmadı.
+  - Everything gerçek programla denenmedi; bu makinede kurulu değil.
+  - MSIX paketinin oluşturulması ve Store sertifikasyonu yapılmadı.
+  - Türkçe metinlerin ekrana sığması kontrol edilmedi.
+  - Çeviriler anadili Türkçe olan biri tarafından gözden geçirilmedi.
+
+### Değişen nesneler / dosyalar
+Ayrıntılı liste commit mesajlarında. Yeni ana klasörler:
+- `src/Launcher.Core/Providers`, `Calc`, `Hotkeys`, `StartMenu`, `Plugins`, `Localization`
+- `src/Launcher.App/Providers`, `Plugins`, `Localization`
+- `examples/plugins/uuid`
+
+### Yapılmayanlar ve açık kalanlar
+- **Dil değişikliği yeniden başlatma gerektiriyor.** Tek kopya kilidi (mutex) yüzünden güvenli bir "Şimdi yeniden
+  başlat" düğmesi basit değildi.
+- **Store'a yeni sürüm gönderilmedi.** Kapsam dışıydı. Türkçe Store sayfası açıklaması ve ekran görüntüleri
+  ayrıca hazırlanmalı.
+- **Everything sıralaması ada göre.** "En çok kullanılan" sıralaması Everything'de hızlı sıralama açık değilse
+  yavaş olabileceği için seçilmedi.
+- **Windows Search sonuçları gürültülü olabiliyor.** `AppData` gibi klasörlerden gelen sonuçlar filtrelenmedi.
+
+### ⚠ Senden beklenenler (şimdi)
+| # | Eylem | Neden | Aciliyet | İşi durduruyor mu? (Evet/Hayır) |
+|---|---|---|---|---|
+| 1 | Aşağıdaki kontrol listesiyle elle test | Arayüz akışları otomatik doğrulanamadı | Yayın öncesi | Hayır |
+| 2 | Türkçe terim tercihleri: "Glif", "Raptiye", "Anahtar sözcükler", "Bağımsız değişkenler" | Çeviri tercihi senin | Düşük | Hayır |
+| 3 | Store'a 0.2.0 olarak göndermek isteyip istemediğin | Yeni sürüm ve Türkçe Store sayfası ayrı iş | Düşük | Hayır |
+
+### Elle test kontrol listesi
+Geliştirme sürümünü ayrı bir config kopyasıyla çalıştır; önceki tema testindeki komutların aynısı. Sonra:
+1. Ayarlar: tema değiştir → panel anında boyanmalı. Esc → eski tema dönmeli. "Use Windows accent color" de dene.
+2. `12*4+0x10` yaz → en üstte "= 64" satırı çıkmalı. Enter → sonuç panoya kopyalanmalı.
+3. `kilitle` yaz → Lock komutu çıkmalı. `kapat` yaz → Shut down çıkmalı; Enter'da onay sorulmalı, Esc ile
+   iptal et.
+4. Bir URL öğesine `https://www.google.com/search?q={query}` ve anahtar kelime `g` ver. Sonra `g deneme`
+   yaz → Enter Google'da aramalı.
+5. Bir öğeye editörden kısayol tuşu ver (ör. Ctrl+Shift+Alt+N) → panel kapalıyken o tuşa bas, öğe açılmalı.
+6. Açık bir pencerenin adını yaz (ör. `outlook`) → pencere satırı çıkmalı. Enter → o pencereye geçmeli.
+7. Ayarlar → "Import from Start menu…" → birkaç uygulama seç, Enter → "Start menu" klasörü oluşmalı.
+8. `f rapor` yaz → dosya sonuçları gelmeli. Ctrl+Enter → dosya Explorer'da seçili olarak açılmalı.
+9. `examples/plugins/uuid` klasörünü config klasöründeki `plugins` altına kopyala, config'i yeniden yükle,
+   `uuid ` yaz → GUID satırları gelmeli.
+10. Ayarlar → Language → Türkçe, uygulamayı yeniden başlat → arayüz Türkçe olmalı.
+
+### Sonraki oturum için not
+Arama sonuçları üç parçadan geliyor: öğeler, senkron provider'lar (hesap makinesi, sistem komutları, pencereler)
+ve önekle tetiklenen asenkron provider'lar (dosya araması, eklentiler). Ortak sözleşme
+`src/Launcher.Core/Providers` altında. Yeni bir arayüz metni hem `Strings.resx` hem de `Strings.tr.resx`
+dosyasına eklenmeli; eklenmezse eşlik testi bunu yakalar.
