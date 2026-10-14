@@ -8,6 +8,10 @@ Kimlik: `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271D
 Son güncelleme: 2026-10-14 (0.2.1 gönderimi için). 0.2.0 Store'a gönderilmedi; Store kullanıcıları 0.1.1'den
 0.2.1'e geçtiği için "yenilikler" metinleri 0.2.0'dakiyle aynı.
 
+**Paket:** Packages sayfasına yalnızca `dist\store\YourLauncher_<sürüm>_Bundle.msixbundle` yüklenir. `dist\`
+altındaki tek `.msix` dosyaları GitHub içindir; yüklenirse Partner Center "must continue to contain a Windows
+10/11 .msixbundle" hatası verir (2026-10-14).
+
 ## Properties
 - **Category:** Productivity. Alternatif: Utilities & tools.
 - **Privacy policy URL:** https://github.com/xmsadik/your-launcher/blob/main/PRIVACY.md
