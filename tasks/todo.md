@@ -1,18 +1,26 @@
 ## Görev dosyaları
 - 2026-10-14 · Yeni özellikler (11 özellik, 6 faz) · TAMAMLANDI · [dosya](2026-10-14-yeni-ozellikler.md)
 - 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
+- 2026-10-14 · Sürüm 0.2.1: eklenti düzeltmesi · TAMAMLANDI · [dosya](2026-10-14-surum-0-2-1.md)
 
 ## Devam noktası (güncel: 2026-10-14)
 
-**Nerede kaldık:** 0.2.0 tamamlandı ve GitHub'da yayımlandı. Store gönderimini kullanıcı yapacak. Yayından
-sonra bir sorun çıkarsa buradan devam edilecek.
+**Nerede kaldık:** 0.2.1 GitHub'da yayımlandı (0.2.0 + eklenti düzeltmesi). Store'a 0.2.0 değil 0.2.1
+gönderilecek; gönderimi kullanıcı yapacak. Yayından sonra bir sorun çıkarsa buradan devam edilecek.
 
-- **Kod:** `main` = `origin/main`. Son kod commit'i `13fe682`, sürüm commit'i `c326163`. 792 test geçiyor.
-  Kullanıcı elle testi 2026-10-14'te geçti.
-- **GitHub:** https://github.com/xmsadik/your-launcher/releases/tag/v0.2.0 (imzalı x64 + arm64 MSIX + `.cer`).
-- **Store:** paket `dist\store\YourLauncher_0.2.0.0_Bundle.msixbundle`. Kullanıcı yükleyecek. Paket `en-US`
+- **Kod:** `main` = `origin/main`. Düzeltme commit'i `7d8e689` (`PluginProvider.ClaimOnly => true`: 0.2.0'da
+  eklentiler anahtar kelime yazılmadan her tuşta çalışıyordu), sürüm commit'i `aa90500`. 792 test geçiyor.
+  Ayrıntı: `tasks/2026-10-14-surum-0-2-1.md`.
+- **GitHub:** https://github.com/xmsadik/your-launcher/releases/tag/v0.2.1 (imzalı x64 + arm64 MSIX + `.cer`,
+  sertifika 0.2.0 ile aynı).
+- **Store:** paket `dist\store\YourLauncher_0.2.1.0_Bundle.msixbundle`. Kullanıcı yükleyecek. Paket `en-US`
   ve `tr-TR` bildiriyor, bu yüzden Partner Center Türkçe sayfa da ister. Metinler `tasks/store-submission.md`
-  içinde. Ekran görüntülerini kullanıcı her iki dilde çekecek.
+  içinde. Ekran görüntüleri: `dist\store\screenshots-en\` ve `screenshots-tr\` (sahte verili ayrı config ile
+  gerçek uygulamadan çekildi).
+- **Paketleme tuzağı:** `pack-store.ps1`, `pack.ps1`'i imzasız çağırıyor ve `dist\` altındaki imzalı MSIX'lerin
+  üstüne yazıyor. Önce Store bundle'ını, sonra imzalı paketleri üret.
+- **Açık küçük konular:** Türkçe ayarlarda "Windows vurgu rengini kullan" etiketi taşıyor; uygulama ikonları
+  ara sıra genel ikonla yükleniyor (Chrome, Görev Yöneticisi). İkisi de araştırılmadı.
 - **0.2.0'ın içeriği ve tasarım kuralları:** `tasks/2026-10-14-yeni-ozellikler.md` (A bölümü "Tasarım
   kuralları", B bölümü rapor). Temalar: `tasks/2026-10-14-temalar-ve-opaklik.md`.
 
@@ -705,4 +713,5 @@ Referans: `desktop-tiler-cmdpal` Store gönderimi (2026-09-25). Aynı kalıp: MS
 - [x] **Store gönderimi (2026-09-29):** kullanıcı `YourLauncher_0.1.1.0_Bundle.msixbundle`'ı Partner Center'a yükledi; **sertifikasyon onayı bekleniyor.**
 - [ ] **Onay sonrası:** Store sayfasında 0.1.1'i doğrula; ret gelirse mesajı analiz et. Sıradaki (0.2) aday: açılışta argüman (`{}` yer tutuculu URL/komut düğümleri).
 - [x] **0.2.0 hazır (2026-10-14):** sürüm 0.2.0; GitHub release `v0.2.0` (imzalı x64 + arm64 MSIX + `.cer`, signtool doğrulandı). Store paketi `dist\store\YourLauncher_0.2.0.0_Bundle.msixbundle` (imzasız, Store imzalar). Paket `en-US` + `tr-TR` bildiriyor → Partner Center Türkçe sayfa da ister; metinler `tasks/store-submission.md`.
-- [ ] **0.2.0 Store gönderimi:** kullanıcı bundle'ı yükleyecek, iki dilde sayfa metinlerini yapıştıracak, ekran görüntülerini (iki dil) ekleyecek. Ret gelirse mesajı analiz et.
+- [x] **0.2.1 hazır (2026-10-14):** eklentilerin her tuşta çalışması düzeltildi; GitHub release `v0.2.1`, Store paketi `dist\store\YourLauncher_0.2.1.0_Bundle.msixbundle`. 0.2.0 Store'a gönderilmedi. Ayrıntı: `tasks/2026-10-14-surum-0-2-1.md`.
+- [ ] **0.2.1 Store gönderimi:** kullanıcı bundle'ı yükleyecek, iki dilde sayfa metinlerini yapıştıracak, ekran görüntülerini (iki dil) ekleyecek. Ret gelirse mesajı analiz et.
