@@ -131,6 +131,8 @@ Plan bağımsız bir ajana eleştirtildi; aşağıdaki kurallar o eleştiriden �
   Kullanıcı 1'i seçti. Eklenen ayar: `includeOtherDesktopWindows`. Hayalet pencereler pencere sınıfına göre eleniyor:
   üst düzey `Windows.UI.Core.CoreWindow` ve içi boş `ApplicationFrameWindow`. Bu kural, kullanıcının makinesinde
   cloak edilmiş pencereler tek tek listelenerek doğrulandı.
+- 2026-10-14: Kullanıcı yeni ayarla da elle test etti: "herşey çalışıyor". GlazeWM başka workspace'teki pencereye
+  geçişte o workspace'e kendisi geçiyor; yedek yola gerek kalmadı.
 
 ## B. RAPOR (iş bittikten sonra)
 ### Sonuç
@@ -171,7 +173,7 @@ geçiyor. Uygulamanın arayüzünde elle test henüz yapılmadı.
   - Release single-file yayınında Türkçe kaynakların pakette olması.
   - Uygulamanın `language: tr` ile açılması.
 - **Doğrulanmadı:**
-  - Arayüzdeki akışların hiçbiri elle denenmedi. Masaüstünde fare/klavye kullanılmadı.
+  - Arayüz akışlarını kullanıcı 2026-10-14'te elle test etti; sorun yok.
   - Everything gerçek programla denenmedi; bu makinede kurulu değil.
   - MSIX paketinin oluşturulması ve Store sertifikasyonu yapılmadı.
   - Türkçe metinlerin ekrana sığması kontrol edilmedi.
@@ -195,9 +197,8 @@ Ayrıntılı liste commit mesajlarında. Yeni ana klasörler:
 ### ⚠ Senden beklenenler (şimdi)
 | # | Eylem | Neden | Aciliyet | İşi durduruyor mu? (Evet/Hayır) |
 |---|---|---|---|---|
-| 1 | Aşağıdaki kontrol listesiyle elle test | Arayüz akışları otomatik doğrulanamadı | Yayın öncesi | Hayır |
-| 2 | Türkçe terim tercihleri: "Glif", "Raptiye", "Anahtar sözcükler", "Bağımsız değişkenler" | Çeviri tercihi senin | Düşük | Hayır |
-| 3 | Store'a 0.2.0 olarak göndermek isteyip istemediğin | Yeni sürüm ve Türkçe Store sayfası ayrı iş | Düşük | Hayır |
+| 1 | Türkçe terim tercihleri: "Glif", "Raptiye", "Anahtar sözcükler", "Bağımsız değişkenler" | Çeviri tercihi senin | Düşük | Hayır |
+| 2 | Store'a 0.2.0 olarak göndermek isteyip istemediğin | Yeni sürüm ve Türkçe Store sayfası ayrı iş | Düşük | Hayır |
 
 ### Elle test kontrol listesi
 Geliştirme sürümünü ayrı bir config kopyasıyla çalıştır; önceki tema testindeki komutların aynısı. Sonra:
