@@ -10,6 +10,7 @@ using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.Theming;
 
 namespace YourLauncher.App.Views;
 
@@ -24,6 +25,7 @@ public partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+        ThemeCombo.ItemsSource = ThemeCatalog.Choices.Select(c => c.DisplayName).ToList();
         DataContextChanged += (_, _) => SyncCombosFromViewModel();
     }
 
@@ -45,7 +47,7 @@ public partial class SettingsView : UserControl
         }
 
         ThemeCombo.SelectionChanged -= ThemeCombo_OnSelectionChanged;
-        ThemeCombo.SelectedIndex = (int)vm.Theme;
+        ThemeCombo.SelectedIndex = IndexOfTheme(vm.Theme);
         ThemeCombo.SelectionChanged += ThemeCombo_OnSelectionChanged;
 
         ShellCombo.SelectionChanged -= ShellCombo_OnSelectionChanged;
@@ -73,6 +75,14 @@ public partial class SettingsView : UserControl
         if ((e.Key == Key.Up || e.Key == Key.Down) && ReferenceEquals(Keyboard.FocusedElement, MaxVisibleItemsBox))
         {
             vm.MaxVisibleItems = Math.Clamp(vm.MaxVisibleItems + (e.Key == Key.Up ? 1 : -1), 3, 20);
+            e.Handled = true;
+            return;
+        }
+
+        // Same for Background opacity, in steps of 5.
+        if ((e.Key == Key.Up || e.Key == Key.Down) && ReferenceEquals(Keyboard.FocusedElement, OpacityBox))
+        {
+            vm.Opacity = Math.Clamp(vm.Opacity + (e.Key == Key.Up ? 5 : -5), Settings.MinOpacity, 100);
             e.Handled = true;
             return;
         }
@@ -166,8 +176,21 @@ public partial class SettingsView : UserControl
     {
         if (ViewModel is { } vm && ThemeCombo.SelectedIndex >= 0)
         {
-            vm.Theme = (Theme)ThemeCombo.SelectedIndex;
+            vm.Theme = ThemeCatalog.Choices[ThemeCombo.SelectedIndex].Theme;
         }
+    }
+
+    private static int IndexOfTheme(Theme theme)
+    {
+        for (var i = 0; i < ThemeCatalog.Choices.Count; i++)
+        {
+            if (ThemeCatalog.Choices[i].Theme == theme)
+            {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     private void ShellCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)

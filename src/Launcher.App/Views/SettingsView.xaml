@@ -69,11 +69,21 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="Theme" Style="{StaticResource FieldLabel}" />
-            <ComboBox x:Name="ThemeCombo" Grid.Column="1" Width="160" HorizontalAlignment="Left" SelectionChanged="ThemeCombo_OnSelectionChanged">
-                <ComboBoxItem Content="System" />
-                <ComboBoxItem Content="Light" />
-                <ComboBoxItem Content="Dark" />
-            </ComboBox>
+            <!-- Items come from ThemeCatalog.Choices (SettingsView constructor). -->
+            <ComboBox x:Name="ThemeCombo" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectionChanged="ThemeCombo_OnSelectionChanged" />
+        </Grid>
+
+        <!-- Background opacity -->
+        <Grid Style="{StaticResource Row}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Background opacity" Style="{StaticResource FieldLabel}" />
+            <TextBox x:Name="OpacityBox" Grid.Column="1" Width="60" HorizontalAlignment="Left"
+                     Text="{Binding Opacity, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Grid.Column="2" Text="%" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" />
         </Grid>
 
         <!-- Start with Windows -->

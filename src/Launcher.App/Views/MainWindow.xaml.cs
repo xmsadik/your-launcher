@@ -29,7 +29,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly ThemeService _themeService;
-    private readonly Func<Theme> _currentThemeSetting;
+    private readonly Func<Settings> _currentSettings;
     private int _suppressAutoHideCount;
 
     private const int WM_SETTINGCHANGE = 0x001A;
@@ -50,11 +50,11 @@ public partial class MainWindow : Window
     /// <summary>Fixed row height so the list can be capped at exactly settings.maxVisibleItems rows.</summary>
     public const double RowHeight = 36;
 
-    public MainWindow(MainViewModel viewModel, ThemeService themeService, Func<Theme> currentThemeSetting)
+    public MainWindow(MainViewModel viewModel, ThemeService themeService, Func<Settings> currentSettings)
     {
         _viewModel = viewModel;
         _themeService = themeService;
-        _currentThemeSetting = currentThemeSetting;
+        _currentSettings = currentSettings;
         DataContext = viewModel;
         InitializeComponent();
         ItemsList.MaxHeight = RowHeight * Math.Max(1, viewModel.MaxVisibleItems);
@@ -435,12 +435,12 @@ public partial class MainWindow : Window
     /// </summary>
     private IntPtr SettingChangeWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == WM_SETTINGCHANGE && lParam != IntPtr.Zero && _currentThemeSetting() == Theme.System)
+        if (msg == WM_SETTINGCHANGE && lParam != IntPtr.Zero && _currentSettings().Theme == Theme.System)
         {
             var setting = Marshal.PtrToStringUni(lParam);
             if (setting == "ImmersiveColorSet")
             {
-                var dark = _themeService.Apply(Theme.System);
+                var dark = _themeService.Apply(Theme.System, _currentSettings().Opacity);
                 ApplyTheme(dark);
             }
         }

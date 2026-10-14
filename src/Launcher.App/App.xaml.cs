@@ -84,7 +84,7 @@ public partial class App : Application
         // Theme (spec §11/§10 item 2-4): resolved and applied before the window is constructed, so its
         // very first layout already uses the right DynamicResource brushes.
         _themeService = new ThemeService();
-        _themeService.Apply(configService.Config.Settings.Theme);
+        _themeService.Apply(configService.Config.Settings.Theme, configService.Config.Settings.Opacity);
 
         // Usage (spec §8.4/§10 item 10): constructed before SearchService so its GetScore can be handed
         // straight into the constructor; pruned once here against whatever config.json loaded with.
@@ -112,7 +112,7 @@ public partial class App : Application
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;
 
-        _mainWindow = new MainWindow(viewModel, _themeService, () => _configService!.Config.Settings.Theme);
+        _mainWindow = new MainWindow(viewModel, _themeService, () => _configService!.Config.Settings);
         viewModel.RequestHide += () => _mainWindow?.HideLauncher();
 
         // Force HWND creation without showing the window yet, so the hotkey and tray icon have a handle to bind to.
@@ -352,7 +352,7 @@ public partial class App : Application
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
 
-        var dark = _themeService!.Apply(_configService.Config.Settings.Theme);
+        var dark = _themeService!.Apply(_configService.Config.Settings.Theme, _configService.Config.Settings.Opacity);
         _mainWindow.ApplyTheme(dark);
     }
 
@@ -365,7 +365,7 @@ public partial class App : Application
         }
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
-        var dark = _themeService!.Apply(_configService.Config.Settings.Theme);
+        var dark = _themeService!.Apply(_configService.Config.Settings.Theme, _configService.Config.Settings.Opacity);
         _mainWindow.ApplyTheme(dark);
     }
 

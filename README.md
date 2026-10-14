@@ -319,10 +319,12 @@ Implemented (Phase 5 — system integration, spec §1–§8/§9, revised per `ta
   trimming hack — see "Memory" below for measured numbers.
 
 Implemented (Phase 6 Part A — polish: theme, settings, import/export, usage, spec §2/§8.4/§10/§11):
-- **Theme** (`Services/ThemeService.cs`, `Themes/Dark.xaml` + `Themes/Light.xaml`): every color in the app
-  (panel background/tint, border, foreground, secondary text, accent, selection, hover, error, warning,
-  missing-target badge, input background) is a named brush key shared by both dictionaries; swapping which
-  one is merged into `Application.Resources` re-themes the whole panel through `DynamicResource` bindings
+- **Theme** (`Services/ThemeService.cs`, palettes in `Launcher.Core/Theming/ThemeCatalog.cs`, shared ComboBox
+  chrome in `Themes/Controls.xaml`): every color in the app (panel background/tint, border, foreground,
+  secondary text, accent, selection, hover, error, warning, missing-target badge, input background) is a
+  named brush key; `ThemeService` builds one dictionary of those keys from the selected palette (Windows
+  Light/Dark plus Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub and
+  Rosé Pine variants), and swapping which one is merged into `Application.Resources` re-themes the whole panel through `DynamicResource` bindings
   (or `SetResourceReference` for the handful of things set from code: `HighlightedText`'s match-accent runs,
   `MainWindow.RootBorder`'s Mica/Acrylic tint, the tray context menu's styles, rebuilt fresh from the
   current theme's resources on every open). `Theme.System` reads
@@ -616,7 +618,11 @@ Shape (spec §4.2–§4.5):
   "version": 1,
   "settings": {
     "hotkey": "Alt+Space",
-    "theme": "system",           // system | light | dark
+    "theme": "system",           // system | light | dark | catppuccinMocha | catppuccinMacchiato |
+                                 // catppuccinFrappe | catppuccinLatte | tokyoNight | tokyoNightStorm |
+                                 // tokyoNightDay | dracula | nord | gruvboxDark | gruvboxLight | oneDark |
+                                 // solarizedDark | solarizedLight | monokai | githubDark | githubLight | rosePine
+    "opacity": 90,               // 40-100: panel background over the Win11 22H2+ Mica/Acrylic backdrop (no effect on Win10)
     "startWithWindows": true,     // Phase 5
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,
@@ -816,7 +822,7 @@ src/Launcher.App/                # net10.0-windows, WPF
                                   # UrlOrTargetLabelConverter, AdvancedToggleTextConverter, NullToVisibilityConverter,
                                   # IconTierVisibilityConverter, MissingTargetTooltipConverter
   Controls/                      # HighlightedText (attached property for match highlighting)
-  Themes/                        # Dark.xaml, Light.xaml — DynamicResource brush dictionaries (Phase 6A)
+  Themes/                        # Controls.xaml — shared ComboBox chrome; palettes are in Launcher.Core/Theming
   app.ico                        # Multi-size (16/24/32/48/256) app + tray icon (Phase 5)
 tests/Launcher.Core.Tests/       # xUnit: config round-trip, ConfigStore, CommandLineBuilder matrix, Search/, TreeOps
                                   # (incl. MoveToGroupIndex, Phase 6B), TargetNameHelper, Icons/ (IconKey, IconFileStore,

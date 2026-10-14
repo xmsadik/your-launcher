@@ -6,5 +6,13 @@
          TargetType styles here: a ContextMenu opened standalone (IsOpen=true, no PlacementTarget/owner in
          the logical tree) didn't reliably pick up an implicit style for its own chrome in hands-on testing
          - it kept the default light Aero2/Fluent look even with a matching style present in this file. -->
-    <Application.Resources />
+    <!-- Controls.xaml (shared ComboBox chrome) stays merged for the app's lifetime; ThemeService adds and swaps
+         the palette dictionary next to it. -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Controls.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

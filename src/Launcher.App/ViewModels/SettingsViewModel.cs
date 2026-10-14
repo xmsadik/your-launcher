@@ -39,6 +39,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private Theme _theme;
 
     [ObservableProperty]
+    private int _opacity;
+
+    [ObservableProperty]
     private bool _startWithWindows;
 
     [ObservableProperty]
@@ -108,6 +111,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _originalHotkeyText = current.Hotkey;
         _hotkeyText = current.Hotkey;
         _theme = current.Theme;
+        _opacity = current.Opacity;
         _startWithWindows = current.StartWithWindows;
         _closeAfterLaunch = current.CloseAfterLaunch;
         _maxVisibleItems = current.MaxVisibleItems;
@@ -162,6 +166,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         MaxVisibleItems = Math.Clamp(MaxVisibleItems, 3, 20);
+        Opacity = Math.Clamp(Opacity, Settings.MinOpacity, 100);
 
         string? hotkeyError = null;
         var hotkeyChanged = !string.Equals(HotkeyText, _originalHotkeyText, StringComparison.Ordinal);
@@ -189,6 +194,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Hotkey = HotkeyText,
             Theme = Theme,
+            Opacity = Opacity,
             StartWithWindows = StartWithWindows,
             CloseAfterLaunch = CloseAfterLaunch,
             MaxVisibleItems = MaxVisibleItems,

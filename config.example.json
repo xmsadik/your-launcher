@@ -6,6 +6,7 @@
   "settings": {
     "hotkey": "Alt+Space",
     "theme": "system",
+    "opacity": 90,
     "startWithWindows": true,
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,

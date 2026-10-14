@@ -1,3 +1,6 @@
+## Görev dosyaları
+- 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
+
 # Your Launcher — Uygulama Planı
 
 Kaynak: `launcher-spec.md`. Bu plan onaylanmadan implementasyona başlanmaz.
