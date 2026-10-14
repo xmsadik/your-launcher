@@ -674,3 +674,5 @@ Referans: `desktop-tiler-cmdpal` Store gönderimi (2026-09-25). Aynı kalıp: MS
 - Doğrulama: Release build 0 hata; `dotnet test` 3 kez art arda 319/319 yeşil. Duman testi: scratch config + `last-version.txt`=0.1.0.0 ile `--silent` → marker 0.1.1.0 oldu, uygulama çalıştı (balonun ekranda görünmesi gözle doğrulanmadı).
 - [x] **Store gönderimi (2026-09-29):** kullanıcı `YourLauncher_0.1.1.0_Bundle.msixbundle`'ı Partner Center'a yükledi; **sertifikasyon onayı bekleniyor.**
 - [ ] **Onay sonrası:** Store sayfasında 0.1.1'i doğrula; ret gelirse mesajı analiz et. Sıradaki (0.2) aday: açılışta argüman (`{}` yer tutuculu URL/komut düğümleri).
+- [x] **0.2.0 hazır (2026-10-14):** sürüm 0.2.0; GitHub release `v0.2.0` (imzalı x64 + arm64 MSIX + `.cer`, signtool doğrulandı). Store paketi `dist\store\YourLauncher_0.2.0.0_Bundle.msixbundle` (imzasız, Store imzalar). Paket `en-US` + `tr-TR` bildiriyor → Partner Center Türkçe sayfa da ister; metinler `tasks/store-submission.md`.
+- [ ] **0.2.0 Store gönderimi:** kullanıcı bundle'ı yükleyecek, iki dilde sayfa metinlerini yapıştıracak, ekran görüntülerini (iki dil) ekleyecek. Ret gelirse mesajı analiz et.
