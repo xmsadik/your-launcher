@@ -1,14 +1,15 @@
 # Privacy Policy
 
-_Last updated: 2026-09-28_
+_Last updated: 2026-10-14_
 
 Your Launcher is a keyboard-first Windows launcher: you build your own tree of apps, folders, files, URLs and
 commands, and open it with a global hotkey. This policy explains what it does with your information.
 
 ## Summary
 
-Your Launcher does **not** collect, transmit, sell, or share any personal information. It has no network
-access, no telemetry, no analytics, no advertising, and no accounts. Everything it stores stays on your device.
+Your Launcher does **not** collect, transmit, sell, or share any personal information. The app itself makes
+no network connections and has no telemetry, analytics, advertising or accounts. Everything it stores stays on
+your device. (Plugins you install yourself are separate programs; see below.)
 
 ## What the app reads on your device
 
@@ -22,6 +23,16 @@ Only on your own computer, and only to do what you ask it to:
 - **Browser bookmarks, only when you use "Import bookmarks…":** the bookmark files of Chromium-based browsers
   installed on your device (Chrome, Edge, Brave, Vivaldi, Chromium, Opera), or a bookmarks HTML file you pick.
   They are read once, when you choose a source; browser files are never modified, and nothing is synced.
+- **Start menu, only when you use "Import from Start menu…":** the shortcuts in your Start menu folders and the
+  list of installed apps, read once so you can pick which ones to add.
+- **Open windows, while you type in the search box:** the titles and program names of your open windows, so
+  you can switch to one. They are read on demand, kept in memory for under a second, and never stored.
+- **File search, only when you type the file-search prefix (`f ` by default):** your search text is sent to
+  the Windows Search index on your device, or to the "Everything" search tool if it is installed and running,
+  both of which run locally. Results are shown and not stored, except for how often you opened a result,
+  which is kept in `usage.json` like any other item.
+- **Clipboard, only when you ask:** a calculator result or a plugin result is copied when you press Enter on it.
+  The app never reads the clipboard.
 
 ## What the app stores
 
@@ -37,6 +48,14 @@ installed from the Microsoft Store):
 When you export your configuration, the file goes wherever you choose to save it.
 
 Items you launch run as normal programs on your device; what they do is governed by their own privacy terms.
+
+## Plugins
+
+Plugins are optional programs that **you** place in the `plugins` folder; the app does not download, install or
+update any. When you type a plugin's keyword, the app starts that plugin and passes it the text you typed after
+the keyword, and shows the results it returns. A plugin is not part of Your Launcher: it can do anything a
+program on your computer can do, including network access, and is governed by whoever wrote it. Only install
+plugins you trust.
 
 ## Removing your data
 
