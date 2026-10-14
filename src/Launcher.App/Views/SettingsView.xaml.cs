@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Microsoft.Win32;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Plugins;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
@@ -50,6 +51,10 @@ public partial class SettingsView : UserControl
         ThemeCombo.SelectionChanged -= ThemeCombo_OnSelectionChanged;
         ThemeCombo.SelectedIndex = IndexOfTheme(vm.Theme);
         ThemeCombo.SelectionChanged += ThemeCombo_OnSelectionChanged;
+
+        LanguageCombo.SelectionChanged -= LanguageCombo_OnSelectionChanged;
+        LanguageCombo.SelectedIndex = (int)vm.Language;
+        LanguageCombo.SelectionChanged += LanguageCombo_OnSelectionChanged;
 
         ShellCombo.SelectionChanged -= ShellCombo_OnSelectionChanged;
         ShellCombo.SelectedIndex = (int)vm.DefaultShell;
@@ -158,6 +163,14 @@ public partial class SettingsView : UserControl
         return 0;
     }
 
+    private void LanguageCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ViewModel is { } vm && LanguageCombo.SelectedIndex >= 0)
+        {
+            vm.Language = (AppLanguage)LanguageCombo.SelectedIndex; // combo order = enum order: System, English, Türkçe.
+        }
+    }
+
     private void ShellCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (ViewModel is { } vm && ShellCombo.SelectedIndex >= 0)
@@ -217,9 +230,9 @@ public partial class SettingsView : UserControl
         {
             var dialog = new SaveFileDialog
             {
-                Title = "Export config",
+                Title = Strings.DialogExportConfig,
                 FileName = $"your-launcher-export-{DateTime.Now:yyyyMMdd}.json",
-                Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                Filter = Strings.FilterJson,
                 DefaultExt = ".json",
             };
 
@@ -240,7 +253,7 @@ public partial class SettingsView : UserControl
 
         WithAutoHideSuppressed(owner =>
         {
-            var dialog = new OpenFileDialog { Title = "Import config", Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*" };
+            var dialog = new OpenFileDialog { Title = Strings.DialogImportConfig, Filter = Strings.FilterJson };
             if (dialog.ShowDialog(owner) == true)
             {
                 vm.RequestImport(dialog.FileName);
@@ -283,7 +296,7 @@ public partial class SettingsView : UserControl
             menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
         }
 
-        menu.Items.Add(ThemedMenuFactory.CreateItem("From HTML file…", style, () => ImportBookmarksFromHtml(vm)));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.SettingsImportFromHtml, style, () => ImportBookmarksFromHtml(vm)));
 
         OpenThemedContextMenu(menu);
     }
@@ -295,7 +308,7 @@ public partial class SettingsView : UserControl
     {
         WithAutoHideSuppressed(owner =>
         {
-            var dialog = new OpenFileDialog { Title = "Import bookmarks", Filter = "HTML bookmarks (*.html;*.htm)|*.html;*.htm|All files (*.*)|*.*" };
+            var dialog = new OpenFileDialog { Title = Strings.DialogImportBookmarks, Filter = Strings.FilterHtmlBookmarks };
             if (dialog.ShowDialog(owner) == true)
             {
                 vm.RequestImportBookmarksFromHtml(dialog.FileName);

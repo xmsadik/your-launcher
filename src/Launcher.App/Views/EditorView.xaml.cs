@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Win32;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Model;
@@ -168,7 +169,7 @@ public partial class EditorView : UserControl
 
         WithAutoHideSuppressed(owner =>
         {
-            var dialog = new OpenFileDialog { Title = "Select file" };
+            var dialog = new OpenFileDialog { Title = Strings.DialogSelectFile };
             if (dialog.ShowDialog(owner) == true)
             {
                 vm.Target = dialog.FileName;
@@ -189,7 +190,7 @@ public partial class EditorView : UserControl
 
         WithAutoHideSuppressed(owner =>
         {
-            var dialog = new OpenFolderDialog { Title = "Select folder" };
+            var dialog = new OpenFolderDialog { Title = Strings.DialogSelectFolder };
             if (dialog.ShowDialog(owner) == true)
             {
                 vm.Target = dialog.FolderName;
@@ -210,7 +211,7 @@ public partial class EditorView : UserControl
 
         WithAutoHideSuppressed(owner =>
         {
-            var dialog = new OpenFolderDialog { Title = "Select working directory" };
+            var dialog = new OpenFolderDialog { Title = Strings.DialogSelectWorkingDirectory };
             if (dialog.ShowDialog(owner) == true)
             {
                 vm.WorkingDirectory = dialog.FolderName;

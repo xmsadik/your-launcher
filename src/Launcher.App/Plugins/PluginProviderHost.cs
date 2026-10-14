@@ -1,4 +1,5 @@
 using System.IO;
+using YourLauncher.App.Localization;
 using YourLauncher.Core.Plugins;
 using YourLauncher.Core.Providers;
 using YourLauncher.Core.Search;
@@ -47,7 +48,7 @@ internal sealed class PluginProviderHost : IReadOnlyList<IAsyncResultProvider>
         {
             if (reserved is not null && TextNormalizer.Normalize(plugin.Manifest.Keyword) == reserved)
             {
-                problems.Add($"{Path.GetFileName(plugin.Directory)}: keyword \"{plugin.Manifest.Keyword}\" is the file-search prefix (Settings); file search wins.");
+                problems.Add(string.Format(Strings.PluginKeywordCollision, Path.GetFileName(plugin.Directory), plugin.Manifest.Keyword));
                 continue;
             }
 

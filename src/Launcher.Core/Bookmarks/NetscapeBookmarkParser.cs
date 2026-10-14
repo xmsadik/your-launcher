@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Localization;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.Core.Bookmarks;
@@ -87,7 +88,7 @@ public static class NetscapeBookmarkParser
 
         if (root.Children.Count == 0)
         {
-            throw new BookmarkImportException($"No bookmarks found in {folderName}.");
+            throw new BookmarkImportException(string.Format(CoreStrings.BookmarkNoneFound, folderName));
         }
 
         return root;

@@ -4,8 +4,10 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.Core.Model;
+using YourLauncher.Core.Search;
 
 namespace YourLauncher.App.ViewModels;
 
@@ -49,76 +51,76 @@ public sealed partial class IconPickerViewModel : ObservableObject
     /// <summary>Curated glyphs (spec §7.12: only code points actually in Segoe MDL2 Assets' Win10-safe E700-E9FF range).</summary>
     public static readonly IReadOnlyList<GlyphOption> AllGlyphs = new[]
     {
-        new GlyphOption("Folder", ""),
-        new GlyphOption("Folder open", ""),
-        new GlyphOption("New folder", ""),
-        new GlyphOption("App", ""),
-        new GlyphOption("Terminal", ""),
-        new GlyphOption("Globe", ""),
-        new GlyphOption("World", ""),
-        new GlyphOption("Document", ""),
-        new GlyphOption("Page", ""),
-        new GlyphOption("Code", ""),
-        new GlyphOption("Settings", ""),
-        new GlyphOption("Star", ""),
-        new GlyphOption("Star filled", ""),
-        new GlyphOption("Home", ""),
-        new GlyphOption("Mail", ""),
-        new GlyphOption("Calendar", ""),
-        new GlyphOption("Cloud", ""),
-        new GlyphOption("Lock", ""),
-        new GlyphOption("Unlock", ""),
-        new GlyphOption("Key", ""),
-        new GlyphOption("Contact", ""),
-        new GlyphOption("Contact info", ""),
-        new GlyphOption("People", ""),
-        new GlyphOption("Group", ""),
-        new GlyphOption("Music", ""),
-        new GlyphOption("Video", ""),
-        new GlyphOption("Photo", ""),
-        new GlyphOption("Picture", ""),
-        new GlyphOption("Camera", ""),
-        new GlyphOption("Game", ""),
-        new GlyphOption("Chart", ""),
-        new GlyphOption("Briefcase", ""),
-        new GlyphOption("Lightning", ""),
-        new GlyphOption("Flag", ""),
-        new GlyphOption("Bookmark", ""),
-        new GlyphOption("Pin", ""),
-        new GlyphOption("Link", ""),
-        new GlyphOption("Download", ""),
-        new GlyphOption("Upload", ""),
-        new GlyphOption("Sync", ""),
-        new GlyphOption("Refresh", ""),
-        new GlyphOption("Search", ""),
-        new GlyphOption("Zoom", ""),
-        new GlyphOption("Edit", ""),
-        new GlyphOption("Delete", ""),
-        new GlyphOption("Save", ""),
-        new GlyphOption("Print", ""),
-        new GlyphOption("Phone", ""),
-        new GlyphOption("Chat", ""),
-        new GlyphOption("Comment", ""),
-        new GlyphOption("Shop", ""),
-        new GlyphOption("Map", ""),
-        new GlyphOption("Car", ""),
-        new GlyphOption("Airplane", ""),
-        new GlyphOption("Book", ""),
-        new GlyphOption("Wrench", ""),
-        new GlyphOption("Shield", ""),
-        new GlyphOption("Power", ""),
-        new GlyphOption("Admin", ""),
-        new GlyphOption("Network", ""),
-        new GlyphOption("Brightness", ""),
-        new GlyphOption("Volume", ""),
-        new GlyphOption("Clock", ""),
-        new GlyphOption("Warning", ""),
-        new GlyphOption("Info", ""),
-        new GlyphOption("Accept", ""),
-        new GlyphOption("Add", ""),
-        new GlyphOption("Remove", ""),
-        new GlyphOption("Close", ""),
-        new GlyphOption("Favorite", ""),
+        new GlyphOption(Strings.GlyphName("Folder"), ""),
+        new GlyphOption(Strings.GlyphName("FolderOpen"), ""),
+        new GlyphOption(Strings.GlyphName("NewFolder"), ""),
+        new GlyphOption(Strings.GlyphName("App"), ""),
+        new GlyphOption(Strings.GlyphName("Terminal"), ""),
+        new GlyphOption(Strings.GlyphName("Globe"), ""),
+        new GlyphOption(Strings.GlyphName("World"), ""),
+        new GlyphOption(Strings.GlyphName("Document"), ""),
+        new GlyphOption(Strings.GlyphName("Page"), ""),
+        new GlyphOption(Strings.GlyphName("Code"), ""),
+        new GlyphOption(Strings.GlyphName("Settings"), ""),
+        new GlyphOption(Strings.GlyphName("Star"), ""),
+        new GlyphOption(Strings.GlyphName("StarFilled"), ""),
+        new GlyphOption(Strings.GlyphName("Home"), ""),
+        new GlyphOption(Strings.GlyphName("Mail"), ""),
+        new GlyphOption(Strings.GlyphName("Calendar"), ""),
+        new GlyphOption(Strings.GlyphName("Cloud"), ""),
+        new GlyphOption(Strings.GlyphName("Lock"), ""),
+        new GlyphOption(Strings.GlyphName("Unlock"), ""),
+        new GlyphOption(Strings.GlyphName("Key"), ""),
+        new GlyphOption(Strings.GlyphName("Contact"), ""),
+        new GlyphOption(Strings.GlyphName("ContactInfo"), ""),
+        new GlyphOption(Strings.GlyphName("People"), ""),
+        new GlyphOption(Strings.GlyphName("Group"), ""),
+        new GlyphOption(Strings.GlyphName("Music"), ""),
+        new GlyphOption(Strings.GlyphName("Video"), ""),
+        new GlyphOption(Strings.GlyphName("Photo"), ""),
+        new GlyphOption(Strings.GlyphName("Picture"), ""),
+        new GlyphOption(Strings.GlyphName("Camera"), ""),
+        new GlyphOption(Strings.GlyphName("Game"), ""),
+        new GlyphOption(Strings.GlyphName("Chart"), ""),
+        new GlyphOption(Strings.GlyphName("Briefcase"), ""),
+        new GlyphOption(Strings.GlyphName("Lightning"), ""),
+        new GlyphOption(Strings.GlyphName("Flag"), ""),
+        new GlyphOption(Strings.GlyphName("Bookmark"), ""),
+        new GlyphOption(Strings.GlyphName("Pin"), ""),
+        new GlyphOption(Strings.GlyphName("Link"), ""),
+        new GlyphOption(Strings.GlyphName("Download"), ""),
+        new GlyphOption(Strings.GlyphName("Upload"), ""),
+        new GlyphOption(Strings.GlyphName("Sync"), ""),
+        new GlyphOption(Strings.GlyphName("Refresh"), ""),
+        new GlyphOption(Strings.GlyphName("Search"), ""),
+        new GlyphOption(Strings.GlyphName("Zoom"), ""),
+        new GlyphOption(Strings.GlyphName("Edit"), ""),
+        new GlyphOption(Strings.GlyphName("Delete"), ""),
+        new GlyphOption(Strings.GlyphName("Save"), ""),
+        new GlyphOption(Strings.GlyphName("Print"), ""),
+        new GlyphOption(Strings.GlyphName("Phone"), ""),
+        new GlyphOption(Strings.GlyphName("Chat"), ""),
+        new GlyphOption(Strings.GlyphName("Comment"), ""),
+        new GlyphOption(Strings.GlyphName("Shop"), ""),
+        new GlyphOption(Strings.GlyphName("Map"), ""),
+        new GlyphOption(Strings.GlyphName("Car"), ""),
+        new GlyphOption(Strings.GlyphName("Airplane"), ""),
+        new GlyphOption(Strings.GlyphName("Book"), ""),
+        new GlyphOption(Strings.GlyphName("Wrench"), ""),
+        new GlyphOption(Strings.GlyphName("Shield"), ""),
+        new GlyphOption(Strings.GlyphName("Power"), ""),
+        new GlyphOption(Strings.GlyphName("Admin"), ""),
+        new GlyphOption(Strings.GlyphName("Network"), ""),
+        new GlyphOption(Strings.GlyphName("Brightness"), ""),
+        new GlyphOption(Strings.GlyphName("Volume"), ""),
+        new GlyphOption(Strings.GlyphName("Clock"), ""),
+        new GlyphOption(Strings.GlyphName("Warning"), ""),
+        new GlyphOption(Strings.GlyphName("Info"), ""),
+        new GlyphOption(Strings.GlyphName("Accept"), ""),
+        new GlyphOption(Strings.GlyphName("Add"), ""),
+        new GlyphOption(Strings.GlyphName("Remove"), ""),
+        new GlyphOption(Strings.GlyphName("Close"), ""),
+        new GlyphOption(Strings.GlyphName("Favorite"), ""),
     };
 
     private readonly Node _node;
@@ -241,11 +243,11 @@ public sealed partial class IconPickerViewModel : ObservableObject
 
     private static string DescribeCurrent(IconSpec? spec) => spec?.Kind switch
     {
-        IconKind.Glyph => "Glyph",
-        IconKind.Emoji => $"Emoji {spec.Value}",
-        IconKind.File => $"File icon ({Path.GetFileName(spec.Value)})",
-        IconKind.Exe => $"Exe icon #{spec.Index ?? 0} ({Path.GetFileName(spec.Value)})",
-        _ => "Automatic",
+        IconKind.Glyph => Strings.IconTabGlyph,
+        IconKind.Emoji => string.Format(Strings.IconCurrentEmoji, spec.Value),
+        IconKind.File => string.Format(Strings.IconCurrentFile, Path.GetFileName(spec.Value)),
+        IconKind.Exe => string.Format(Strings.IconCurrentExe, spec.Index ?? 0, Path.GetFileName(spec.Value)),
+        _ => Strings.IconAutomatic,
     };
 
     /// <summary>Fire-and-forget: shows the node's *current* icon in the header while the tabs below let the user pick a new one. Failures leave the type default glyph showing (IconService itself never throws).</summary>
@@ -289,9 +291,10 @@ public sealed partial class IconPickerViewModel : ObservableObject
 
     partial void OnGlyphFilterTextChanged(string value)
     {
+        var filter = TextNormalizer.Normalize(value).Trim();
         var matches = string.IsNullOrWhiteSpace(value)
             ? AllGlyphs
-            : AllGlyphs.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase)).ToList();
+            : AllGlyphs.Where(g => TextNormalizer.Normalize(g.Name).Contains(filter, StringComparison.Ordinal)).ToList();
 
         FilteredGlyphs.Clear();
         foreach (var glyph in matches)
@@ -324,13 +327,13 @@ public sealed partial class IconPickerViewModel : ObservableObject
         var trimmed = EmojiText.Trim();
         if (trimmed.Length == 0)
         {
-            EmojiError = "Enter an emoji.";
+            EmojiError = Strings.IconEmojiEmpty;
             return;
         }
 
         if (trimmed.Length > 8 || new StringInfo(trimmed).LengthInTextElements != 1)
         {
-            EmojiError = "Enter a single emoji.";
+            EmojiError = Strings.IconEmojiSingle;
             return;
         }
 
@@ -371,7 +374,7 @@ public sealed partial class IconPickerViewModel : ObservableObject
         ExeIcons.Clear();
         ExeSelectedIndex = -1;
         IsLoadingExeIcons = true;
-        ExeStatusText = "Loading…";
+        ExeStatusText = Strings.IconLoading;
         _lastLoadedExePath = path;
 
         try
@@ -386,7 +389,9 @@ public sealed partial class IconPickerViewModel : ObservableObject
                 return;
             }
 
-            ExeStatusText = all.Count == 0 ? "No icons found in this file." : $"{all.Count} icon{(all.Count == 1 ? "" : "s")}";
+            ExeStatusText = all.Count == 0
+                ? Strings.IconNoneFound
+                : string.Format(all.Count == 1 ? Strings.IconCountOne : Strings.IconCountMany, all.Count);
         }
         catch (OperationCanceledException)
         {

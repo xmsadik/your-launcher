@@ -204,4 +204,977 @@
     <value>e.g. "f report"; empty turns file search off</value>
     <comment>Hint next to the file search prefix box.</comment>
   </data>
+  <data name="NavEmptyFolder" xml:space="preserve">
+    <value>This folder is empty — press Ctrl+N to add</value>
+    <comment>List empty state in a folder.</comment>
+  </data>
+  <data name="NavNoResults" xml:space="preserve">
+    <value>No results</value>
+    <comment>List empty state while searching.</comment>
+  </data>
+  <data name="HintNav" xml:space="preserve">
+    <value>↵ open  → enter  ← back  Ctrl+N add  F2 edit  Ctrl+I icon  Del delete</value>
+    <comment>Hint bar, list page. Key names stay as is.</comment>
+  </data>
+  <data name="HintSearch" xml:space="preserve">
+    <value>↵ open  Ctrl+↵ show in folder  Esc clear</value>
+    <comment>Hint bar, search mode.</comment>
+  </data>
+  <data name="HintEditor" xml:space="preserve">
+    <value>Enter save  Esc cancel  Alt+A advanced</value>
+    <comment>Hint bar, item editor.</comment>
+  </data>
+  <data name="HintTypePicker" xml:space="preserve">
+    <value>↑↓ choose  ↵ select  Esc cancel</value>
+    <comment>Hint bar, type picker.</comment>
+  </data>
+  <data name="HintIconPicker" xml:space="preserve">
+    <value>Ctrl+Tab tab  ↑↓←→ move  ↵ apply  Ctrl+0 default  Esc cancel</value>
+    <comment>Hint bar, icon picker.</comment>
+  </data>
+  <data name="HintSettings" xml:space="preserve">
+    <value>Tab move  Enter save  Esc cancel</value>
+    <comment>Hint bar, settings page.</comment>
+  </data>
+  <data name="HintCut" xml:space="preserve">
+    <value>Cut: {0} — go to a folder and press Ctrl+V</value>
+    <comment>{0} = item name. Hint bar while an item is cut.</comment>
+  </data>
+  <data name="BreadcrumbNewItem" xml:space="preserve">
+    <value>New item</value>
+    <comment>Breadcrumb page suffix.</comment>
+  </data>
+  <data name="BreadcrumbEdit" xml:space="preserve">
+    <value>Edit</value>
+    <comment>Breadcrumb page suffix.</comment>
+  </data>
+  <data name="BreadcrumbIcon" xml:space="preserve">
+    <value>Icon</value>
+    <comment>Breadcrumb page suffix.</comment>
+  </data>
+  <data name="BreadcrumbSettings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Breadcrumb page suffix.</comment>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search…</value>
+    <comment>Placeholder of the search box.</comment>
+  </data>
+  <data name="ItemCountOne" xml:space="preserve">
+    <value>{0} item</value>
+    <comment>{0} = 1. Secondary text of a folder row.</comment>
+  </data>
+  <data name="ItemCountMany" xml:space="preserve">
+    <value>{0} items</value>
+    <comment>{0} = count. Secondary text of a folder row.</comment>
+  </data>
+  <data name="ListMissingTarget" xml:space="preserve">
+    <value>Target not found</value>
+    <comment>Tooltip of the missing-target badge.</comment>
+  </data>
+  <data name="RecoveryKeepCurrent" xml:space="preserve">
+    <value>Keep my current version</value>
+    <comment>Tray/menu label.</comment>
+  </data>
+  <data name="RecoveryRestoreBackup" xml:space="preserve">
+    <value>Restore from backup</value>
+    <comment>Tray/menu label.</comment>
+  </data>
+  <data name="RecoveryHintKeepCurrent" xml:space="preserve">
+    <value>Ctrl+Shift+R: keep current version</value>
+    <comment>Appended to a read-only error line.</comment>
+  </data>
+  <data name="RecoveryHintRestoreBackup" xml:space="preserve">
+    <value>Ctrl+Shift+R: restore backup</value>
+    <comment>Appended to a read-only error line.</comment>
+  </data>
+  <data name="LaunchConfirm" xml:space="preserve">
+    <value>Launch '{0}'? Enter = launch, Esc = cancel</value>
+    <comment>{0} = item name.</comment>
+  </data>
+  <data name="DeleteSeparatorConfirm" xml:space="preserve">
+    <value>Delete separator? Enter = delete, Esc = cancel</value>
+    <comment>Confirm bar.</comment>
+  </data>
+  <data name="DeleteFolderConfirmOne" xml:space="preserve">
+    <value>Delete folder '{0}' and its {1} item? Enter = delete, Esc = cancel</value>
+    <comment>{0} = folder name, {1} = 1.</comment>
+  </data>
+  <data name="DeleteFolderConfirmMany" xml:space="preserve">
+    <value>Delete folder '{0}' and its {1} items? Enter = delete, Esc = cancel</value>
+    <comment>{0} = folder name, {1} = count.</comment>
+  </data>
+  <data name="DeleteConfirm" xml:space="preserve">
+    <value>Delete '{0}'? Enter = delete, Esc = cancel</value>
+    <comment>{0} = item name.</comment>
+  </data>
+  <data name="ImportConfirm" xml:space="preserve">
+    <value>Import this config? M = Merge (append; renames colliding ids) · R = Replace (keeps current settings) · Esc = cancel</value>
+    <comment>Confirm bar. M and R are key names.</comment>
+  </data>
+  <data name="ImportedMergedOne" xml:space="preserve">
+    <value>Imported {0} item (merged).</value>
+    <comment>{0} = 1.</comment>
+  </data>
+  <data name="ImportedMergedMany" xml:space="preserve">
+    <value>Imported {0} items (merged).</value>
+    <comment>{0} = count.</comment>
+  </data>
+  <data name="ImportedReplacedOne" xml:space="preserve">
+    <value>Imported {0} item (replaced).</value>
+    <comment>{0} = 1.</comment>
+  </data>
+  <data name="ImportedReplacedMany" xml:space="preserve">
+    <value>Imported {0} items (replaced).</value>
+    <comment>{0} = count.</comment>
+  </data>
+  <data name="BookmarksImportedNewOne" xml:space="preserve">
+    <value>Imported {0} bookmark into '{1}'.</value>
+    <comment>{0} = 1, {1} = folder name.</comment>
+  </data>
+  <data name="BookmarksImportedNewMany" xml:space="preserve">
+    <value>Imported {0} bookmarks into '{1}'.</value>
+    <comment>{0} = count, {1} = folder name.</comment>
+  </data>
+  <data name="BookmarksImportedReplacedOne" xml:space="preserve">
+    <value>Imported {0} bookmark from {1} (replaced the previous import).</value>
+    <comment>{0} = 1, {1} = source.</comment>
+  </data>
+  <data name="BookmarksImportedReplacedMany" xml:space="preserve">
+    <value>Imported {0} bookmarks from {1} (replaced the previous import).</value>
+    <comment>{0} = count, {1} = source.</comment>
+  </data>
+  <data name="MoveIntoItself" xml:space="preserve">
+    <value>Cannot move a folder into itself.</value>
+    <comment>Drag/paste error line.</comment>
+  </data>
+  <data name="ReloadPending" xml:space="preserve">
+    <value>config.json changed — will reload once you finish this.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ReloadSaveRefused" xml:space="preserve">
+    <value>config.json changed on disk — your edit was not saved; reopen and redo it.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ConfigHasErrors" xml:space="preserve">
+    <value>config.json has errors — kept the previous version.</value>
+    <comment>Error line and tray balloon.</comment>
+  </data>
+  <data name="ConfigHasErrorsShort" xml:space="preserve">
+    <value>config.json has errors.</value>
+    <comment>Fallback balloon detail.</comment>
+  </data>
+  <data name="ConfigReadOnly" xml:space="preserve">
+    <value>Config is read-only because config.json could not be read. Fix or restore it first.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ConfigSaveFailed" xml:space="preserve">
+    <value>Could not save config.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ConfigSaveFailedDetail" xml:space="preserve">
+    <value>Could not save config: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="ConfigRecoverFailed" xml:space="preserve">
+    <value>Could not recover config.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ConfigLoadFailed" xml:space="preserve">
+    <value>Config could not be read: {0}. Using an empty tree; the file was not modified.</value>
+    <comment>{0} = parse error.</comment>
+  </data>
+  <data name="ConfigUnknownError" xml:space="preserve">
+    <value>unknown error</value>
+    <comment>Fallback error detail.</comment>
+  </data>
+  <data name="ConfigNoBackup" xml:space="preserve">
+    <value>No backup file found.</value>
+    <comment>Error line.</comment>
+  </data>
+  <data name="ConfigRestoreFailed" xml:space="preserve">
+    <value>Could not restore backup: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="LaunchOpenFailed" xml:space="preserve">
+    <value>Could not open '{0}': {1}</value>
+    <comment>{0} = item name, {1} = OS message.</comment>
+  </data>
+  <data name="MenuOpen" xml:space="preserve">
+    <value>Open</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Edit</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuChangeIcon" xml:space="preserve">
+    <value>Change icon</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuCut" xml:space="preserve">
+    <value>Cut</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuPasteHere" xml:space="preserve">
+    <value>Paste here</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuDuplicate" xml:space="preserve">
+    <value>Duplicate</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuDelete" xml:space="preserve">
+    <value>Delete</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuOpenFileLocation" xml:space="preserve">
+    <value>Open file location</value>
+    <comment>List context menu.</comment>
+  </data>
+  <data name="MenuNewItem" xml:space="preserve">
+    <value>New item</value>
+    <comment>List context menu (empty area).</comment>
+  </data>
+  <data name="MenuNewFolder" xml:space="preserve">
+    <value>New folder</value>
+    <comment>List context menu (empty area).</comment>
+  </data>
+  <data name="TrayShow" xml:space="preserve">
+    <value>Show</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TraySettings" xml:space="preserve">
+    <value>Settings…</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TrayOpenConfigFile" xml:space="preserve">
+    <value>Open config file</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TrayOpenConfigFolder" xml:space="preserve">
+    <value>Open config folder</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TrayReloadConfig" xml:space="preserve">
+    <value>Reload config</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Exit</value>
+    <comment>Tray menu.</comment>
+  </data>
+  <data name="TrayUpdated" xml:space="preserve">
+    <value>Updated to {0}. Click to see what's new.</value>
+    <comment>{0} = version. Balloon text.</comment>
+  </data>
+  <data name="TrayErrorLogged" xml:space="preserve">
+    <value>Something went wrong, but the launcher is still running. Click to see the details.</value>
+    <comment>Balloon text.</comment>
+  </data>
+  <data name="TrayErrorMessage" xml:space="preserve">
+    <value>Something went wrong: {0}</value>
+    <comment>{0} = exception message. Balloon text.</comment>
+  </data>
+  <data name="TrayCommandExited" xml:space="preserve">
+    <value>'{0}' exited with code {1}.</value>
+    <comment>{0} = command name, {1} = exit code.</comment>
+  </data>
+  <data name="StartupFailedLogged" xml:space="preserve">
+    <value>Your Launcher could not start.
+
+Details were saved to:
+{0}</value>
+    <comment>{0} = log file path. Message box.</comment>
+  </data>
+  <data name="StartupFailedMessage" xml:space="preserve">
+    <value>Your Launcher could not start.
+
+{0}</value>
+    <comment>{0} = exception message. Message box.</comment>
+  </data>
+  <data name="HotkeyInUse" xml:space="preserve">
+    <value>Hotkey {0} is already in use. Open settings to choose another.</value>
+    <comment>{0} = hotkey.</comment>
+  </data>
+  <data name="HotkeyInvalid" xml:space="preserve">
+    <value>Hotkey '{0}' is not a valid key combination.</value>
+    <comment>{0} = hotkey text.</comment>
+  </data>
+  <data name="HotkeyPreviousNotRestored" xml:space="preserve">
+    <value>The previous hotkey could not be restored either.</value>
+    <comment>Appended to a hotkey failure message.</comment>
+  </data>
+  <data name="StartupDisabledByUser" xml:space="preserve">
+    <value>Turned off in Task Manager (Startup apps). Turn it back on there to start with Windows.</value>
+    <comment>Settings note.</comment>
+  </data>
+  <data name="StartupBlockedByPolicy" xml:space="preserve">
+    <value>Starting with Windows is blocked by a system policy.</value>
+    <comment>Settings note.</comment>
+  </data>
+  <data name="StartupForcedByPolicy" xml:space="preserve">
+    <value>A system policy still starts the app with Windows.</value>
+    <comment>Settings note.</comment>
+  </data>
+  <data name="PluginKeywordCollision" xml:space="preserve">
+    <value>{0}: keyword "{1}" is the file-search prefix (Settings); file search wins.</value>
+    <comment>{0} = plugin folder, {1} = keyword.</comment>
+  </data>
+  <data name="SettingsHotkey" xml:space="preserve">
+    <value>Hotkey</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsTheme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsOpacity" xml:space="preserve">
+    <value>Background opacity</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Start with Windows</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsCloseAfterLaunch" xml:space="preserve">
+    <value>Close after launch</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsVisibleRows" xml:space="preserve">
+    <value>Visible rows</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsDefaultShell" xml:space="preserve">
+    <value>Default shell</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsRememberLocation" xml:space="preserve">
+    <value>Remember last location</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsShowHintBar" xml:space="preserve">
+    <value>Show hint bar</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsLanguage" xml:space="preserve">
+    <value>Language</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsLanguageSystem" xml:space="preserve">
+    <value>System</value>
+    <comment>Language combo option: follow Windows. The other options (English, Türkçe) are shown in their own language.</comment>
+  </data>
+  <data name="SettingsLanguageRestartNote" xml:space="preserve">
+    <value>The language changes after you restart Your Launcher.</value>
+    <comment>Note under the language combo.</comment>
+  </data>
+  <data name="SettingsOpenConfigFolder" xml:space="preserve">
+    <value>Open config folder</value>
+    <comment>Settings button.</comment>
+  </data>
+  <data name="SettingsExport" xml:space="preserve">
+    <value>Export…</value>
+    <comment>Settings button.</comment>
+  </data>
+  <data name="SettingsImport" xml:space="preserve">
+    <value>Import…</value>
+    <comment>Settings button.</comment>
+  </data>
+  <data name="SettingsImportBookmarks" xml:space="preserve">
+    <value>Import bookmarks…</value>
+    <comment>Settings button.</comment>
+  </data>
+  <data name="SettingsImportFromHtml" xml:space="preserve">
+    <value>From HTML file…</value>
+    <comment>Bookmark source menu item.</comment>
+  </data>
+  <data name="SettingsExported" xml:space="preserve">
+    <value>Exported to {0}.</value>
+    <comment>{0} = file name.</comment>
+  </data>
+  <data name="SettingsExportFailed" xml:space="preserve">
+    <value>Could not export: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="SettingsReadFailed" xml:space="preserve">
+    <value>Could not read file: {0}</value>
+    <comment>{0} = exception message.</comment>
+  </data>
+  <data name="SettingsImportFailed" xml:space="preserve">
+    <value>Could not import: {0}</value>
+    <comment>{0} = error.</comment>
+  </data>
+  <data name="SettingsBookmarksReadFailed" xml:space="preserve">
+    <value>Could not read {0} bookmarks: {1}</value>
+    <comment>{0} = browser, {1} = exception message.</comment>
+  </data>
+  <data name="BookmarksFolderForBrowser" xml:space="preserve">
+    <value>{0} bookmarks</value>
+    <comment>{0} = browser display name. Source label passed to the parser.</comment>
+  </data>
+  <data name="BookmarksFolderForFile" xml:space="preserve">
+    <value>Bookmarks ({0})</value>
+    <comment>{0} = file name without extension. Name of the imported folder.</comment>
+  </data>
+  <data name="DialogExportConfig" xml:space="preserve">
+    <value>Export config</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogImportConfig" xml:space="preserve">
+    <value>Import config</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogImportBookmarks" xml:space="preserve">
+    <value>Import bookmarks</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogSelectFile" xml:space="preserve">
+    <value>Select file</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogSelectFolder" xml:space="preserve">
+    <value>Select folder</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogSelectWorkingDirectory" xml:space="preserve">
+    <value>Select working directory</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogSelectIconFile" xml:space="preserve">
+    <value>Select icon file</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="DialogSelectExe" xml:space="preserve">
+    <value>Select exe or dll</value>
+    <comment>Dialog title.</comment>
+  </data>
+  <data name="FilterJson" xml:space="preserve">
+    <value>JSON files (*.json)|*.json|All files (*.*)|*.*</value>
+    <comment>File dialog filter: keep the | separators and patterns.</comment>
+  </data>
+  <data name="FilterHtmlBookmarks" xml:space="preserve">
+    <value>HTML bookmarks (*.html;*.htm)|*.html;*.htm|All files (*.*)|*.*</value>
+    <comment>File dialog filter: keep the | separators and patterns.</comment>
+  </data>
+  <data name="FilterIconImages" xml:space="preserve">
+    <value>Icon images (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif</value>
+    <comment>File dialog filter: keep the | separators and patterns.</comment>
+  </data>
+  <data name="FilterPrograms" xml:space="preserve">
+    <value>Programs and libraries (*.exe;*.dll)|*.exe;*.dll|All files (*.*)|*.*</value>
+    <comment>File dialog filter: keep the | separators and patterns.</comment>
+  </data>
+  <data name="EditorName" xml:space="preserve">
+    <value>Name</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorTargetLabel" xml:space="preserve">
+    <value>Target</value>
+    <comment>Editor field label for app/path items.</comment>
+  </data>
+  <data name="EditorUrlLabel" xml:space="preserve">
+    <value>URL</value>
+    <comment>Editor field label for URL items.</comment>
+  </data>
+  <data name="EditorCommand" xml:space="preserve">
+    <value>Command</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorShell" xml:space="preserve">
+    <value>Shell</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorShellDefault" xml:space="preserve">
+    <value>Default</value>
+    <comment>Editor shell combo: use the default shell.</comment>
+  </data>
+  <data name="EditorArguments" xml:space="preserve">
+    <value>Arguments</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorWorkingDirectory" xml:space="preserve">
+    <value>Working directory</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorWindow" xml:space="preserve">
+    <value>Window</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorWindowVisible" xml:space="preserve">
+    <value>Visible</value>
+    <comment>Editor window combo.</comment>
+  </data>
+  <data name="EditorWindowHidden" xml:space="preserve">
+    <value>Hidden</value>
+    <comment>Editor window combo.</comment>
+  </data>
+  <data name="EditorKeepOpen" xml:space="preserve">
+    <value>Keep open</value>
+    <comment>Editor checkbox.</comment>
+  </data>
+  <data name="EditorRunAsAdmin" xml:space="preserve">
+    <value>Run as administrator</value>
+    <comment>Editor checkbox.</comment>
+  </data>
+  <data name="EditorAskBeforeLaunch" xml:space="preserve">
+    <value>Ask before launching</value>
+    <comment>Editor checkbox.</comment>
+  </data>
+  <data name="EditorKeywords" xml:space="preserve">
+    <value>Keywords</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorDescription" xml:space="preserve">
+    <value>Description</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorIcon" xml:space="preserve">
+    <value>Icon</value>
+    <comment>Editor field label.</comment>
+  </data>
+  <data name="EditorIconChangeHint" xml:space="preserve">
+    <value>— Ctrl+I in the list to change</value>
+    <comment>Hint next to the icon preview.</comment>
+  </data>
+  <data name="EditorAdvancedExpanded" xml:space="preserve">
+    <value>Advanced ▾</value>
+    <comment>Editor section toggle.</comment>
+  </data>
+  <data name="EditorAdvancedCollapsed" xml:space="preserve">
+    <value>Advanced ▸</value>
+    <comment>Editor section toggle.</comment>
+  </data>
+  <data name="EditorNameRequired" xml:space="preserve">
+    <value>Name is required</value>
+    <comment>Validation error.</comment>
+  </data>
+  <data name="EditorTargetMissing" xml:space="preserve">
+    <value>Target not found — saved anyway.</value>
+    <comment>Warning after saving.</comment>
+  </data>
+  <data name="ButtonBrowse" xml:space="preserve">
+    <value>Browse…</value>
+    <comment>Browse button.</comment>
+  </data>
+  <data name="ButtonBrowseFolder" xml:space="preserve">
+    <value>Folder…</value>
+    <comment>Browse-for-folder button.</comment>
+  </data>
+  <data name="ButtonLoad" xml:space="preserve">
+    <value>Load</value>
+    <comment>Icon picker Exe/DLL tab.</comment>
+  </data>
+  <data name="TypeFolder" xml:space="preserve">
+    <value>Folder</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypeFolderKey" xml:space="preserve">
+    <value>F</value>
+    <comment>Key hint letter (A-Z) that selects the type; unique per language.</comment>
+  </data>
+  <data name="TypeApp" xml:space="preserve">
+    <value>App</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypeAppKey" xml:space="preserve">
+    <value>A</value>
+    <comment>Key hint letter.</comment>
+  </data>
+  <data name="TypePath" xml:space="preserve">
+    <value>File or folder</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypePathKey" xml:space="preserve">
+    <value>P</value>
+    <comment>Key hint letter.</comment>
+  </data>
+  <data name="TypeCommand" xml:space="preserve">
+    <value>Command</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypeCommandKey" xml:space="preserve">
+    <value>C</value>
+    <comment>Key hint letter.</comment>
+  </data>
+  <data name="TypeUrl" xml:space="preserve">
+    <value>URL</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypeUrlKey" xml:space="preserve">
+    <value>U</value>
+    <comment>Key hint letter.</comment>
+  </data>
+  <data name="TypeSeparator" xml:space="preserve">
+    <value>Separator</value>
+    <comment>Node type name.</comment>
+  </data>
+  <data name="TypeSeparatorKey" xml:space="preserve">
+    <value>S</value>
+    <comment>Key hint letter.</comment>
+  </data>
+  <data name="IconTabGlyph" xml:space="preserve">
+    <value>Glyph</value>
+    <comment>Tab and description.</comment>
+  </data>
+  <data name="IconTabEmoji" xml:space="preserve">
+    <value>Emoji</value>
+    <comment>Tab.</comment>
+  </data>
+  <data name="IconTabFile" xml:space="preserve">
+    <value>File</value>
+    <comment>Tab.</comment>
+  </data>
+  <data name="IconTabExe" xml:space="preserve">
+    <value>Exe/DLL</value>
+    <comment>Tab.</comment>
+  </data>
+  <data name="IconCurrent" xml:space="preserve">
+    <value>Current:</value>
+    <comment>Label before the current-icon preview.</comment>
+  </data>
+  <data name="IconAutomatic" xml:space="preserve">
+    <value>Automatic</value>
+    <comment>Icon description.</comment>
+  </data>
+  <data name="IconCustomEmoji" xml:space="preserve">
+    <value>Custom emoji</value>
+    <comment>Icon description.</comment>
+  </data>
+  <data name="IconCustomGlyph" xml:space="preserve">
+    <value>Custom glyph</value>
+    <comment>Icon description.</comment>
+  </data>
+  <data name="IconCustomFile" xml:space="preserve">
+    <value>Custom file icon</value>
+    <comment>Icon description.</comment>
+  </data>
+  <data name="IconCustomExe" xml:space="preserve">
+    <value>Custom exe icon</value>
+    <comment>Icon description.</comment>
+  </data>
+  <data name="IconCurrentEmoji" xml:space="preserve">
+    <value>Emoji {0}</value>
+    <comment>{0} = the emoji.</comment>
+  </data>
+  <data name="IconCurrentFile" xml:space="preserve">
+    <value>File icon ({0})</value>
+    <comment>{0} = file name.</comment>
+  </data>
+  <data name="IconCurrentExe" xml:space="preserve">
+    <value>Exe icon #{0} ({1})</value>
+    <comment>{0} = index, {1} = file name.</comment>
+  </data>
+  <data name="IconEmojiPrompt" xml:space="preserve">
+    <value>Type or paste a single emoji, then press Enter.</value>
+    <comment>Emoji tab instruction.</comment>
+  </data>
+  <data name="IconEmojiEmpty" xml:space="preserve">
+    <value>Enter an emoji.</value>
+    <comment>Validation error.</comment>
+  </data>
+  <data name="IconEmojiSingle" xml:space="preserve">
+    <value>Enter a single emoji.</value>
+    <comment>Validation error.</comment>
+  </data>
+  <data name="IconFileInfo" xml:space="preserve">
+    <value>Pick a PNG, ICO, JPG, BMP or GIF file. It's copied into the config's icons folder so it survives the source file moving or being deleted.</value>
+    <comment>File tab instruction.</comment>
+  </data>
+  <data name="IconLoading" xml:space="preserve">
+    <value>Loading…</value>
+    <comment>Exe tab status.</comment>
+  </data>
+  <data name="IconNoneFound" xml:space="preserve">
+    <value>No icons found in this file.</value>
+    <comment>Exe tab status.</comment>
+  </data>
+  <data name="IconCountOne" xml:space="preserve">
+    <value>{0} icon</value>
+    <comment>{0} = 1. Exe tab status.</comment>
+  </data>
+  <data name="IconCountMany" xml:space="preserve">
+    <value>{0} icons</value>
+    <comment>{0} = count. Exe tab status.</comment>
+  </data>
+  <data name="GlyphFolder" xml:space="preserve">
+    <value>Folder</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphFolderOpen" xml:space="preserve">
+    <value>Folder open</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphNewFolder" xml:space="preserve">
+    <value>New folder</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphApp" xml:space="preserve">
+    <value>App</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphTerminal" xml:space="preserve">
+    <value>Terminal</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphGlobe" xml:space="preserve">
+    <value>Globe</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphWorld" xml:space="preserve">
+    <value>World</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphDocument" xml:space="preserve">
+    <value>Document</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPage" xml:space="preserve">
+    <value>Page</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphCode" xml:space="preserve">
+    <value>Code</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphSettings" xml:space="preserve">
+    <value>Settings</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphStar" xml:space="preserve">
+    <value>Star</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphStarFilled" xml:space="preserve">
+    <value>Star filled</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphHome" xml:space="preserve">
+    <value>Home</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphMail" xml:space="preserve">
+    <value>Mail</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphCalendar" xml:space="preserve">
+    <value>Calendar</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphCloud" xml:space="preserve">
+    <value>Cloud</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphLock" xml:space="preserve">
+    <value>Lock</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphUnlock" xml:space="preserve">
+    <value>Unlock</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphKey" xml:space="preserve">
+    <value>Key</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphContact" xml:space="preserve">
+    <value>Contact</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphContactInfo" xml:space="preserve">
+    <value>Contact info</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPeople" xml:space="preserve">
+    <value>People</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphGroup" xml:space="preserve">
+    <value>Group</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphMusic" xml:space="preserve">
+    <value>Music</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphVideo" xml:space="preserve">
+    <value>Video</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPhoto" xml:space="preserve">
+    <value>Photo</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPicture" xml:space="preserve">
+    <value>Picture</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphCamera" xml:space="preserve">
+    <value>Camera</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphGame" xml:space="preserve">
+    <value>Game</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphChart" xml:space="preserve">
+    <value>Chart</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphBriefcase" xml:space="preserve">
+    <value>Briefcase</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphLightning" xml:space="preserve">
+    <value>Lightning</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphFlag" xml:space="preserve">
+    <value>Flag</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphBookmark" xml:space="preserve">
+    <value>Bookmark</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPin" xml:space="preserve">
+    <value>Pin</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphLink" xml:space="preserve">
+    <value>Link</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphDownload" xml:space="preserve">
+    <value>Download</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphUpload" xml:space="preserve">
+    <value>Upload</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphSync" xml:space="preserve">
+    <value>Sync</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphRefresh" xml:space="preserve">
+    <value>Refresh</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphSearch" xml:space="preserve">
+    <value>Search</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphZoom" xml:space="preserve">
+    <value>Zoom</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphEdit" xml:space="preserve">
+    <value>Edit</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphDelete" xml:space="preserve">
+    <value>Delete</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphSave" xml:space="preserve">
+    <value>Save</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPrint" xml:space="preserve">
+    <value>Print</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPhone" xml:space="preserve">
+    <value>Phone</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphChat" xml:space="preserve">
+    <value>Chat</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphComment" xml:space="preserve">
+    <value>Comment</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphShop" xml:space="preserve">
+    <value>Shop</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphMap" xml:space="preserve">
+    <value>Map</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphCar" xml:space="preserve">
+    <value>Car</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphAirplane" xml:space="preserve">
+    <value>Airplane</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphBook" xml:space="preserve">
+    <value>Book</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphWrench" xml:space="preserve">
+    <value>Wrench</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphShield" xml:space="preserve">
+    <value>Shield</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphPower" xml:space="preserve">
+    <value>Power</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphAdmin" xml:space="preserve">
+    <value>Admin</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphNetwork" xml:space="preserve">
+    <value>Network</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphBrightness" xml:space="preserve">
+    <value>Brightness</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphVolume" xml:space="preserve">
+    <value>Volume</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphClock" xml:space="preserve">
+    <value>Clock</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphWarning" xml:space="preserve">
+    <value>Warning</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphInfo" xml:space="preserve">
+    <value>Info</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphAccept" xml:space="preserve">
+    <value>Accept</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphAdd" xml:space="preserve">
+    <value>Add</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphRemove" xml:space="preserve">
+    <value>Remove</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphClose" xml:space="preserve">
+    <value>Close</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
+  <data name="GlyphFavorite" xml:space="preserve">
+    <value>Favorite</value>
+    <comment>Icon picker glyph name (tooltip and filter).</comment>
+  </data>
 </root>

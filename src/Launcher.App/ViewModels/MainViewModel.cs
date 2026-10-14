@@ -32,14 +32,14 @@ namespace YourLauncher.App.ViewModels;
 /// </summary>
 public sealed partial class MainViewModel : ObservableObject
 {
-    private const string EmptyFolderMessage = "This folder is empty — press Ctrl+N to add";
-    private const string NoResultsMessage = "No results";
-    private const string NavHint = "↵ open  → enter  ← back  Ctrl+N add  F2 edit  Ctrl+I icon  Del delete";
-    private const string SearchHint = "↵ open  Ctrl+↵ show in folder  Esc clear";
-    private const string EditorHint = "Enter save  Esc cancel  Alt+A advanced";
-    private const string TypePickerHint = "↑↓ choose  ↵ select  Esc cancel";
-    private const string IconPickerHint = "Ctrl+Tab tab  ↑↓←→ move  ↵ apply  Ctrl+0 default  Esc cancel";
-    private const string SettingsHint = "Tab move  Enter save  Esc cancel";
+    private static string EmptyFolderMessage => Strings.NavEmptyFolder;
+    private static string NoResultsMessage => Strings.NavNoResults;
+    private static string NavHint => Strings.HintNav;
+    private static string SearchHint => Strings.HintSearch;
+    private static string EditorHint => Strings.HintEditor;
+    private static string TypePickerHint => Strings.HintTypePicker;
+    private static string IconPickerHint => Strings.HintIconPicker;
+    private static string SettingsHint => Strings.HintSettings;
 
     private readonly LauncherConfig _config;
     private readonly ConfigService _configService;
@@ -196,10 +196,10 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Breadcrumb path plus a page suffix while adding/editing (e.g. "Root › Dev · New item" / "· Edit").</summary>
     public string Breadcrumb => CurrentPage switch
     {
-        PanelPage.TypePicker => BreadcrumbPath + " · New item",
-        PanelPage.Editor => BreadcrumbPath + (Editor?.Mode == EditorMode.Add ? " · New item" : " · Edit"),
-        PanelPage.IconPicker => BreadcrumbPath + " · Icon",
-        PanelPage.Settings => BreadcrumbPath + " · Settings",
+        PanelPage.TypePicker => BreadcrumbPath + " · " + Strings.BreadcrumbNewItem,
+        PanelPage.Editor => BreadcrumbPath + " · " + (Editor?.Mode == EditorMode.Add ? Strings.BreadcrumbNewItem : Strings.BreadcrumbEdit),
+        PanelPage.IconPicker => BreadcrumbPath + " · " + Strings.BreadcrumbIcon,
+        PanelPage.Settings => BreadcrumbPath + " · " + Strings.BreadcrumbSettings,
         PanelPage.StartMenuPicker => BreadcrumbPath + " · " + Strings.StartMenuBreadcrumb,
         _ => BreadcrumbPath,
     };
@@ -211,7 +211,7 @@ public sealed partial class MainViewModel : ObservableObject
         PanelPage.IconPicker => IconPickerHint,
         PanelPage.Settings => SettingsHint,
         PanelPage.StartMenuPicker => Strings.StartMenuPickerHint,
-        _ => IsSearchMode ? SearchHint : (CutNode is not null ? $"Cut: {CutNode.Name} — go to a folder and press Ctrl+V" : NavHint),
+        _ => IsSearchMode ? SearchHint : (CutNode is not null ? string.Format(Strings.HintCut, CutNode.Name) : NavHint),
     };
 
     public bool ShowHintBar => _config.Settings.ShowHintBar;
@@ -263,13 +263,13 @@ public sealed partial class MainViewModel : ObservableObject
     public bool IsReadOnly => _configService.IsReadOnly;
 
     /// <summary>Menu/shortcut label: "keep current" once there's real in-memory data to keep, otherwise "restore backup" (spec §10 item 4).</summary>
-    public string RecoveryMenuText => _configService.HasEverLoadedSuccessfully ? "Keep my current version" : "Restore from backup";
+    public string RecoveryMenuText => _configService.HasEverLoadedSuccessfully ? Strings.RecoveryKeepCurrent : Strings.RecoveryRestoreBackup;
 
     private string? RecoveryHint => !CanRecoverFromCorruption
         ? null
         : _configService.HasEverLoadedSuccessfully
-            ? "Ctrl+Shift+R: keep current version"
-            : "Ctrl+Shift+R: restore backup";
+            ? Strings.RecoveryHintKeepCurrent
+            : Strings.RecoveryHintRestoreBackup;
 
     public MainViewModel(
         ConfigService configService,
@@ -644,7 +644,7 @@ public sealed partial class MainViewModel : ObservableObject
             _pendingLaunchNode = node;
             _pendingLaunchQuery = query;
             _pendingLaunchProvider = null;
-            ConfirmMessage = $"Launch '{node.Name}'? Enter = launch, Esc = cancel";
+            ConfirmMessage = string.Format(Strings.LaunchConfirm, node.Name);
             CurrentPage = PanelPage.ConfirmLaunch;
             return;
         }
@@ -822,7 +822,7 @@ public sealed partial class MainViewModel : ObservableObject
             return false;
         }
 
-        SetCorruptErrorMessage("Config is read-only because config.json could not be read. Fix or restore it first.");
+        SetCorruptErrorMessage(Strings.ConfigReadOnly);
         return true;
     }
 
@@ -1155,7 +1155,7 @@ public sealed partial class MainViewModel : ObservableObject
         var result = _configService.Save();
         if (!result.Success)
         {
-            ErrorMessage = result.Error ?? "Could not save config.";
+            ErrorMessage = result.Error ?? Strings.ConfigSaveFailed;
         }
 
         // Live-apply (spec §10 item 2): the hotkey itself was already applied by _tryApplyHotkey before
@@ -1185,7 +1185,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         _pendingImportConfig = imported;
-        ImportConfirmMessage = "Import this config? M = Merge (append; renames colliding ids) · R = Replace (keeps current settings) · Esc = cancel";
+        ImportConfirmMessage = Strings.ImportConfirm;
         CurrentPage = PanelPage.ConfirmImport;
     }
 
@@ -1231,7 +1231,11 @@ public sealed partial class MainViewModel : ObservableObject
         UpdateBreadcrumb();
         RefreshItems();
 
-        ErrorMessage = $"Imported {count} item{(count == 1 ? "" : "s")} ({(merge ? "merged" : "replaced")}).";
+        ErrorMessage = string.Format(
+            merge
+                ? (count == 1 ? Strings.ImportedMergedOne : Strings.ImportedMergedMany)
+                : (count == 1 ? Strings.ImportedReplacedOne : Strings.ImportedReplacedMany),
+            count);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1281,8 +1285,8 @@ public sealed partial class MainViewModel : ObservableObject
         SelectNode(folder);
 
         ErrorMessage = replaced
-            ? $"Imported {count} bookmarks from {sourceLabel} (replaced the previous import)."
-            : $"Imported {count} bookmarks into '{folder.Name}'.";
+            ? string.Format(count == 1 ? Strings.BookmarksImportedReplacedOne : Strings.BookmarksImportedReplacedMany, count, sourceLabel)
+            : string.Format(count == 1 ? Strings.BookmarksImportedNewOne : Strings.BookmarksImportedNewMany, count, folder.Name);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1434,10 +1438,10 @@ public sealed partial class MainViewModel : ObservableObject
         _pendingDeleteNode = SelectedNode;
         var descendantCount = CountDescendants(_pendingDeleteNode);
         ConfirmMessage = _pendingDeleteNode is SeparatorNode
-            ? "Delete separator? Enter = delete, Esc = cancel"
+            ? Strings.DeleteSeparatorConfirm
             : _pendingDeleteNode is FolderNode && descendantCount > 0
-            ? $"Delete folder '{_pendingDeleteNode.Name}' and its {descendantCount} item{(descendantCount == 1 ? "" : "s")}? Enter = delete, Esc = cancel"
-            : $"Delete '{_pendingDeleteNode.Name}'? Enter = delete, Esc = cancel";
+            ? string.Format(descendantCount == 1 ? Strings.DeleteFolderConfirmOne : Strings.DeleteFolderConfirmMany, _pendingDeleteNode.Name, descendantCount)
+            : string.Format(Strings.DeleteConfirm, _pendingDeleteNode.Name);
         CurrentPage = PanelPage.ConfirmDelete;
     }
 
@@ -1544,7 +1548,7 @@ public sealed partial class MainViewModel : ObservableObject
         switch (TreeOps.MoveTo(_config.Root, node, CurrentFolder))
         {
             case MoveOutcome.Rejected:
-                ErrorMessage = "Cannot move a folder into itself.";
+                ErrorMessage = Strings.MoveIntoItself;
                 break;
 
             case MoveOutcome.NoOp:
@@ -1641,7 +1645,7 @@ public sealed partial class MainViewModel : ObservableObject
             switch (TreeOps.MoveTo(_config.Root, source, targetFolder))
             {
                 case MoveOutcome.Rejected:
-                    ErrorMessage = "Cannot move a folder into itself.";
+                    ErrorMessage = Strings.MoveIntoItself;
                     return;
                 case MoveOutcome.NoOp:
                     return;
@@ -1699,7 +1703,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (CurrentPage is PanelPage.Editor or PanelPage.TypePicker or PanelPage.IconPicker or PanelPage.StartMenuPicker)
         {
             _reloadPending = true;
-            ErrorMessage = "config.json changed — will reload once you finish this.";
+            ErrorMessage = Strings.ReloadPending;
             return;
         }
 
@@ -1716,7 +1720,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         _reloadPending = false;
         ApplyExternalReload();
-        ErrorMessage = "config.json changed on disk — your edit was not saved; reopen and redo it.";
+        ErrorMessage = Strings.ReloadSaveRefused;
         return true;
     }
 
@@ -1743,8 +1747,8 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
 
-            SetCorruptErrorMessage("config.json has errors — kept the previous version.");
-            ReloadFailed?.Invoke(retry.Error ?? "config.json has errors.");
+            SetCorruptErrorMessage(Strings.ConfigHasErrors);
+            ReloadFailed?.Invoke(retry.Error ?? Strings.ConfigHasErrorsShort);
         };
         _reloadRetryTimer.Start();
     }
@@ -1767,7 +1771,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         else
         {
-            ErrorMessage = result.Error ?? "Could not recover config.";
+            ErrorMessage = result.Error ?? Strings.ConfigRecoverFailed;
         }
     }
 
@@ -1859,7 +1863,7 @@ public sealed partial class MainViewModel : ObservableObject
         var result = _configService.Save();
         if (!result.Success)
         {
-            ErrorMessage = result.Error ?? "Could not save config.";
+            ErrorMessage = result.Error ?? Strings.ConfigSaveFailed;
         }
 
         _searchService.Rebuild(_config);
@@ -2187,7 +2191,7 @@ public sealed partial class MainViewModel : ObservableObject
         return item;
     }
 
-    private static string FormatItemCount(int count) => $"{count} item{(count == 1 ? "" : "s")}";
+    private static string FormatItemCount(int count) => string.Format(count == 1 ? Strings.ItemCountOne : Strings.ItemCountMany, count);
 
     private static string Truncate(string text, int maxLength) =>
         text.Length <= maxLength ? text : text[..(maxLength - 1)] + "…";

@@ -1,3 +1,4 @@
+using YourLauncher.Core.Localization;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.Core.Theming;
@@ -179,9 +180,20 @@ public static class ThemeCatalog
         },
     ];
 
-    /// <summary>The settings page's list, in display order: System first, then every palette.</summary>
-    public static IReadOnlyList<(Theme Theme, string DisplayName)> Choices { get; } =
-        [(Theme.System, "System (Windows Light/Dark)"), .. Palettes.Select(p => (p.Theme, p.DisplayName))];
+    /// <summary>
+    /// The settings page's list, in display order: System first, then every palette. Computed per call so the names
+    /// follow the UI culture: only System and Windows Light/Dark are translated, the rest are brand names.
+    /// </summary>
+    public static IReadOnlyList<(Theme Theme, string DisplayName)> Choices =>
+        [(Theme.System, CoreStrings.ThemeSystem), .. Palettes.Select(p => (p.Theme, DisplayNameOf(p)))];
+
+    /// <summary>The name shown for a palette in the current UI language.</summary>
+    public static string DisplayNameOf(ThemePalette palette) => palette.Theme switch
+    {
+        Theme.Light => CoreStrings.ThemeWindowsLight,
+        Theme.Dark => CoreStrings.ThemeWindowsDark,
+        _ => palette.DisplayName,
+    };
 
     /// <summary>The palette for a concrete theme. <see cref="Theme.System"/> is not a palette - resolve it to Light/Dark first.</summary>
     public static ThemePalette Get(Theme theme) =>

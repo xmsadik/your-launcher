@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BookmarkParseFailed" xml:space="preserve">
+    <value>Could not parse bookmarks file: {0}</value>
+    <comment>{0} = parser message.</comment>
+  </data>
+  <data name="BookmarkMissingRoots" xml:space="preserve">
+    <value>Could not parse bookmarks file: missing 'roots'.</value>
+    <comment>Chromium bookmarks file without roots.</comment>
+  </data>
+  <data name="BookmarkNoneFound" xml:space="preserve">
+    <value>No bookmarks found in {0}.</value>
+    <comment>{0} = source label.</comment>
+  </data>
+  <data name="ConfigEmptyDocument" xml:space="preserve">
+    <value>Config file parsed to an empty document.</value>
+    <comment>Config load error.</comment>
+  </data>
+  <data name="PluginJsonInvalid" xml:space="preserve">
+    <value>plugin.json is not valid: {0}</value>
+    <comment>{0} = parser message.</comment>
+  </data>
+  <data name="PluginJsonEmpty" xml:space="preserve">
+    <value>plugin.json is empty.</value>
+    <comment>Plugin problem.</comment>
+  </data>
+  <data name="PluginKeywordRequired" xml:space="preserve">
+    <value>"keyword" is required.</value>
+    <comment>Plugin problem; the JSON property name stays.</comment>
+  </data>
+  <data name="PluginKeywordNoSpaces" xml:space="preserve">
+    <value>"keyword" must not contain spaces.</value>
+    <comment>Plugin problem.</comment>
+  </data>
+  <data name="PluginCommandRequired" xml:space="preserve">
+    <value>"command" is required.</value>
+    <comment>Plugin problem.</comment>
+  </data>
+  <data name="PluginArgsList" xml:space="preserve">
+    <value>"args" must be a list of strings.</value>
+    <comment>Plugin problem.</comment>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>System (Windows Light/Dark)</value>
+    <comment>Theme combo option.</comment>
+  </data>
+  <data name="ThemeWindowsLight" xml:space="preserve">
+    <value>Windows Light</value>
+    <comment>Theme combo option.</comment>
+  </data>
+  <data name="ThemeWindowsDark" xml:space="preserve">
+    <value>Windows Dark</value>
+    <comment>Theme combo option.</comment>
+  </data>
+</root>

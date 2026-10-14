@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows.Data;
+using YourLauncher.App.Localization;
 
 namespace YourLauncher.App.Converters;
 
@@ -7,7 +8,7 @@ namespace YourLauncher.App.Converters;
 public sealed class MissingTargetTooltipConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is true ? "Target not found" : null;
+        value is true ? Strings.ListMissingTarget : null;
 
     public object ConvertBack(object value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();

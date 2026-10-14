@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Localization;
 using YourLauncher.Core.Launch;
 using YourLauncher.Core.Model;
 
@@ -116,7 +117,7 @@ public sealed class LaunchService
         }
         catch (Exception ex)
         {
-            ErrorOccurred?.Invoke($"Could not open '{displayName}': {ex.Message}");
+            ErrorOccurred?.Invoke(string.Format(Strings.LaunchOpenFailed, displayName, ex.Message));
             return false;
         }
     }
@@ -161,7 +162,7 @@ public sealed class LaunchService
             return false;
         }
 
-        ErrorOccurred?.Invoke($"Could not open '{displayName}': {new Win32Exception(error).Message}");
+        ErrorOccurred?.Invoke(string.Format(Strings.LaunchOpenFailed, displayName, new Win32Exception(error).Message));
         return false;
     }
 

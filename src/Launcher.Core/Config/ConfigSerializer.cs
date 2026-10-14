@@ -1,6 +1,7 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using YourLauncher.Core.Json;
+using YourLauncher.Core.Localization;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.Core.Config;
@@ -39,7 +40,7 @@ public static class ConfigSerializer
         {
             var config = JsonSerializer.Deserialize<LauncherConfig>(json, Options);
             return config is null
-                ? ConfigLoadResult.Failed("Config file parsed to an empty document.")
+                ? ConfigLoadResult.Failed(CoreStrings.ConfigEmptyDocument)
                 : ConfigLoadResult.Ok(config);
         }
         catch (JsonException ex)

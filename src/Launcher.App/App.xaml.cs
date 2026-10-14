@@ -62,6 +62,9 @@ public partial class App : Application
 
         var configDir = ConfigService.ResolveConfigDirectory();
 
+        // The UI language must be in place before any text is created (ConfigService below may already produce an error line).
+        LanguageService.Apply(configDir);
+
         // Global safety net, hooked up before anything else can throw: every exception nothing else caught
         // goes to error.log next to config.json. UI-thread ones are then swallowed so the tray app keeps
         // running instead of silently vanishing; a background-thread one can't be stopped, only logged.
@@ -205,7 +208,7 @@ public partial class App : Application
         {
             _trayService.ShowBalloon(
                 "Your Launcher",
-                $"Updated to {AppVersionText}. Click to see what's new.",
+                string.Format(Strings.TrayUpdated, AppVersionText),
                 TrayBalloonKind.Updated);
         }
     }
@@ -260,7 +263,7 @@ public partial class App : Application
             }
         };
         tray.IsRecoveryAvailable = () => _viewModel?.CanRecoverFromCorruption ?? false;
-        tray.RecoveryMenuText = () => _viewModel?.RecoveryMenuText ?? "Restore from backup";
+        tray.RecoveryMenuText = () => _viewModel?.RecoveryMenuText ?? Strings.RecoveryRestoreBackup;
         tray.MenuOpening += () => _mainWindow?.BeginSuppressAutoHide();
         tray.MenuClosed += () => _mainWindow?.EndSuppressAutoHide();
     }
@@ -335,8 +338,8 @@ public partial class App : Application
             // so say where the details are and exit instead of leaving an invisible process behind.
             MessageBox.Show(
                 logged
-                    ? $"Your Launcher could not start.\n\nDetails were saved to:\n{_errorLog!.FilePath}"
-                    : $"Your Launcher could not start.\n\n{e.Exception.Message}",
+                    ? string.Format(Strings.StartupFailedLogged, _errorLog!.FilePath)
+                    : string.Format(Strings.StartupFailedMessage, e.Exception.Message),
                 "Your Launcher",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -355,7 +358,7 @@ public partial class App : Application
             _lastErrorBalloonUtc = now;
             _trayService.ShowBalloon(
                 "Your Launcher",
-                logged ? "Something went wrong, but the launcher is still running. Click to see the details." : $"Something went wrong: {e.Exception.Message}",
+                logged ? Strings.TrayErrorLogged : string.Format(Strings.TrayErrorMessage, e.Exception.Message),
                 logged ? TrayBalloonKind.UnhandledError : TrayBalloonKind.None,
                 warning: true);
         }
@@ -365,13 +368,13 @@ public partial class App : Application
     {
         // Raised from LaunchService's background exit-code monitor (spec §10 item 8) - marshal to the UI/tray thread.
         Dispatcher.BeginInvoke(() =>
-            _trayService?.ShowBalloon("Your Launcher", $"'{name}' exited with code {exitCode}.", warning: true));
+            _trayService?.ShowBalloon("Your Launcher", string.Format(Strings.TrayCommandExited, name, exitCode), warning: true));
     }
 
     private void OnViewModelReloadFailed(string error) =>
         _trayService?.ShowBalloon(
             "Your Launcher",
-            "config.json has errors — kept the previous version.",
+            Strings.ConfigHasErrors,
             warning: true);
 
     /// <summary>
@@ -492,7 +495,7 @@ public partial class App : Application
         var message = HotkeyFailureMessage(newHotkeyText);
         if (!restored)
         {
-            message += " The previous hotkey could not be restored either.";
+            message += " " + Strings.HotkeyPreviousNotRestored;
         }
 
         _viewModel!.ErrorMessage = message;
@@ -501,8 +504,8 @@ public partial class App : Application
 
     private static string HotkeyFailureMessage(string hotkeyText) =>
         HotkeyService.TryParse(hotkeyText, out _, out _)
-            ? $"Hotkey {hotkeyText} is already in use. Open settings to choose another."
-            : $"Hotkey '{hotkeyText}' is not a valid key combination.";
+            ? string.Format(Strings.HotkeyInUse, hotkeyText)
+            : string.Format(Strings.HotkeyInvalid, hotkeyText);
 
     private void ShowHotkeyFailureBalloon(string message)
     {
@@ -571,7 +574,7 @@ public partial class App : Application
         var message = HotkeyFailureMessage(newHotkeyText);
         if (!restored)
         {
-            message += " The previous hotkey could not be restored either.";
+            message += " " + Strings.HotkeyPreviousNotRestored;
         }
 
         SyncItemHotkeys(_lastHotkeyText);

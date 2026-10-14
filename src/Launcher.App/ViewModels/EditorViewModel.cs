@@ -237,11 +237,11 @@ public sealed partial class EditorViewModel : ObservableObject
         var defaultGlyph = DefaultGlyphFor(kind);
         return icon?.Kind switch
         {
-            IconKind.Emoji when icon.Value.Length > 0 => (defaultGlyph, icon.Value, "Custom emoji"),
-            IconKind.Glyph when IconGlyphs.IsValidCustomGlyph(icon.Value) => (icon.Value, null, "Custom glyph"),
-            IconKind.File => (defaultGlyph, null, "Custom file icon"),
-            IconKind.Exe => (defaultGlyph, null, "Custom exe icon"),
-            _ => (defaultGlyph, null, "Automatic"),
+            IconKind.Emoji when icon.Value.Length > 0 => (defaultGlyph, icon.Value, Strings.IconCustomEmoji),
+            IconKind.Glyph when IconGlyphs.IsValidCustomGlyph(icon.Value) => (icon.Value, null, Strings.IconCustomGlyph),
+            IconKind.File => (defaultGlyph, null, Strings.IconCustomFile),
+            IconKind.Exe => (defaultGlyph, null, Strings.IconCustomExe),
+            _ => (defaultGlyph, null, Strings.IconAutomatic),
         };
     }
 
@@ -366,7 +366,7 @@ public sealed partial class EditorViewModel : ObservableObject
         var trimmedName = Name.Trim();
         if (trimmedName.Length == 0)
         {
-            NameError = "Name is required";
+            NameError = Strings.EditorNameRequired;
             savedNode = null!;
             return false;
         }
@@ -482,7 +482,7 @@ public sealed partial class EditorViewModel : ObservableObject
     {
         if (TargetCheck.IsMissing(target))
         {
-            WarningMessage = "Target not found — saved anyway.";
+            WarningMessage = Strings.EditorTargetMissing;
         }
     }
 }

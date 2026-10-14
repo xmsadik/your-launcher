@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Icons;
@@ -799,17 +800,17 @@ public partial class MainWindow : Window
         var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
 
         // Provider rows (calculator, system commands, ...) are not tree nodes: only Open applies to them.
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open", style, () => _viewModel.EnterSelected(), enabled: item.CanLaunch));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Edit", style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly && item.CanEdit));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Change icon", style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly && item.CanEdit));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Cut", style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly && item.IsNode));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Duplicate", style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly && item.IsNode));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Delete", style, () => _viewModel.BeginDelete(), "Del", enabled: !readOnly && item.IsNode));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuOpen, style, () => _viewModel.EnterSelected(), enabled: item.CanLaunch));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuEdit, style, () => _viewModel.BeginEditSelected(), "F2", enabled: !readOnly && item.CanEdit));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuChangeIcon, style, () => _viewModel.BeginChangeIcon(), "Ctrl+I", enabled: !readOnly && item.CanEdit));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuCut, style, () => _viewModel.CutSelected(), "Ctrl+X", enabled: !readOnly && item.IsNode));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuPasteHere, style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuDuplicate, style, () => _viewModel.DuplicateSelected(), "Ctrl+D", enabled: !readOnly && item.IsNode));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuDelete, style, () => _viewModel.BeginDelete(), "Del", enabled: !readOnly && item.IsNode));
         menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
 
         var canOpenLocation = TryResolveOpenLocationPath(item.Node, out var locationPath);
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open file location", style, () => OpenFileLocation(locationPath), enabled: canOpenLocation));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuOpenFileLocation, style, () => OpenFileLocation(locationPath), enabled: canOpenLocation));
 
         OpenContextMenu(menu);
     }
@@ -820,9 +821,9 @@ public partial class MainWindow : Window
         var style = ThemedMenuFactory.CreateMenuItemStyle();
         var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true, PlacementTarget = placementTarget, Placement = PlacementMode.MousePoint };
 
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Paste here", style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("New item", style, () => _viewModel.BeginAddNode(), "Ctrl+N", enabled: !readOnly));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("New folder", style, () => _viewModel.BeginAddFolderDirect(), "Ctrl+Shift+N", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuPasteHere, style, () => _viewModel.PasteIntoCurrentFolder(), "Ctrl+V", enabled: !readOnly && _viewModel.CutNode is not null));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuNewItem, style, () => _viewModel.BeginAddNode(), "Ctrl+N", enabled: !readOnly));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.MenuNewFolder, style, () => _viewModel.BeginAddFolderDirect(), "Ctrl+Shift+N", enabled: !readOnly));
 
         OpenContextMenu(menu);
     }

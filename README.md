@@ -503,6 +503,8 @@ file location) still work.
 
 Theme, Background opacity and Use Windows accent color preview live: the panel changes as soon as you pick or type a value, and only Save keeps it. Cancel or closing the panel restores the saved look.
 
+**Language** (Settings → Language, `settings.language`): `system` (default) follows the Windows display language — the UI is Turkish when Windows is Turkish and English otherwise — or pin `en` / `tr`. The language is applied at startup, before any text is created, so a change takes effect after restarting Your Launcher (the settings page says so under the box while the choice differs from the running language). Strings live in `Localization/Strings.resx` + `Strings.tr.resx` (app) and `Localization/CoreStrings*.resx` (Core); key names inside hotkey strings (`Ctrl+Alt+Space`) always stay English. In Turkish the type picker letters follow the Turkish names (`K` Klasör / `U` Uygulama / `D` Dosya veya klasör / `M` Komut / `W` Web adresi / `A` Ayırıcı).
+
 ### Editor page
 
 | Key | Behavior |
@@ -626,6 +628,7 @@ Shape (spec §4.2–§4.5):
                                  // catppuccinFrappe | catppuccinLatte | tokyoNight | tokyoNightStorm |
                                  // tokyoNightDay | dracula | nord | gruvboxDark | gruvboxLight | oneDark |
                                  // solarizedDark | solarizedLight | monokai | githubDark | githubLight | rosePine
+    "language": "system",        // system | en | tr (UI language; applied at the next start)
     "opacity": 90,               // 40-100: panel background over the Win11 22H2+ Mica/Acrylic backdrop (no effect on Win10)
     "useWindowsAccent": false,   // true: accent color follows the Windows accent color (updates live)
     "startWithWindows": true,     // Phase 5

@@ -1,5 +1,7 @@
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Localization;
+using YourLauncher.App.Services;
 using YourLauncher.Core.Bookmarks;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Model;
@@ -45,6 +47,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     private Theme _theme;
+
+    [ObservableProperty]
+    private AppLanguage _language;
 
     [ObservableProperty]
     private int _opacity;
@@ -135,6 +140,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _originalHotkeyText = current.Hotkey;
         _hotkeyText = current.Hotkey;
         _theme = current.Theme;
+        _language = current.Language;
         _opacity = current.Opacity;
         _useWindowsAccent = current.UseWindowsAccent;
         _startWithWindows = current.StartWithWindows;
@@ -147,7 +153,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         if (isReadOnly)
         {
-            _errorMessage = "Config is read-only because config.json could not be read. Fix or restore it first.";
+            _errorMessage = Strings.ConfigReadOnly;
         }
         else if (hotkeyErrorToShow is not null)
         {
@@ -157,6 +163,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     partial void OnThemeChanged(Theme value) => Preview();
+
+    partial void OnLanguageChanged(AppLanguage value) => OnPropertyChanged(nameof(LanguageNote));
+
+    /// <summary>
+    /// Shown under the language combo while the chosen language differs from the one this process started with:
+    /// the language is applied before any UI text exists, so a change only takes effect after a restart.
+    /// </summary>
+    public string LanguageNote => Language == LanguageService.Applied ? "" : Strings.SettingsLanguageRestartNote;
 
     partial void OnOpacityChanged(int value) => Preview();
 
@@ -221,7 +235,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (_isReadOnly)
         {
-            ErrorMessage = "Config is read-only because config.json could not be read. Fix or restore it first.";
+            ErrorMessage = Strings.ConfigReadOnly;
             return;
         }
 
@@ -254,6 +268,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         {
             Hotkey = HotkeyText,
             Theme = Theme,
+            Language = Language,
             Opacity = Opacity,
             UseWindowsAccent = UseWindowsAccent,
             StartWithWindows = StartWithWindows,
@@ -281,11 +296,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         try
         {
             File.WriteAllText(path, _exportJson());
-            ErrorMessage = $"Exported to {Path.GetFileName(path)}.";
+            ErrorMessage = string.Format(Strings.SettingsExported, Path.GetFileName(path));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ErrorMessage = $"Could not export: {ex.Message}";
+            ErrorMessage = string.Format(Strings.SettingsExportFailed, ex.Message);
         }
     }
 
@@ -298,14 +313,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ErrorMessage = $"Could not read file: {ex.Message}";
+            ErrorMessage = string.Format(Strings.SettingsReadFailed, ex.Message);
             return;
         }
 
         var result = ConfigSerializer.Deserialize(json);
         if (!result.Success)
         {
-            ErrorMessage = $"Could not import: {result.Error}";
+            ErrorMessage = string.Format(Strings.SettingsImportFailed, result.Error);
             return;
         }
 
@@ -335,14 +350,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ErrorMessage = $"Could not read {source.DisplayName} bookmarks: {ex.Message}";
+            ErrorMessage = string.Format(Strings.SettingsBookmarksReadFailed, source.DisplayName, ex.Message);
             return;
         }
 
         FolderNode imported;
         try
         {
-            imported = ChromiumBookmarkParser.Parse(jsons, $"{source.DisplayName} bookmarks");
+            imported = ChromiumBookmarkParser.Parse(jsons, string.Format(Strings.BookmarksFolderForBrowser, source.DisplayName));
         }
         catch (BookmarkImportException ex)
         {
@@ -363,11 +378,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            ErrorMessage = $"Could not read file: {ex.Message}";
+            ErrorMessage = string.Format(Strings.SettingsReadFailed, ex.Message);
             return;
         }
 
-        var folderName = $"Bookmarks ({Path.GetFileNameWithoutExtension(path)})";
+        var folderName = string.Format(Strings.BookmarksFolderForFile, Path.GetFileNameWithoutExtension(path));
         FolderNode imported;
         try
         {

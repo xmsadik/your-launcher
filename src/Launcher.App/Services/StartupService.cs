@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Win32;
 using Windows.ApplicationModel;
+using YourLauncher.App.Localization;
 using YourLauncher.Core.Startup;
 
 namespace YourLauncher.App.Services;
@@ -100,11 +101,11 @@ public sealed class StartupService
             StatusNote = desiredEnabled switch
             {
                 true when state == StartupTaskState.DisabledByUser =>
-                    "Turned off in Task Manager (Startup apps). Turn it back on there to start with Windows.",
+                    Strings.StartupDisabledByUser,
                 true when state == StartupTaskState.DisabledByPolicy =>
-                    "Starting with Windows is blocked by a system policy.",
+                    Strings.StartupBlockedByPolicy,
                 false when state == StartupTaskState.EnabledByPolicy =>
-                    "A system policy still starts the app with Windows.",
+                    Strings.StartupForcedByPolicy,
                 _ => null,
             };
             Debug.WriteLine($"[YourLauncher] StartupTask '{PackagedTaskId}': desired={desiredEnabled}, state={state}.");

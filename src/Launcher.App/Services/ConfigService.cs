@@ -1,6 +1,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using YourLauncher.App.Localization;
 using YourLauncher.Core.Config;
 using YourLauncher.Core.Model;
 
@@ -86,7 +87,7 @@ public sealed class ConfigService
         }
         else
         {
-            LoadError = $"Config could not be read: {result.Error}. Using an empty tree; the file was not modified.";
+            LoadError = string.Format(Strings.ConfigLoadFailed, result.Error);
             Config = new LauncherConfig
             {
                 Version = 1,
@@ -117,8 +118,7 @@ public sealed class ConfigService
     {
         if (IsReadOnly)
         {
-            return ConfigSaveResult.Failed(
-                "Config is read-only because config.json could not be read. Fix or restore it first.");
+            return ConfigSaveResult.Failed(Strings.ConfigReadOnly);
         }
 
         try
@@ -130,7 +130,7 @@ public sealed class ConfigService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return ConfigSaveResult.Failed($"Could not save config: {ex.Message}");
+            return ConfigSaveResult.Failed(string.Format(Strings.ConfigSaveFailedDetail, ex.Message));
         }
     }
 
@@ -145,8 +145,8 @@ public sealed class ConfigService
         var result = _store.Load();
         if (!result.Success)
         {
-            LoadError = "config.json has errors — kept the previous version.";
-            return ConfigReloadResult.Failed(result.Error ?? "unknown error");
+            LoadError = Strings.ConfigHasErrors;
+            return ConfigReloadResult.Failed(result.Error ?? Strings.ConfigUnknownError);
         }
 
         Config.Version = result.Config!.Version;
@@ -189,7 +189,7 @@ public sealed class ConfigService
         var save = Save();
         if (!save.Success)
         {
-            return ConfigReloadResult.Failed(save.Error ?? "Could not save config.");
+            return ConfigReloadResult.Failed(save.Error ?? Strings.ConfigSaveFailed);
         }
 
         ConfigReloaded?.Invoke();
@@ -205,7 +205,7 @@ public sealed class ConfigService
     {
         if (!HasBackup)
         {
-            return ConfigReloadResult.Failed("No backup file found.");
+            return ConfigReloadResult.Failed(Strings.ConfigNoBackup);
         }
 
         ArchiveCorruptFile();
@@ -216,7 +216,7 @@ public sealed class ConfigService
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return ConfigReloadResult.Failed($"Could not restore backup: {ex.Message}");
+            return ConfigReloadResult.Failed(string.Format(Strings.ConfigRestoreFailed, ex.Message));
         }
 
         return Reload();

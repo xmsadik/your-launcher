@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using YourLauncher.App.Interop;
+using YourLauncher.App.Localization;
 
 namespace YourLauncher.App.Services;
 
@@ -54,7 +55,7 @@ public sealed class TrayService : IDisposable
     /// <summary>Queried fresh every time the menu is (re)built, rather than kept in sync eagerly.</summary>
     public Func<bool> IsRecoveryAvailable { get; set; } = () => false;
 
-    public Func<string> RecoveryMenuText { get; set; } = () => "Restore from backup";
+    public Func<string> RecoveryMenuText { get; set; } = () => Strings.RecoveryRestoreBackup;
 
     public TrayService(Window window, string tooltip)
     {
@@ -183,11 +184,11 @@ public sealed class TrayService : IDisposable
         var menuItemStyle = ThemedMenuFactory.CreateMenuItemStyle();
         var menu = new ContextMenu { Style = ThemedMenuFactory.CreateMenuStyle(), OverridesDefaultStyle = true };
 
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Show", menuItemStyle, () => ShowRequested?.Invoke()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Settings…", menuItemStyle, () => SettingsRequested?.Invoke()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open config file", menuItemStyle, () => OpenConfigFileRequested?.Invoke()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Open config folder", menuItemStyle, () => OpenConfigFolderRequested?.Invoke()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Reload config", menuItemStyle, () => ReloadConfigRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TrayShow, menuItemStyle, () => ShowRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TraySettings, menuItemStyle, () => SettingsRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TrayOpenConfigFile, menuItemStyle, () => OpenConfigFileRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TrayOpenConfigFolder, menuItemStyle, () => OpenConfigFolderRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TrayReloadConfig, menuItemStyle, () => ReloadConfigRequested?.Invoke()));
 
         if (IsRecoveryAvailable())
         {
@@ -195,7 +196,7 @@ public sealed class TrayService : IDisposable
         }
 
         menu.Items.Add(ThemedMenuFactory.CreateSeparator(ThemedMenuFactory.CreateSeparatorStyle()));
-        menu.Items.Add(ThemedMenuFactory.CreateItem("Exit", menuItemStyle, () => ExitRequested?.Invoke()));
+        menu.Items.Add(ThemedMenuFactory.CreateItem(Strings.TrayExit, menuItemStyle, () => ExitRequested?.Invoke()));
 
         return menu;
     }

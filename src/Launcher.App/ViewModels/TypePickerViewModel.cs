@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using YourLauncher.App.Localization;
 
 namespace YourLauncher.App.ViewModels;
 
@@ -25,12 +26,12 @@ public sealed partial class TypePickerViewModel : ObservableObject
 {
     public static readonly IReadOnlyList<TypePickerOption> Options = new[]
     {
-        new TypePickerOption(NodeKind.Folder, "", "Folder", "F"),
-        new TypePickerOption(NodeKind.App, "", "App", "A"),
-        new TypePickerOption(NodeKind.Path, "", "File or folder", "P"),
-        new TypePickerOption(NodeKind.Command, "", "Command", "C"),
-        new TypePickerOption(NodeKind.Url, "", "URL", "U"),
-        new TypePickerOption(NodeKind.Separator, "", "Separator", "S"),
+        new TypePickerOption(NodeKind.Folder, "", Strings.TypeFolder, Strings.TypeFolderKey),
+        new TypePickerOption(NodeKind.App, "", Strings.TypeApp, Strings.TypeAppKey),
+        new TypePickerOption(NodeKind.Path, "", Strings.TypePath, Strings.TypePathKey),
+        new TypePickerOption(NodeKind.Command, "", Strings.TypeCommand, Strings.TypeCommandKey),
+        new TypePickerOption(NodeKind.Url, "", Strings.TypeUrl, Strings.TypeUrlKey),
+        new TypePickerOption(NodeKind.Separator, "", Strings.TypeSeparator, Strings.TypeSeparatorKey),
     };
 
     [ObservableProperty]

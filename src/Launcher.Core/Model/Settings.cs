@@ -33,6 +33,17 @@ public enum Theme
     RosePine,
 }
 
+/// <summary>
+/// UI language. <see cref="System"/> follows the Windows display language (Turkish when that is Turkish, English
+/// otherwise); the others pin one. Config names are the camelCase member names: "system", "en", "tr".
+/// </summary>
+public enum AppLanguage
+{
+    System,
+    En,
+    Tr,
+}
+
 /// <summary>Application settings, spec §4.5 / §11.</summary>
 public sealed class Settings
 {
@@ -40,6 +51,10 @@ public sealed class Settings
 
     [JsonConverter(typeof(JsonCamelCaseEnumConverter<Theme>))]
     public Theme Theme { get; set; } = Theme.System;
+
+    /// <summary>UI language; a change takes effect after the next start (the language is applied before any UI text is created).</summary>
+    [JsonConverter(typeof(JsonCamelCaseEnumConverter<AppLanguage>))]
+    public AppLanguage Language { get; set; } = AppLanguage.System;
 
     /// <summary>Panel background opacity in percent (<see cref="MinOpacity"/>-100) over the Windows 11 Mica/Acrylic backdrop; text stays opaque. No visible effect where the backdrop is unavailable (Windows 10).</summary>
     public int Opacity { get; set; } = 90;

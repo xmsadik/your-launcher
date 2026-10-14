@@ -1,4 +1,5 @@
 using System.Text.Json;
+using YourLauncher.Core.Localization;
 
 namespace YourLauncher.Core.Plugins;
 
@@ -18,34 +19,34 @@ public static class PluginManifestParser
         }
         catch (JsonException ex)
         {
-            return new PluginManifestResult(null, $"plugin.json is not valid: {ex.Message}");
+            return new PluginManifestResult(null, string.Format(CoreStrings.PluginJsonInvalid, ex.Message));
         }
 
         if (dto is null)
         {
-            return new PluginManifestResult(null, "plugin.json is empty.");
+            return new PluginManifestResult(null, CoreStrings.PluginJsonEmpty);
         }
 
         var keyword = dto.Keyword?.Trim();
         if (string.IsNullOrEmpty(keyword))
         {
-            return new PluginManifestResult(null, "\"keyword\" is required.");
+            return new PluginManifestResult(null, CoreStrings.PluginKeywordRequired);
         }
 
         if (keyword.Any(char.IsWhiteSpace))
         {
-            return new PluginManifestResult(null, "\"keyword\" must not contain spaces.");
+            return new PluginManifestResult(null, CoreStrings.PluginKeywordNoSpaces);
         }
 
         var command = dto.Command?.Trim();
         if (string.IsNullOrEmpty(command))
         {
-            return new PluginManifestResult(null, "\"command\" is required.");
+            return new PluginManifestResult(null, CoreStrings.PluginCommandRequired);
         }
 
         if (dto.Args is not null && dto.Args.Any(a => a is null))
         {
-            return new PluginManifestResult(null, "\"args\" must be a list of strings.");
+            return new PluginManifestResult(null, CoreStrings.PluginArgsList);
         }
 
         var name = string.IsNullOrWhiteSpace(dto.Name) ? folderName : dto.Name.Trim();

@@ -50,7 +50,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Hotkey" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsHotkey}" Style="{StaticResource FieldLabel}" />
             <TextBox x:Name="HotkeyBox"
                      Grid.Column="1"
                      Width="220"
@@ -69,10 +69,29 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Theme" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsTheme}" Style="{StaticResource FieldLabel}" />
             <!-- Items come from ThemeCatalog.Choices (SettingsView constructor). -->
             <ComboBox x:Name="ThemeCombo" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectionChanged="ThemeCombo_OnSelectionChanged" />
         </Grid>
+
+        <!-- Language (applied at the next start; the note shows while the choice differs from the running language) -->
+        <Grid Style="{StaticResource Row}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsLanguage}" Style="{StaticResource FieldLabel}" />
+            <ComboBox x:Name="LanguageCombo" Grid.Column="1" Width="220" HorizontalAlignment="Left" SelectionChanged="LanguageCombo_OnSelectionChanged">
+                <ComboBoxItem Content="{x:Static loc:Strings.SettingsLanguageSystem}" />
+                <ComboBoxItem Content="English" />
+                <ComboBoxItem Content="Türkçe" />
+            </ComboBox>
+        </Grid>
+        <TextBlock Text="{Binding LanguageNote}"
+                   Foreground="{DynamicResource WarningBrush}"
+                   Margin="0,-4,0,6"
+                   TextWrapping="Wrap"
+                   Visibility="{Binding LanguageNote, Converter={StaticResource NonEmptyToVis}}" />
 
         <!-- Background opacity -->
         <Grid Style="{StaticResource Row}">
@@ -81,7 +100,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Background opacity" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsOpacity}" Style="{StaticResource FieldLabel}" />
             <TextBox x:Name="OpacityBox" Grid.Column="1" Width="60" HorizontalAlignment="Left"
                      Text="{Binding Opacity, UpdateSourceTrigger=PropertyChanged}" />
             <TextBlock Grid.Column="2" Text="%" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" />
@@ -103,7 +122,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Start with Windows" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsStartWithWindows}" Style="{StaticResource FieldLabel}" />
             <CheckBox Grid.Column="1" IsChecked="{Binding StartWithWindows}" VerticalAlignment="Center" />
         </Grid>
         <TextBlock Text="{Binding StartupNote}"
@@ -118,7 +137,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Close after launch" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsCloseAfterLaunch}" Style="{StaticResource FieldLabel}" />
             <CheckBox Grid.Column="1" IsChecked="{Binding CloseAfterLaunch}" VerticalAlignment="Center" />
         </Grid>
 
@@ -128,7 +147,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Visible rows" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsVisibleRows}" Style="{StaticResource FieldLabel}" />
             <TextBox x:Name="MaxVisibleItemsBox" Grid.Column="1" Width="60" HorizontalAlignment="Left"
                      Text="{Binding MaxVisibleItems, UpdateSourceTrigger=PropertyChanged}" />
         </Grid>
@@ -139,7 +158,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Default shell" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsDefaultShell}" Style="{StaticResource FieldLabel}" />
             <ComboBox x:Name="ShellCombo" Grid.Column="1" Width="160" HorizontalAlignment="Left" SelectionChanged="ShellCombo_OnSelectionChanged">
                 <ComboBoxItem Content="pwsh" />
                 <ComboBoxItem Content="powershell" />
@@ -153,7 +172,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Remember last location" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsRememberLocation}" Style="{StaticResource FieldLabel}" />
             <CheckBox Grid.Column="1" IsChecked="{Binding RememberLastLocation}" VerticalAlignment="Center" />
         </Grid>
 
@@ -163,7 +182,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Show hint bar" Style="{StaticResource FieldLabel}" />
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsShowHintBar}" Style="{StaticResource FieldLabel}" />
             <CheckBox Grid.Column="1" IsChecked="{Binding ShowHintBar}" VerticalAlignment="Center" />
         </Grid>
 
@@ -182,11 +201,11 @@
 
         <!-- Buttons -->
         <WrapPanel Margin="0,6,0,0">
-            <Button Content="Open config folder" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenConfigFolderButton_OnClick" />
+            <Button Content="{x:Static loc:Strings.SettingsOpenConfigFolder}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenConfigFolderButton_OnClick" />
             <Button Content="{x:Static loc:Strings.SettingsOpenPluginsFolder}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenPluginsFolderButton_OnClick" />
-            <Button Content="Export…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
-            <Button Content="Import…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
-            <Button x:Name="ImportBookmarksButton" Content="Import bookmarks…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button Content="{x:Static loc:Strings.SettingsExport}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button Content="{x:Static loc:Strings.SettingsImport}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
+            <Button x:Name="ImportBookmarksButton" Content="{x:Static loc:Strings.SettingsImportBookmarks}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />
             <Button Content="{x:Static loc:Strings.SettingsImportStartMenu}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportStartMenuButton_OnClick" IsEnabled="{Binding CanExportImport}" />
         </WrapPanel>
 

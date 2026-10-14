@@ -1,0 +1,890 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ProviderConfirmRun" xml:space="preserve">
+    <value>'{0}' çalıştırılsın mı? Enter = çalıştır, Esc = iptal</value>
+  </data>
+  <data name="ProviderActionFailed" xml:space="preserve">
+    <value>'{0}' çalıştırılamadı.</value>
+  </data>
+  <data name="ProviderActionError" xml:space="preserve">
+    <value>'{0}' çalıştırılamadı: {1}</value>
+  </data>
+  <data name="SettingsUseWindowsAccent" xml:space="preserve">
+    <value>Windows vurgu rengini kullan</value>
+  </data>
+  <data name="CalcSubtitle" xml:space="preserve">
+    <value>{0} · kopyalamak için Enter</value>
+  </data>
+  <data name="CalcSubtitleHex" xml:space="preserve">
+    <value>{0} · {1} · kopyalamak için Enter</value>
+  </data>
+  <data name="SysCmdSubtitle" xml:space="preserve">
+    <value>Sistem komutu</value>
+  </data>
+  <data name="SysCmdLock" xml:space="preserve">
+    <value>Kilitle</value>
+  </data>
+  <data name="SysCmdSleep" xml:space="preserve">
+    <value>Uyku</value>
+  </data>
+  <data name="SysCmdHibernate" xml:space="preserve">
+    <value>Hazırda beklet</value>
+  </data>
+  <data name="SysCmdSignOut" xml:space="preserve">
+    <value>Oturumu kapat</value>
+  </data>
+  <data name="SysCmdRestart" xml:space="preserve">
+    <value>Yeniden başlat</value>
+  </data>
+  <data name="SysCmdShutDown" xml:space="preserve">
+    <value>Bilgisayarı kapat</value>
+  </data>
+  <data name="SysCmdEmptyRecycleBin" xml:space="preserve">
+    <value>Geri dönüşüm kutusunu boşalt</value>
+  </data>
+  <data name="EditorQueryHint" xml:space="preserve">
+    <value>Anahtar sözcükten sonra yazılan metin için {query} kullanın</value>
+  </data>
+  <data name="EditorHotkeyLabel" xml:space="preserve">
+    <value>Kısayol tuşu</value>
+  </data>
+  <data name="EditorHotkeyHint" xml:space="preserve">
+    <value>Bir tuş birleşimine basın, Backspace temizler</value>
+  </data>
+  <data name="EditorHotkeyConflictMain" xml:space="preserve">
+    <value>{0} zaten panelin kısayol tuşu.</value>
+  </data>
+  <data name="EditorHotkeyConflictItem" xml:space="preserve">
+    <value>{0} zaten '{1}' tarafından kullanılıyor.</value>
+  </data>
+  <data name="EditorHotkeyInvalid" xml:space="preserve">
+    <value>'{0}' geçerli bir tuş birleşimi değil.</value>
+  </data>
+  <data name="HotkeyItemInvalid" xml:space="preserve">
+    <value>'{0}' için '{1}' kısayol tuşu geçerli bir tuş birleşimi değil.</value>
+  </data>
+  <data name="HotkeyItemInUse" xml:space="preserve">
+    <value>'{0}' için {1} kısayol tuşu başka bir program tarafından kullanılıyor.</value>
+  </data>
+  <data name="HotkeyItemConflictMain" xml:space="preserve">
+    <value>'{0}' için {1} kısayol tuşu panelin kısayol tuşu olduğundan atlandı.</value>
+  </data>
+  <data name="HotkeyItemConflictItem" xml:space="preserve">
+    <value>'{0}' için {1} kısayol tuşu zaten '{2}' tarafından kullanıldığından atlandı.</value>
+  </data>
+  <data name="HotkeyItemsMore" xml:space="preserve">
+    <value>...ve {0} tane daha.</value>
+  </data>
+  <data name="WindowSubtitle" xml:space="preserve">
+    <value>Pencereye geç · {0}</value>
+  </data>
+  <data name="WindowSubtitleNoApp" xml:space="preserve">
+    <value>Pencereye geç</value>
+  </data>
+  <data name="SettingsImportStartMenu" xml:space="preserve">
+    <value>Başlat menüsünden içe aktar…</value>
+  </data>
+  <data name="StartMenuFolderName" xml:space="preserve">
+    <value>Başlat menüsü</value>
+  </data>
+  <data name="StartMenuBreadcrumb" xml:space="preserve">
+    <value>Başlat menüsünden içe aktar</value>
+  </data>
+  <data name="StartMenuPickerHint" xml:space="preserve">
+    <value>Filtrelemek için yazın  Boşluk seç  Ctrl+A tümü  ↵ içe aktar  Esc iptal</value>
+  </data>
+  <data name="StartMenuFilterPlaceholder" xml:space="preserve">
+    <value>Uygulamaları filtrele…</value>
+  </data>
+  <data name="StartMenuLoading" xml:space="preserve">
+    <value>Başlat menüsü okunuyor…</value>
+  </data>
+  <data name="StartMenuImporting" xml:space="preserve">
+    <value>İçe aktarılıyor…</value>
+  </data>
+  <data name="StartMenuNoApps" xml:space="preserve">
+    <value>Başlat menüsünde uygulama bulunamadı.</value>
+  </data>
+  <data name="StartMenuNoMatches" xml:space="preserve">
+    <value>Filtreyle eşleşen uygulama yok.</value>
+  </data>
+  <data name="StartMenuSelectedCount" xml:space="preserve">
+    <value>{0} / {1} seçili</value>
+  </data>
+  <data name="StartMenuKindStore" xml:space="preserve">
+    <value>Store uygulaması</value>
+  </data>
+  <data name="StartMenuKindDesktop" xml:space="preserve">
+    <value>Masaüstü uygulaması</value>
+  </data>
+  <data name="StartMenuScanFailed" xml:space="preserve">
+    <value>Başlat menüsü okunamadı: {0}</value>
+  </data>
+  <data name="StartMenuImportFailed" xml:space="preserve">
+    <value>Başlat menüsünden içe aktarılamadı: {0}</value>
+  </data>
+  <data name="StartMenuImportDone" xml:space="preserve">
+    <value>Başlat menüsü içe aktarma: {0} eklendi, {1} güncellendi, {2} kaldırıldı ('{3}' klasörü).</value>
+  </data>
+  <data name="PluginSearching" xml:space="preserve">
+    <value>{0}: aranıyor…</value>
+  </data>
+  <data name="PluginsSkipped" xml:space="preserve">
+    <value>Atlanan eklentiler:</value>
+  </data>
+  <data name="SettingsOpenPluginsFolder" xml:space="preserve">
+    <value>Eklentiler klasörünü aç</value>
+  </data>
+  <data name="FileSearchPending" xml:space="preserve">
+    <value>Dosyalar aranıyor…</value>
+  </data>
+  <data name="SettingsFileSearchPrefix" xml:space="preserve">
+    <value>Dosya arama öneki</value>
+  </data>
+  <data name="SettingsFileSearchPrefixHint" xml:space="preserve">
+    <value>örn. "f rapor"; boş bırakılırsa dosya araması kapanır</value>
+  </data>
+  <data name="NavEmptyFolder" xml:space="preserve">
+    <value>Bu klasör boş — eklemek için Ctrl+N tuşuna basın</value>
+  </data>
+  <data name="NavNoResults" xml:space="preserve">
+    <value>Sonuç yok</value>
+  </data>
+  <data name="HintNav" xml:space="preserve">
+    <value>↵ aç  → gir  ← geri  Ctrl+N ekle  F2 düzenle  Ctrl+I simge  Del sil</value>
+  </data>
+  <data name="HintSearch" xml:space="preserve">
+    <value>↵ aç  Ctrl+↵ klasörde göster  Esc temizle</value>
+  </data>
+  <data name="HintEditor" xml:space="preserve">
+    <value>Enter kaydet  Esc iptal  Alt+A gelişmiş</value>
+  </data>
+  <data name="HintTypePicker" xml:space="preserve">
+    <value>↑↓ seç  ↵ onayla  Esc iptal</value>
+  </data>
+  <data name="HintIconPicker" xml:space="preserve">
+    <value>Ctrl+Tab sekme  ↑↓←→ taşı  ↵ uygula  Ctrl+0 varsayılan  Esc iptal</value>
+  </data>
+  <data name="HintSettings" xml:space="preserve">
+    <value>Tab ilerle  Enter kaydet  Esc iptal</value>
+  </data>
+  <data name="HintCut" xml:space="preserve">
+    <value>Kesildi: {0} — bir klasöre gidip Ctrl+V tuşuna basın</value>
+  </data>
+  <data name="BreadcrumbNewItem" xml:space="preserve">
+    <value>Yeni öğe</value>
+  </data>
+  <data name="BreadcrumbEdit" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+  <data name="BreadcrumbIcon" xml:space="preserve">
+    <value>Simge</value>
+  </data>
+  <data name="BreadcrumbSettings" xml:space="preserve">
+    <value>Ayarlar</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Ara…</value>
+  </data>
+  <data name="ItemCountOne" xml:space="preserve">
+    <value>{0} öğe</value>
+  </data>
+  <data name="ItemCountMany" xml:space="preserve">
+    <value>{0} öğe</value>
+  </data>
+  <data name="ListMissingTarget" xml:space="preserve">
+    <value>Hedef bulunamadı</value>
+  </data>
+  <data name="RecoveryKeepCurrent" xml:space="preserve">
+    <value>Geçerli sürümümü koru</value>
+  </data>
+  <data name="RecoveryRestoreBackup" xml:space="preserve">
+    <value>Yedekten geri yükle</value>
+  </data>
+  <data name="RecoveryHintKeepCurrent" xml:space="preserve">
+    <value>Ctrl+Shift+R: geçerli sürümü koru</value>
+  </data>
+  <data name="RecoveryHintRestoreBackup" xml:space="preserve">
+    <value>Ctrl+Shift+R: yedeği geri yükle</value>
+  </data>
+  <data name="LaunchConfirm" xml:space="preserve">
+    <value>'{0}' başlatılsın mı? Enter = başlat, Esc = iptal</value>
+  </data>
+  <data name="DeleteSeparatorConfirm" xml:space="preserve">
+    <value>Ayırıcı silinsin mi? Enter = sil, Esc = iptal</value>
+  </data>
+  <data name="DeleteFolderConfirmOne" xml:space="preserve">
+    <value>'{0}' klasörü ve içindeki {1} öğe silinsin mi? Enter = sil, Esc = iptal</value>
+  </data>
+  <data name="DeleteFolderConfirmMany" xml:space="preserve">
+    <value>'{0}' klasörü ve içindeki {1} öğe silinsin mi? Enter = sil, Esc = iptal</value>
+  </data>
+  <data name="DeleteConfirm" xml:space="preserve">
+    <value>'{0}' silinsin mi? Enter = sil, Esc = iptal</value>
+  </data>
+  <data name="ImportConfirm" xml:space="preserve">
+    <value>Bu yapılandırma içe aktarılsın mı? M = Birleştir (ekler; çakışan kimlikleri yeniden adlandırır) · R = Değiştir (geçerli ayarlar korunur) · Esc = iptal</value>
+  </data>
+  <data name="ImportedMergedOne" xml:space="preserve">
+    <value>{0} öğe içe aktarıldı (birleştirildi).</value>
+  </data>
+  <data name="ImportedMergedMany" xml:space="preserve">
+    <value>{0} öğe içe aktarıldı (birleştirildi).</value>
+  </data>
+  <data name="ImportedReplacedOne" xml:space="preserve">
+    <value>{0} öğe içe aktarıldı (değiştirildi).</value>
+  </data>
+  <data name="ImportedReplacedMany" xml:space="preserve">
+    <value>{0} öğe içe aktarıldı (değiştirildi).</value>
+  </data>
+  <data name="BookmarksImportedNewOne" xml:space="preserve">
+    <value>{0} yer imi '{1}' klasörüne aktarıldı.</value>
+  </data>
+  <data name="BookmarksImportedNewMany" xml:space="preserve">
+    <value>{0} yer imi '{1}' klasörüne aktarıldı.</value>
+  </data>
+  <data name="BookmarksImportedReplacedOne" xml:space="preserve">
+    <value>{1} kaynağından {0} yer imi aktarıldı (önceki içe aktarmanın yerine geçti).</value>
+  </data>
+  <data name="BookmarksImportedReplacedMany" xml:space="preserve">
+    <value>{1} kaynağından {0} yer imi aktarıldı (önceki içe aktarmanın yerine geçti).</value>
+  </data>
+  <data name="MoveIntoItself" xml:space="preserve">
+    <value>Klasör kendi içine taşınamaz.</value>
+  </data>
+  <data name="ReloadPending" xml:space="preserve">
+    <value>config.json değişti — bu işlemi bitirdiğinizde yeniden yüklenecek.</value>
+  </data>
+  <data name="ReloadSaveRefused" xml:space="preserve">
+    <value>config.json diskte değişti — düzenlemeniz kaydedilmedi; yeniden açıp tekrar yapın.</value>
+  </data>
+  <data name="ConfigHasErrors" xml:space="preserve">
+    <value>config.json hatalı — önceki sürüm korundu.</value>
+  </data>
+  <data name="ConfigHasErrorsShort" xml:space="preserve">
+    <value>config.json hatalı.</value>
+  </data>
+  <data name="ConfigReadOnly" xml:space="preserve">
+    <value>config.json okunamadığı için yapılandırma salt okunur. Önce düzeltin veya geri yükleyin.</value>
+  </data>
+  <data name="ConfigSaveFailed" xml:space="preserve">
+    <value>Yapılandırma kaydedilemedi.</value>
+  </data>
+  <data name="ConfigSaveFailedDetail" xml:space="preserve">
+    <value>Yapılandırma kaydedilemedi: {0}</value>
+  </data>
+  <data name="ConfigRecoverFailed" xml:space="preserve">
+    <value>Yapılandırma kurtarılamadı.</value>
+  </data>
+  <data name="ConfigLoadFailed" xml:space="preserve">
+    <value>Yapılandırma okunamadı: {0}. Boş bir ağaç kullanılıyor; dosya değiştirilmedi.</value>
+  </data>
+  <data name="ConfigUnknownError" xml:space="preserve">
+    <value>bilinmeyen hata</value>
+  </data>
+  <data name="ConfigNoBackup" xml:space="preserve">
+    <value>Yedek dosya bulunamadı.</value>
+  </data>
+  <data name="ConfigRestoreFailed" xml:space="preserve">
+    <value>Yedek geri yüklenemedi: {0}</value>
+  </data>
+  <data name="LaunchOpenFailed" xml:space="preserve">
+    <value>'{0}' açılamadı: {1}</value>
+  </data>
+  <data name="MenuOpen" xml:space="preserve">
+    <value>Aç</value>
+  </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+  <data name="MenuChangeIcon" xml:space="preserve">
+    <value>Simgeyi değiştir</value>
+  </data>
+  <data name="MenuCut" xml:space="preserve">
+    <value>Kes</value>
+  </data>
+  <data name="MenuPasteHere" xml:space="preserve">
+    <value>Buraya yapıştır</value>
+  </data>
+  <data name="MenuDuplicate" xml:space="preserve">
+    <value>Yinele</value>
+  </data>
+  <data name="MenuDelete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="MenuOpenFileLocation" xml:space="preserve">
+    <value>Dosya konumunu aç</value>
+  </data>
+  <data name="MenuNewItem" xml:space="preserve">
+    <value>Yeni öğe</value>
+  </data>
+  <data name="MenuNewFolder" xml:space="preserve">
+    <value>Yeni klasör</value>
+  </data>
+  <data name="TrayShow" xml:space="preserve">
+    <value>Göster</value>
+  </data>
+  <data name="TraySettings" xml:space="preserve">
+    <value>Ayarlar…</value>
+  </data>
+  <data name="TrayOpenConfigFile" xml:space="preserve">
+    <value>Yapılandırma dosyasını aç</value>
+  </data>
+  <data name="TrayOpenConfigFolder" xml:space="preserve">
+    <value>Yapılandırma klasörünü aç</value>
+  </data>
+  <data name="TrayReloadConfig" xml:space="preserve">
+    <value>Yapılandırmayı yeniden yükle</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Çık</value>
+  </data>
+  <data name="TrayUpdated" xml:space="preserve">
+    <value>{0} sürümüne güncellendi. Yenilikleri görmek için tıklayın.</value>
+  </data>
+  <data name="TrayErrorLogged" xml:space="preserve">
+    <value>Bir şeyler ters gitti ama başlatıcı çalışmaya devam ediyor. Ayrıntıları görmek için tıklayın.</value>
+  </data>
+  <data name="TrayErrorMessage" xml:space="preserve">
+    <value>Bir şeyler ters gitti: {0}</value>
+  </data>
+  <data name="TrayCommandExited" xml:space="preserve">
+    <value>'{0}' {1} koduyla sonlandı.</value>
+  </data>
+  <data name="StartupFailedLogged" xml:space="preserve">
+    <value>Your Launcher başlatılamadı.
+
+Ayrıntılar şuraya kaydedildi:
+{0}</value>
+  </data>
+  <data name="StartupFailedMessage" xml:space="preserve">
+    <value>Your Launcher başlatılamadı.
+
+{0}</value>
+  </data>
+  <data name="HotkeyInUse" xml:space="preserve">
+    <value>{0} kısayol tuşu zaten kullanımda. Başka bir tane seçmek için ayarları açın.</value>
+  </data>
+  <data name="HotkeyInvalid" xml:space="preserve">
+    <value>'{0}' kısayol tuşu geçerli bir tuş birleşimi değil.</value>
+  </data>
+  <data name="HotkeyPreviousNotRestored" xml:space="preserve">
+    <value>Önceki kısayol tuşu da geri yüklenemedi.</value>
+  </data>
+  <data name="StartupDisabledByUser" xml:space="preserve">
+    <value>Görev Yöneticisi'nde (Başlangıç uygulamaları) kapatıldı. Windows ile başlaması için oradan yeniden açın.</value>
+  </data>
+  <data name="StartupBlockedByPolicy" xml:space="preserve">
+    <value>Windows ile başlatma bir sistem ilkesi tarafından engelleniyor.</value>
+  </data>
+  <data name="StartupForcedByPolicy" xml:space="preserve">
+    <value>Bir sistem ilkesi uygulamayı yine de Windows ile başlatıyor.</value>
+  </data>
+  <data name="PluginKeywordCollision" xml:space="preserve">
+    <value>{0}: "{1}" anahtar sözcüğü dosya arama önekidir (Ayarlar); dosya araması öncelikli.</value>
+  </data>
+  <data name="SettingsHotkey" xml:space="preserve">
+    <value>Kısayol tuşu</value>
+  </data>
+  <data name="SettingsTheme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="SettingsOpacity" xml:space="preserve">
+    <value>Arka plan opaklığı</value>
+  </data>
+  <data name="SettingsStartWithWindows" xml:space="preserve">
+    <value>Windows ile başlat</value>
+  </data>
+  <data name="SettingsCloseAfterLaunch" xml:space="preserve">
+    <value>Başlattıktan sonra kapat</value>
+  </data>
+  <data name="SettingsVisibleRows" xml:space="preserve">
+    <value>Görünen satır sayısı</value>
+  </data>
+  <data name="SettingsDefaultShell" xml:space="preserve">
+    <value>Varsayılan kabuk</value>
+  </data>
+  <data name="SettingsRememberLocation" xml:space="preserve">
+    <value>Son konumu hatırla</value>
+  </data>
+  <data name="SettingsShowHintBar" xml:space="preserve">
+    <value>İpucu çubuğunu göster</value>
+  </data>
+  <data name="SettingsLanguage" xml:space="preserve">
+    <value>Dil</value>
+  </data>
+  <data name="SettingsLanguageSystem" xml:space="preserve">
+    <value>Sistem</value>
+  </data>
+  <data name="SettingsLanguageRestartNote" xml:space="preserve">
+    <value>Dil, Your Launcher yeniden başlatıldıktan sonra değişir.</value>
+  </data>
+  <data name="SettingsOpenConfigFolder" xml:space="preserve">
+    <value>Yapılandırma klasörünü aç</value>
+  </data>
+  <data name="SettingsExport" xml:space="preserve">
+    <value>Dışa aktar…</value>
+  </data>
+  <data name="SettingsImport" xml:space="preserve">
+    <value>İçe aktar…</value>
+  </data>
+  <data name="SettingsImportBookmarks" xml:space="preserve">
+    <value>Yer imlerini içe aktar…</value>
+  </data>
+  <data name="SettingsImportFromHtml" xml:space="preserve">
+    <value>HTML dosyasından…</value>
+  </data>
+  <data name="SettingsExported" xml:space="preserve">
+    <value>{0} dosyasına aktarıldı.</value>
+  </data>
+  <data name="SettingsExportFailed" xml:space="preserve">
+    <value>Dışa aktarılamadı: {0}</value>
+  </data>
+  <data name="SettingsReadFailed" xml:space="preserve">
+    <value>Dosya okunamadı: {0}</value>
+  </data>
+  <data name="SettingsImportFailed" xml:space="preserve">
+    <value>İçe aktarılamadı: {0}</value>
+  </data>
+  <data name="SettingsBookmarksReadFailed" xml:space="preserve">
+    <value>{0} yer imleri okunamadı: {1}</value>
+  </data>
+  <data name="BookmarksFolderForBrowser" xml:space="preserve">
+    <value>{0} yer imleri</value>
+  </data>
+  <data name="BookmarksFolderForFile" xml:space="preserve">
+    <value>Yer imleri ({0})</value>
+  </data>
+  <data name="DialogExportConfig" xml:space="preserve">
+    <value>Yapılandırmayı dışa aktar</value>
+  </data>
+  <data name="DialogImportConfig" xml:space="preserve">
+    <value>Yapılandırmayı içe aktar</value>
+  </data>
+  <data name="DialogImportBookmarks" xml:space="preserve">
+    <value>Yer imlerini içe aktar</value>
+  </data>
+  <data name="DialogSelectFile" xml:space="preserve">
+    <value>Dosya seçin</value>
+  </data>
+  <data name="DialogSelectFolder" xml:space="preserve">
+    <value>Klasör seçin</value>
+  </data>
+  <data name="DialogSelectWorkingDirectory" xml:space="preserve">
+    <value>Çalışma dizini seçin</value>
+  </data>
+  <data name="DialogSelectIconFile" xml:space="preserve">
+    <value>Simge dosyası seçin</value>
+  </data>
+  <data name="DialogSelectExe" xml:space="preserve">
+    <value>Exe veya dll seçin</value>
+  </data>
+  <data name="FilterJson" xml:space="preserve">
+    <value>JSON dosyaları (*.json)|*.json|Tüm dosyalar (*.*)|*.*</value>
+  </data>
+  <data name="FilterHtmlBookmarks" xml:space="preserve">
+    <value>HTML yer imleri (*.html;*.htm)|*.html;*.htm|Tüm dosyalar (*.*)|*.*</value>
+  </data>
+  <data name="FilterIconImages" xml:space="preserve">
+    <value>Simge görselleri (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif</value>
+  </data>
+  <data name="FilterPrograms" xml:space="preserve">
+    <value>Programlar ve kitaplıklar (*.exe;*.dll)|*.exe;*.dll|Tüm dosyalar (*.*)|*.*</value>
+  </data>
+  <data name="EditorName" xml:space="preserve">
+    <value>Ad</value>
+  </data>
+  <data name="EditorTargetLabel" xml:space="preserve">
+    <value>Hedef</value>
+  </data>
+  <data name="EditorUrlLabel" xml:space="preserve">
+    <value>Web adresi</value>
+  </data>
+  <data name="EditorCommand" xml:space="preserve">
+    <value>Komut</value>
+  </data>
+  <data name="EditorShell" xml:space="preserve">
+    <value>Kabuk</value>
+  </data>
+  <data name="EditorShellDefault" xml:space="preserve">
+    <value>Varsayılan</value>
+  </data>
+  <data name="EditorArguments" xml:space="preserve">
+    <value>Bağımsız değişkenler</value>
+  </data>
+  <data name="EditorWorkingDirectory" xml:space="preserve">
+    <value>Çalışma dizini</value>
+  </data>
+  <data name="EditorWindow" xml:space="preserve">
+    <value>Pencere</value>
+  </data>
+  <data name="EditorWindowVisible" xml:space="preserve">
+    <value>Görünür</value>
+  </data>
+  <data name="EditorWindowHidden" xml:space="preserve">
+    <value>Gizli</value>
+  </data>
+  <data name="EditorKeepOpen" xml:space="preserve">
+    <value>Açık tut</value>
+  </data>
+  <data name="EditorRunAsAdmin" xml:space="preserve">
+    <value>Yönetici olarak çalıştır</value>
+  </data>
+  <data name="EditorAskBeforeLaunch" xml:space="preserve">
+    <value>Başlatmadan önce sor</value>
+  </data>
+  <data name="EditorKeywords" xml:space="preserve">
+    <value>Anahtar sözcükler</value>
+  </data>
+  <data name="EditorDescription" xml:space="preserve">
+    <value>Açıklama</value>
+  </data>
+  <data name="EditorIcon" xml:space="preserve">
+    <value>Simge</value>
+  </data>
+  <data name="EditorIconChangeHint" xml:space="preserve">
+    <value>— değiştirmek için listede Ctrl+I</value>
+  </data>
+  <data name="EditorAdvancedExpanded" xml:space="preserve">
+    <value>Gelişmiş ▾</value>
+  </data>
+  <data name="EditorAdvancedCollapsed" xml:space="preserve">
+    <value>Gelişmiş ▸</value>
+  </data>
+  <data name="EditorNameRequired" xml:space="preserve">
+    <value>Ad gerekli</value>
+  </data>
+  <data name="EditorTargetMissing" xml:space="preserve">
+    <value>Hedef bulunamadı — yine de kaydedildi.</value>
+  </data>
+  <data name="ButtonBrowse" xml:space="preserve">
+    <value>Gözat…</value>
+  </data>
+  <data name="ButtonBrowseFolder" xml:space="preserve">
+    <value>Klasör…</value>
+  </data>
+  <data name="ButtonLoad" xml:space="preserve">
+    <value>Yükle</value>
+  </data>
+  <data name="TypeFolder" xml:space="preserve">
+    <value>Klasör</value>
+  </data>
+  <data name="TypeFolderKey" xml:space="preserve">
+    <value>K</value>
+  </data>
+  <data name="TypeApp" xml:space="preserve">
+    <value>Uygulama</value>
+  </data>
+  <data name="TypeAppKey" xml:space="preserve">
+    <value>U</value>
+  </data>
+  <data name="TypePath" xml:space="preserve">
+    <value>Dosya veya klasör</value>
+  </data>
+  <data name="TypePathKey" xml:space="preserve">
+    <value>D</value>
+  </data>
+  <data name="TypeCommand" xml:space="preserve">
+    <value>Komut</value>
+  </data>
+  <data name="TypeCommandKey" xml:space="preserve">
+    <value>M</value>
+  </data>
+  <data name="TypeUrl" xml:space="preserve">
+    <value>Web adresi</value>
+  </data>
+  <data name="TypeUrlKey" xml:space="preserve">
+    <value>W</value>
+  </data>
+  <data name="TypeSeparator" xml:space="preserve">
+    <value>Ayırıcı</value>
+  </data>
+  <data name="TypeSeparatorKey" xml:space="preserve">
+    <value>A</value>
+  </data>
+  <data name="IconTabGlyph" xml:space="preserve">
+    <value>Glif</value>
+  </data>
+  <data name="IconTabEmoji" xml:space="preserve">
+    <value>Emoji</value>
+  </data>
+  <data name="IconTabFile" xml:space="preserve">
+    <value>Dosya</value>
+  </data>
+  <data name="IconTabExe" xml:space="preserve">
+    <value>Exe/DLL</value>
+  </data>
+  <data name="IconCurrent" xml:space="preserve">
+    <value>Geçerli:</value>
+  </data>
+  <data name="IconAutomatic" xml:space="preserve">
+    <value>Otomatik</value>
+  </data>
+  <data name="IconCustomEmoji" xml:space="preserve">
+    <value>Özel emoji</value>
+  </data>
+  <data name="IconCustomGlyph" xml:space="preserve">
+    <value>Özel glif</value>
+  </data>
+  <data name="IconCustomFile" xml:space="preserve">
+    <value>Özel dosya simgesi</value>
+  </data>
+  <data name="IconCustomExe" xml:space="preserve">
+    <value>Özel exe simgesi</value>
+  </data>
+  <data name="IconCurrentEmoji" xml:space="preserve">
+    <value>Emoji {0}</value>
+  </data>
+  <data name="IconCurrentFile" xml:space="preserve">
+    <value>Dosya simgesi ({0})</value>
+  </data>
+  <data name="IconCurrentExe" xml:space="preserve">
+    <value>Exe simgesi #{0} ({1})</value>
+  </data>
+  <data name="IconEmojiPrompt" xml:space="preserve">
+    <value>Tek bir emoji yazın veya yapıştırın, sonra Enter'a basın.</value>
+  </data>
+  <data name="IconEmojiEmpty" xml:space="preserve">
+    <value>Bir emoji girin.</value>
+  </data>
+  <data name="IconEmojiSingle" xml:space="preserve">
+    <value>Tek bir emoji girin.</value>
+  </data>
+  <data name="IconFileInfo" xml:space="preserve">
+    <value>Bir PNG, ICO, JPG, BMP veya GIF dosyası seçin. Kaynak dosya taşınsa veya silinse de çalışması için yapılandırmanın simgeler klasörüne kopyalanır.</value>
+  </data>
+  <data name="IconLoading" xml:space="preserve">
+    <value>Yükleniyor…</value>
+  </data>
+  <data name="IconNoneFound" xml:space="preserve">
+    <value>Bu dosyada simge bulunamadı.</value>
+  </data>
+  <data name="IconCountOne" xml:space="preserve">
+    <value>{0} simge</value>
+  </data>
+  <data name="IconCountMany" xml:space="preserve">
+    <value>{0} simge</value>
+  </data>
+  <data name="GlyphFolder" xml:space="preserve">
+    <value>Klasör</value>
+  </data>
+  <data name="GlyphFolderOpen" xml:space="preserve">
+    <value>Açık klasör</value>
+  </data>
+  <data name="GlyphNewFolder" xml:space="preserve">
+    <value>Yeni klasör</value>
+  </data>
+  <data name="GlyphApp" xml:space="preserve">
+    <value>Uygulama</value>
+  </data>
+  <data name="GlyphTerminal" xml:space="preserve">
+    <value>Terminal</value>
+  </data>
+  <data name="GlyphGlobe" xml:space="preserve">
+    <value>Küre</value>
+  </data>
+  <data name="GlyphWorld" xml:space="preserve">
+    <value>Dünya</value>
+  </data>
+  <data name="GlyphDocument" xml:space="preserve">
+    <value>Belge</value>
+  </data>
+  <data name="GlyphPage" xml:space="preserve">
+    <value>Sayfa</value>
+  </data>
+  <data name="GlyphCode" xml:space="preserve">
+    <value>Kod</value>
+  </data>
+  <data name="GlyphSettings" xml:space="preserve">
+    <value>Ayarlar</value>
+  </data>
+  <data name="GlyphStar" xml:space="preserve">
+    <value>Yıldız</value>
+  </data>
+  <data name="GlyphStarFilled" xml:space="preserve">
+    <value>Dolu yıldız</value>
+  </data>
+  <data name="GlyphHome" xml:space="preserve">
+    <value>Ev</value>
+  </data>
+  <data name="GlyphMail" xml:space="preserve">
+    <value>Posta</value>
+  </data>
+  <data name="GlyphCalendar" xml:space="preserve">
+    <value>Takvim</value>
+  </data>
+  <data name="GlyphCloud" xml:space="preserve">
+    <value>Bulut</value>
+  </data>
+  <data name="GlyphLock" xml:space="preserve">
+    <value>Kilit</value>
+  </data>
+  <data name="GlyphUnlock" xml:space="preserve">
+    <value>Kilit açık</value>
+  </data>
+  <data name="GlyphKey" xml:space="preserve">
+    <value>Anahtar</value>
+  </data>
+  <data name="GlyphContact" xml:space="preserve">
+    <value>Kişi</value>
+  </data>
+  <data name="GlyphContactInfo" xml:space="preserve">
+    <value>Kişi bilgisi</value>
+  </data>
+  <data name="GlyphPeople" xml:space="preserve">
+    <value>Kişiler</value>
+  </data>
+  <data name="GlyphGroup" xml:space="preserve">
+    <value>Grup</value>
+  </data>
+  <data name="GlyphMusic" xml:space="preserve">
+    <value>Müzik</value>
+  </data>
+  <data name="GlyphVideo" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="GlyphPhoto" xml:space="preserve">
+    <value>Fotoğraf</value>
+  </data>
+  <data name="GlyphPicture" xml:space="preserve">
+    <value>Resim</value>
+  </data>
+  <data name="GlyphCamera" xml:space="preserve">
+    <value>Kamera</value>
+  </data>
+  <data name="GlyphGame" xml:space="preserve">
+    <value>Oyun</value>
+  </data>
+  <data name="GlyphChart" xml:space="preserve">
+    <value>Grafik</value>
+  </data>
+  <data name="GlyphBriefcase" xml:space="preserve">
+    <value>Evrak çantası</value>
+  </data>
+  <data name="GlyphLightning" xml:space="preserve">
+    <value>Yıldırım</value>
+  </data>
+  <data name="GlyphFlag" xml:space="preserve">
+    <value>Bayrak</value>
+  </data>
+  <data name="GlyphBookmark" xml:space="preserve">
+    <value>Yer imi</value>
+  </data>
+  <data name="GlyphPin" xml:space="preserve">
+    <value>Raptiye</value>
+  </data>
+  <data name="GlyphLink" xml:space="preserve">
+    <value>Bağlantı</value>
+  </data>
+  <data name="GlyphDownload" xml:space="preserve">
+    <value>İndir</value>
+  </data>
+  <data name="GlyphUpload" xml:space="preserve">
+    <value>Karşıya yükle</value>
+  </data>
+  <data name="GlyphSync" xml:space="preserve">
+    <value>Eşitle</value>
+  </data>
+  <data name="GlyphRefresh" xml:space="preserve">
+    <value>Yenile</value>
+  </data>
+  <data name="GlyphSearch" xml:space="preserve">
+    <value>Ara</value>
+  </data>
+  <data name="GlyphZoom" xml:space="preserve">
+    <value>Yakınlaştır</value>
+  </data>
+  <data name="GlyphEdit" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
+  <data name="GlyphDelete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="GlyphSave" xml:space="preserve">
+    <value>Kaydet</value>
+  </data>
+  <data name="GlyphPrint" xml:space="preserve">
+    <value>Yazdır</value>
+  </data>
+  <data name="GlyphPhone" xml:space="preserve">
+    <value>Telefon</value>
+  </data>
+  <data name="GlyphChat" xml:space="preserve">
+    <value>Sohbet</value>
+  </data>
+  <data name="GlyphComment" xml:space="preserve">
+    <value>Yorum</value>
+  </data>
+  <data name="GlyphShop" xml:space="preserve">
+    <value>Alışveriş</value>
+  </data>
+  <data name="GlyphMap" xml:space="preserve">
+    <value>Harita</value>
+  </data>
+  <data name="GlyphCar" xml:space="preserve">
+    <value>Araba</value>
+  </data>
+  <data name="GlyphAirplane" xml:space="preserve">
+    <value>Uçak</value>
+  </data>
+  <data name="GlyphBook" xml:space="preserve">
+    <value>Kitap</value>
+  </data>
+  <data name="GlyphWrench" xml:space="preserve">
+    <value>İngiliz anahtarı</value>
+  </data>
+  <data name="GlyphShield" xml:space="preserve">
+    <value>Kalkan</value>
+  </data>
+  <data name="GlyphPower" xml:space="preserve">
+    <value>Güç</value>
+  </data>
+  <data name="GlyphAdmin" xml:space="preserve">
+    <value>Yönetici</value>
+  </data>
+  <data name="GlyphNetwork" xml:space="preserve">
+    <value>Ağ</value>
+  </data>
+  <data name="GlyphBrightness" xml:space="preserve">
+    <value>Parlaklık</value>
+  </data>
+  <data name="GlyphVolume" xml:space="preserve">
+    <value>Ses</value>
+  </data>
+  <data name="GlyphClock" xml:space="preserve">
+    <value>Saat</value>
+  </data>
+  <data name="GlyphWarning" xml:space="preserve">
+    <value>Uyarı</value>
+  </data>
+  <data name="GlyphInfo" xml:space="preserve">
+    <value>Bilgi</value>
+  </data>
+  <data name="GlyphAccept" xml:space="preserve">
+    <value>Onayla</value>
+  </data>
+  <data name="GlyphAdd" xml:space="preserve">
+    <value>Ekle</value>
+  </data>
+  <data name="GlyphRemove" xml:space="preserve">
+    <value>Kaldır</value>
+  </data>
+  <data name="GlyphClose" xml:space="preserve">
+    <value>Kapat</value>
+  </data>
+  <data name="GlyphFavorite" xml:space="preserve">
+    <value>Sık kullanılan</value>
+  </data>
+</root>

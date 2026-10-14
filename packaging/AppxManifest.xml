@@ -29,6 +29,8 @@
     <!-- Explicit en-US, never x-generate: an x-generate build produced a tr-TR package on a
          Turkish-locale build machine in a sibling project. -->
     <Resource Language="en-US" />
+    <!-- Turkish UI (Strings.tr.resx satellite assemblies ship in tr\). en-US stays first = the default. -->
+    <Resource Language="tr-TR" />
   </Resources>
 
   <Applications>

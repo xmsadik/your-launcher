@@ -15,6 +15,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>YourLauncher.App</RootNamespace>
     <AssemblyName>YourLauncher</AssemblyName>
+    <!-- Language of the neutral resx (Strings.resx); Strings.tr.resx ships as the tr satellite assembly. -->
+    <NeutralLanguage>en</NeutralLanguage>
     <Product>Your Launcher</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon Condition="Exists('app.ico')">app.ico</ApplicationIcon>
@@ -27,7 +29,7 @@
     <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <TieredPGO>false</TieredPGO>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en;tr</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

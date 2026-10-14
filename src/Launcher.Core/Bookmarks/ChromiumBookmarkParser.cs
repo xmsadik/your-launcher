@@ -1,5 +1,6 @@
 using System.Text.Json;
 using YourLauncher.Core.Config;
+using YourLauncher.Core.Localization;
 using YourLauncher.Core.Model;
 
 namespace YourLauncher.Core.Bookmarks;
@@ -50,14 +51,14 @@ public static class ChromiumBookmarkParser
         }
         catch (JsonException ex)
         {
-            throw new BookmarkImportException($"Could not parse bookmarks file: {ex.Message}", ex);
+            throw new BookmarkImportException(string.Format(CoreStrings.BookmarkParseFailed, ex.Message), ex);
         }
 
         using (document)
         {
             if (document.RootElement.ValueKind != JsonValueKind.Object || !document.RootElement.TryGetProperty("roots", out var roots) || roots.ValueKind != JsonValueKind.Object)
             {
-                throw new BookmarkImportException("Could not parse bookmarks file: missing 'roots'.");
+                throw new BookmarkImportException(CoreStrings.BookmarkMissingRoots);
             }
 
             AddFixedRoot(bar, roots, "bookmark_bar");

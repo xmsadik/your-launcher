@@ -102,9 +102,10 @@ if ($LASTEXITCODE -ne 0) { throw "makeappx pack failed ($LASTEXITCODE)" }
 # Verify the resource language actually packed - lesson from a sibling project: an x-generate
 # build produced a tr-TR package on a Turkish-locale build machine.
 [xml]$packedManifest = Get-Content $manifestOut
-$lang = $packedManifest.Package.Resources.Resource.Language
-Write-Host "Packed manifest Resource Language: $lang"
-if ($lang -ne 'en-US') { Write-Warning "Expected en-US, got '$lang'" }
+$langs = @($packedManifest.Package.Resources.Resource | ForEach-Object { $_.Language })
+Write-Host "Packed manifest Resource Languages: $($langs -join ', ')"
+if ($langs[0] -ne 'en-US' -or ($langs | Where-Object { $_ -notin @('en-US', 'tr-TR') })) { Write-Warning "Expected en-US (default) then tr-TR, got '$($langs -join ', ')'" }
+if (-not (Test-Path (Join-Path $layout 'tr\YourLauncher.resources.dll'))) { Write-Warning 'The Turkish satellite assembly (tr\YourLauncher.resources.dll) is missing from the layout.' }
 
 # --- Optional signing ------------------------------------------------------------------------
 if ($Sign) {

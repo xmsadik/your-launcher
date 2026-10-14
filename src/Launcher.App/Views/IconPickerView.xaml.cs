@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Win32;
+using YourLauncher.App.Localization;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Icons;
@@ -245,8 +246,8 @@ public partial class IconPickerView : UserControl
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Select icon file",
-                Filter = "Icon images (*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.ico;*.jpg;*.jpeg;*.bmp;*.gif",
+                Title = Strings.DialogSelectIconFile,
+                Filter = Strings.FilterIconImages,
             };
 
             if (dialog.ShowDialog(owner) != true)
@@ -336,8 +337,8 @@ public partial class IconPickerView : UserControl
         {
             var dialog = new OpenFileDialog
             {
-                Title = "Select exe or dll",
-                Filter = "Programs and libraries (*.exe;*.dll)|*.exe;*.dll|All files (*.*)|*.*",
+                Title = Strings.DialogSelectExe,
+                Filter = Strings.FilterPrograms,
             };
 
             if (dialog.ShowDialog(owner) == true)

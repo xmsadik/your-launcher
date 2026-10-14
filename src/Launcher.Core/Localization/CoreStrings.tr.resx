@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BookmarkParseFailed" xml:space="preserve">
+    <value>Yer imleri dosyası ayrıştırılamadı: {0}</value>
+  </data>
+  <data name="BookmarkMissingRoots" xml:space="preserve">
+    <value>Yer imleri dosyası ayrıştırılamadı: 'roots' eksik.</value>
+  </data>
+  <data name="BookmarkNoneFound" xml:space="preserve">
+    <value>{0} içinde yer imi bulunamadı.</value>
+  </data>
+  <data name="ConfigEmptyDocument" xml:space="preserve">
+    <value>Yapılandırma dosyası boş bir belge olarak ayrıştırıldı.</value>
+  </data>
+  <data name="PluginJsonInvalid" xml:space="preserve">
+    <value>plugin.json geçerli değil: {0}</value>
+  </data>
+  <data name="PluginJsonEmpty" xml:space="preserve">
+    <value>plugin.json boş.</value>
+  </data>
+  <data name="PluginKeywordRequired" xml:space="preserve">
+    <value>"keyword" gerekli.</value>
+  </data>
+  <data name="PluginKeywordNoSpaces" xml:space="preserve">
+    <value>"keyword" boşluk içeremez.</value>
+  </data>
+  <data name="PluginCommandRequired" xml:space="preserve">
+    <value>"command" gerekli.</value>
+  </data>
+  <data name="PluginArgsList" xml:space="preserve">
+    <value>"args" bir metin listesi olmalı.</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>Sistem (Windows Açık/Koyu)</value>
+  </data>
+  <data name="ThemeWindowsLight" xml:space="preserve">
+    <value>Windows Açık</value>
+  </data>
+  <data name="ThemeWindowsDark" xml:space="preserve">
+    <value>Windows Koyu</value>
+  </data>
+</root>
