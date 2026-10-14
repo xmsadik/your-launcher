@@ -64,6 +64,13 @@ public sealed class Settings
     /// <summary>When true the panel's accent color follows the Windows accent color instead of the palette's own accent (the rest of the palette is unchanged).</summary>
     public bool UseWindowsAccent { get; set; } = false;
 
+    /// <summary>
+    /// When true the window switcher also lists windows that are cloaked because they sit on another virtual
+    /// desktop or on a hidden tiling-WM workspace (GlazeWM's default <c>hide_method: cloak</c>). Off by default
+    /// to match Alt+Tab; suspended Store-app "ghost" windows are filtered out either way.
+    /// </summary>
+    public bool IncludeOtherDesktopWindows { get; set; } = false;
+
     public bool StartWithWindows { get; set; } = true;
 
     public bool CloseAfterLaunch { get; set; } = true;

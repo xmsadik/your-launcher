@@ -83,6 +83,20 @@ public class ThemeCatalogTests
     }
 
     [Fact]
+    public void Settings_IncludeOtherDesktopWindows_DefaultsOffAndRoundTrips()
+    {
+        var missing = ConfigSerializer.Deserialize("""{ "version": 1, "settings": {}, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");
+        Assert.True(missing.Success);
+        Assert.False(missing.Config!.Settings.IncludeOtherDesktopWindows);
+
+        var config = new LauncherConfig();
+        config.Settings.IncludeOtherDesktopWindows = true;
+        var json = ConfigSerializer.Serialize(config);
+        Assert.Contains("\"includeOtherDesktopWindows\": true", json);
+        Assert.True(ConfigSerializer.Deserialize(json).Config!.Settings.IncludeOtherDesktopWindows);
+    }
+
+    [Fact]
     public void Settings_ConfigWithoutOpacity_DefaultsTo90()
     {
         var result = ConfigSerializer.Deserialize("""{ "version": 1, "settings": { "theme": "tokyoNight" }, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");

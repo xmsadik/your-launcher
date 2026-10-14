@@ -24,6 +24,12 @@
   <data name="SettingsUseWindowsAccent" xml:space="preserve">
     <value>Windows vurgu rengini kullan</value>
   </data>
+  <data name="SettingsIncludeOtherDesktopWindows" xml:space="preserve">
+    <value>Diğer masaüstlerindeki pencereler</value>
+  </data>
+  <data name="WindowSubtitleOtherDesktopSuffix" xml:space="preserve">
+    <value> · başka masaüstü</value>
+  </data>
   <data name="CalcSubtitle" xml:space="preserve">
     <value>{0} · kopyalamak için Enter</value>
   </data>

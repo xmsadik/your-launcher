@@ -116,6 +116,16 @@
             <CheckBox Grid.Column="1" IsChecked="{Binding UseWindowsAccent}" VerticalAlignment="Center" />
         </Grid>
 
+        <!-- Window switcher: also list windows on other virtual desktops / hidden GlazeWM workspaces -->
+        <Grid Style="{StaticResource Row}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsIncludeOtherDesktopWindows}" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" />
+            <CheckBox Grid.Column="1" IsChecked="{Binding IncludeOtherDesktopWindows}" VerticalAlignment="Center" />
+        </Grid>
+
         <!-- Start with Windows -->
         <Grid Style="{StaticResource Row}">
             <Grid.ColumnDefinitions>

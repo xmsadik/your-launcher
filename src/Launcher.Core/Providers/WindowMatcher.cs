@@ -7,7 +7,8 @@ namespace YourLauncher.Core.Providers;
 /// <param name="Title">Window caption.</param>
 /// <param name="ProcessName">Executable name without extension and path ("chrome"); empty when it could not be resolved.</param>
 /// <param name="ExePath">Full path of the executable for the row icon; null when the process could not be opened (elevated).</param>
-public sealed record WindowInfo(long Handle, string Title, string ProcessName, string? ExePath);
+/// <param name="IsCloaked">True for a window on another virtual desktop / hidden workspace (only listed when settings.includeOtherDesktopWindows is on).</param>
+public sealed record WindowInfo(long Handle, string Title, string ProcessName, string? ExePath, bool IsCloaked = false);
 
 /// <summary>A window that matched a query: the window, the score and the highlight indices into its title.</summary>
 public sealed record WindowMatch(WindowInfo Window, int Score, IReadOnlyList<int> HighlightPositions);
@@ -27,6 +28,9 @@ public static class WindowMatcher
     /// <summary>Shell windows that are visible, titled and owner-less but are not something to switch to.</summary>
     private static readonly string[] ShellClasses = ["Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd"];
 
+    public const string UwpCoreWindowClass = "Windows.UI.Core.CoreWindow";
+    public const string UwpFrameClass = "ApplicationFrameWindow";
+
     /// <summary>Title matches count fully, the process name a bit less, so a window titled "code" ranks above an unrelated window of code.exe.</summary>
     private const double TitleWeight = 1.0;
     private const double ProcessWeight = 0.7;
@@ -36,9 +40,22 @@ public static class WindowMatcher
     /// UWP app, is "visible" but cloaked), has a title, no owner, and not a tool/no-activate window unless it
     /// explicitly asks to be on the taskbar (<c>WS_EX_APPWINDOW</c>). Shell windows (desktop, taskbar) are out.
     /// </summary>
-    public static bool IsSwitchable(bool isVisible, bool isCloaked, string title, uint exStyle, bool hasOwner, string className)
+    /// <remarks>
+    /// With <paramref name="includeCloaked"/> a cloaked window is still listed, unless it is one of the two
+    /// "ghost" shapes Windows keeps cloaked for suspended Store apps: a top-level <see cref="UwpCoreWindowClass"/>
+    /// window (TextInputHost, a closed Settings app), or an <see cref="UwpFrameClass"/> frame with no CoreWindow
+    /// inside (<paramref name="isEmptyUwpFrame"/>). Both carry the same cloak reason (shell) as a window that a
+    /// virtual desktop or GlazeWM hides, so the window class is what tells them apart.
+    /// </remarks>
+    public static bool IsSwitchable(bool isVisible, bool isCloaked, string title, uint exStyle, bool hasOwner, string className,
+        bool includeCloaked = false, bool isEmptyUwpFrame = false)
     {
-        if (!isVisible || isCloaked || string.IsNullOrWhiteSpace(title) || hasOwner)
+        if (!isVisible || string.IsNullOrWhiteSpace(title) || hasOwner)
+        {
+            return false;
+        }
+
+        if (isCloaked && (!includeCloaked || IsCloakedGhost(className, isEmptyUwpFrame)))
         {
             return false;
         }
@@ -51,6 +68,10 @@ public static class WindowMatcher
         var wantsTaskbar = (exStyle & WsExAppWindow) != 0;
         return wantsTaskbar || (exStyle & (WsExToolWindow | WsExNoActivate)) == 0;
     }
+
+    private static bool IsCloakedGhost(string className, bool isEmptyUwpFrame) =>
+        string.Equals(className, UwpCoreWindowClass, StringComparison.Ordinal)
+        || (isEmptyUwpFrame && string.Equals(className, UwpFrameClass, StringComparison.Ordinal));
 
     /// <summary>
     /// Windows matching <paramref name="query"/>, best first. A blank query returns nothing (the list must not

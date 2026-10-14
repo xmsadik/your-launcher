@@ -28,6 +28,14 @@
     <value>Use Windows accent color</value>
     <comment>Settings page checkbox label; the panel accent follows the Windows accent color.</comment>
   </data>
+  <data name="SettingsIncludeOtherDesktopWindows" xml:space="preserve">
+    <value>Windows on other desktops</value>
+    <comment>Settings page checkbox label: the window switcher also lists windows on other virtual desktops / hidden tiling-WM workspaces.</comment>
+  </data>
+  <data name="WindowSubtitleOtherDesktopSuffix" xml:space="preserve">
+    <value> · other desktop</value>
+    <comment>Appended to an open-window row's subtitle (keep the leading space and separator).</comment>
+  </data>
   <data name="CalcSubtitle" xml:space="preserve">
     <value>{0} &#183; Enter to copy</value>
     <comment>{0} = the expression as typed. Subtitle of the calculator row.</comment>

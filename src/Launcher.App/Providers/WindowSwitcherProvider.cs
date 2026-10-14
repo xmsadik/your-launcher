@@ -28,9 +28,10 @@ public sealed class WindowSwitcherProvider : IResultProvider
     private const int SnapshotLifetimeMs = 750;
     private const int MaxTitleLength = 512;
     private const string UwpHostProcess = "applicationframehost";
-    private const string UwpCoreWindowClass = "Windows.UI.Core.CoreWindow";
+    private const string UwpCoreWindowClass = WindowMatcher.UwpCoreWindowClass;
 
     private readonly uint _ownProcessId = (uint)Environment.ProcessId;
+    private readonly Func<bool> _includeOtherDesktops;
 
     private IReadOnlyList<WindowInfo> _snapshot = [];
     private long _snapshotTicks;
@@ -39,8 +40,10 @@ public sealed class WindowSwitcherProvider : IResultProvider
     /// Runs one throwaway enumeration on a pool thread at startup: the very first one costs ~100 ms of JIT and
     /// P/Invoke stub generation, which would otherwise land on the user's first keystroke (steady state is 1-2 ms).
     /// </summary>
-    public WindowSwitcherProvider()
+    /// <param name="includeOtherDesktops">Read on every enumeration, so a settings change applies within one snapshot lifetime.</param>
+    public WindowSwitcherProvider(Func<bool> includeOtherDesktops)
     {
+        _includeOtherDesktops = includeOtherDesktops;
         _ = Task.Run(() =>
         {
             try
@@ -78,9 +81,10 @@ public sealed class WindowSwitcherProvider : IResultProvider
                 Id = $"win:{app}:{window.Handle:x}",
                 UsageKey = $"win:{(app.Length == 0 ? "unknown" : app)}",
                 Title = window.Title,
-                Subtitle = window.ProcessName.Length == 0
+                Subtitle = (window.ProcessName.Length == 0
                     ? Strings.WindowSubtitleNoApp
-                    : string.Format(Strings.WindowSubtitle, window.ProcessName),
+                    : string.Format(Strings.WindowSubtitle, window.ProcessName))
+                    + (window.IsCloaked ? Strings.WindowSubtitleOtherDesktopSuffix : ""),
                 Glyph = "",
                 IconPath = window.ExePath,
                 Tier = ResultTier.Windows,
@@ -118,6 +122,7 @@ public sealed class WindowSwitcherProvider : IResultProvider
     {
         var found = new List<WindowInfo>();
         var ownPid = _ownProcessId;
+        var includeCloaked = _includeOtherDesktops();
 
         Win32.EnumWindows(
             (hwnd, _) =>
@@ -136,7 +141,9 @@ public sealed class WindowSwitcherProvider : IResultProvider
 
                 var exStyle = (uint)Win32.GetWindowLong(hwnd, Win32.GWL_EXSTYLE);
                 var cloaked = Win32.DwmGetWindowAttribute(hwnd, Win32.DWMWA_CLOAKED, out var cloakedValue, sizeof(int)) == 0 && cloakedValue != 0;
-                if (!WindowMatcher.IsSwitchable(true, cloaked, title, exStyle, false, ClassOf(hwnd)))
+                var className = ClassOf(hwnd);
+                var isEmptyUwpFrame = cloaked && includeCloaked && className == WindowMatcher.UwpFrameClass && !HasCoreWindowChild(hwnd);
+                if (!WindowMatcher.IsSwitchable(true, cloaked, title, exStyle, false, className, includeCloaked, isEmptyUwpFrame))
                 {
                     return true;
                 }
@@ -159,7 +166,7 @@ public sealed class WindowSwitcherProvider : IResultProvider
                     processName = exePath is null ? "" : Path.GetFileNameWithoutExtension(exePath);
                 }
 
-                found.Add(new WindowInfo(hwnd.ToInt64(), title, processName, exePath));
+                found.Add(new WindowInfo(hwnd.ToInt64(), title, processName, exePath, cloaked));
                 return true;
             },
             IntPtr.Zero);
@@ -179,6 +186,21 @@ public sealed class WindowSwitcherProvider : IResultProvider
         var buffer = stackalloc char[256];
         var length = Win32.GetClassName(hwnd, buffer, 256);
         return length > 0 ? new string(buffer, 0, length) : "";
+    }
+
+    /// <summary>A suspended Store app leaves its ApplicationFrameHost frame behind without the CoreWindow child (the "ghost" window).</summary>
+    private static bool HasCoreWindowChild(IntPtr frameWindow)
+    {
+        var found = false;
+        Win32.EnumChildWindows(
+            frameWindow,
+            (child, _) =>
+            {
+                found = ClassOf(child) == UwpCoreWindowClass;
+                return !found;
+            },
+            IntPtr.Zero);
+        return found;
     }
 
     /// <summary>The executable behind the CoreWindow child of an ApplicationFrameHost frame, or null when it cannot be found.</summary>

@@ -58,6 +58,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _useWindowsAccent;
 
     [ObservableProperty]
+    private bool _includeOtherDesktopWindows;
+
+    [ObservableProperty]
     private bool _startWithWindows;
 
     [ObservableProperty]
@@ -143,6 +146,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _language = current.Language;
         _opacity = current.Opacity;
         _useWindowsAccent = current.UseWindowsAccent;
+        _includeOtherDesktopWindows = current.IncludeOtherDesktopWindows;
         _startWithWindows = current.StartWithWindows;
         _closeAfterLaunch = current.CloseAfterLaunch;
         _maxVisibleItems = current.MaxVisibleItems;
@@ -271,6 +275,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             Language = Language,
             Opacity = Opacity,
             UseWindowsAccent = UseWindowsAccent,
+            IncludeOtherDesktopWindows = IncludeOtherDesktopWindows,
             StartWithWindows = StartWithWindows,
             CloseAfterLaunch = CloseAfterLaunch,
             MaxVisibleItems = MaxVisibleItems,

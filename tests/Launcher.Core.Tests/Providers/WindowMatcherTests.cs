@@ -27,6 +27,30 @@ public class WindowMatcherTests
     }
 
     [Fact]
+    public void IsSwitchable_CloakedWindow_ListedOnlyWhenOtherDesktopsAreIncluded()
+    {
+        // A GlazeWM-hidden / other-virtual-desktop window: cloaked, ordinary class.
+        Assert.False(WindowMatcher.IsSwitchable(true, true, "Inbox", 0, false, "Outlook Host"));
+        Assert.True(WindowMatcher.IsSwitchable(true, true, "Inbox", 0, false, "Outlook Host", includeCloaked: true));
+    }
+
+    [Fact]
+    public void IsSwitchable_CloakedStoreAppGhosts_StayHiddenEvenWhenIncluded()
+    {
+        Assert.False(WindowMatcher.IsSwitchable(true, true, "Settings", 0, false, WindowMatcher.UwpCoreWindowClass, includeCloaked: true));
+        Assert.False(WindowMatcher.IsSwitchable(true, true, "Calculator", 0, false, WindowMatcher.UwpFrameClass, includeCloaked: true, isEmptyUwpFrame: true));
+
+        // A real Store app on another desktop still has its CoreWindow inside the frame.
+        Assert.True(WindowMatcher.IsSwitchable(true, true, "Calculator", 0, false, WindowMatcher.UwpFrameClass, includeCloaked: true, isEmptyUwpFrame: false));
+    }
+
+    [Fact]
+    public void IsSwitchable_VisibleUwpFrame_UnaffectedByGhostRule()
+    {
+        Assert.True(WindowMatcher.IsSwitchable(true, false, "Calculator", 0, false, WindowMatcher.UwpFrameClass));
+    }
+
+    [Fact]
     public void IsSwitchable_ToolWindowThatAsksForTaskbar_IsListed()
     {
         Assert.True(WindowMatcher.IsSwitchable(true, false, "T", WindowMatcher.WsExToolWindow | WindowMatcher.WsExAppWindow, false, "C"));

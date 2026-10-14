@@ -125,6 +125,13 @@ Plan bağımsız bir ajana eleştirtildi; aşağıdaki kurallar o eleştiriden �
 
 - 2026-10-14: Kullanıcı dört kararın hepsinde önerilen seçeneği seçti (tablodaki Cevap sütunu).
 
+- 2026-10-14 (elle testten sonra): Kullanıcı elle testi geçti. Tek gözlem: GlazeWM kullanırken pencere geçişi
+  yalnızca aktif workspace'i listeliyor, çünkü GlazeWM gizli workspace'leri "cloak" ile gizliyor ve filtre cloak
+  edilmiş pencereleri eliyordu. Seçenekler: (1) ayar, varsayılan kapalı; (2) her zaman göster; (3) böyle bırak.
+  Kullanıcı 1'i seçti. Eklenen ayar: `includeOtherDesktopWindows`. Hayalet pencereler pencere sınıfına göre eleniyor:
+  üst düzey `Windows.UI.Core.CoreWindow` ve içi boş `ApplicationFrameWindow`. Bu kural, kullanıcının makinesinde
+  cloak edilmiş pencereler tek tek listelenerek doğrulandı.
+
 ## B. RAPOR (iş bittikten sonra)
 ### Sonuç
 11 özelliğin hepsi eklendi ve beş commit halinde main dalında. Kod derleniyor, 788 birim testin tamamı

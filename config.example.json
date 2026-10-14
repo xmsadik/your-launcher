@@ -8,6 +8,7 @@
     "theme": "system",
     "opacity": 90,
     "useWindowsAccent": false,
+    "includeOtherDesktopWindows": false,
     "startWithWindows": true,
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,

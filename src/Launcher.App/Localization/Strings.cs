@@ -28,6 +28,12 @@ public static class Strings
     /// <summary>Settings page checkbox label.</summary>
     public static string SettingsUseWindowsAccent => Get(nameof(SettingsUseWindowsAccent));
 
+    /// <summary>Settings page checkbox label for settings.includeOtherDesktopWindows.</summary>
+    public static string SettingsIncludeOtherDesktopWindows => Get(nameof(SettingsIncludeOtherDesktopWindows));
+
+    /// <summary>Appended to an open-window row's subtitle when the window is on another desktop/workspace (leading separator included).</summary>
+    public static string WindowSubtitleOtherDesktopSuffix => Get(nameof(WindowSubtitleOtherDesktopSuffix));
+
     /// <summary>{0} = expression.</summary>
     public static string CalcSubtitle => Get(nameof(CalcSubtitle));
 

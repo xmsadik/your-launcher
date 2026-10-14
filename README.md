@@ -631,6 +631,7 @@ Shape (spec §4.2–§4.5):
     "language": "system",        // system | en | tr (UI language; applied at the next start)
     "opacity": 90,               // 40-100: panel background over the Win11 22H2+ Mica/Acrylic backdrop (no effect on Win10)
     "useWindowsAccent": false,   // true: accent color follows the Windows accent color (updates live)
+    "includeOtherDesktopWindows": false, // true: window switcher also lists windows on other virtual desktops / GlazeWM workspaces
     "startWithWindows": true,     // Phase 5
     "closeAfterLaunch": true,
     "maxVisibleItems": 8,
@@ -837,6 +838,13 @@ raises all of that app's windows in later rankings. The window list is re-read a
 type, so a keystroke costs about a millisecond. The row's icon is the process executable's; for elevated
 processes (which a normal-rights launcher cannot inspect) the row shows a generic window glyph and no process
 name, and bringing such a window forward may be refused by Windows.
+
+**Other desktops and tiling WMs.** Settings → "Windows on other desktops" (`includeOtherDesktopWindows`) also
+lists windows that are cloaked because they are on another virtual desktop or on a hidden workspace of a tiling
+window manager such as GlazeWM (`hide_method: 'cloak'`, its default). Their rows end in "· other desktop".
+Enter activates the window; Windows (virtual desktops) or the window manager then switches to its desktop or
+workspace. Cloaked "ghost" windows of suspended Store apps (a top-level `Windows.UI.Core.CoreWindow`, or an
+`ApplicationFrameWindow` with no app inside) stay hidden.
 
 ### File search
 

@@ -140,7 +140,7 @@ public partial class App : Application
             EndHotkeyCaptureRestore,
             ShellLinkResolver.Resolve,
             () => _startupService?.StatusNote,
-            syncProviders: [new CalculatorProvider(), new SystemCommandProvider(), new WindowSwitcherProvider()],
+            syncProviders: [new CalculatorProvider(), new SystemCommandProvider(), new WindowSwitcherProvider(() => _configService?.Config.Settings.IncludeOtherDesktopWindows ?? false)],
             asyncProviders: pluginHost,
             usageScore: usageService.GetScore,
             previewTheme: PreviewTheme,
