@@ -53,6 +53,13 @@ public sealed partial class ListItemViewModel : ObservableObject
     /// <summary>Root..parent chain for a search result (used by Enter/Ctrl+Enter to navigate there); empty in nav mode.</summary>
     public IReadOnlyList<FolderNode> ParentChain { get; init; } = Array.Empty<FolderNode>();
 
+    /// <summary>
+    /// The "Searching files…" row shown while a claimed query waits for its provider. It is neither a node nor a
+    /// provider result, and every action guard (<see cref="CanLaunch"/>, <see cref="CanEdit"/>,
+    /// <see cref="CanShowInFolder"/>) is false for it, so Enter and the context menu do nothing.
+    /// </summary>
+    public bool IsPlaceholder { get; init; }
+
     public bool IsFolder => Node is FolderNode;
 
     /// <summary>True for a real tree node (cut/paste/duplicate/delete/drag/move all need this); provider rows are never tree members.</summary>
@@ -62,10 +69,10 @@ public sealed partial class ListItemViewModel : ObservableObject
     public bool CanEdit => Node is not (null or SeparatorNode);
 
     /// <summary>Enter / double-click / the Open menu item: anything except a separator.</summary>
-    public bool CanLaunch => Provider is not null || Node is not (null or SeparatorNode);
+    public bool CanLaunch => !IsPlaceholder && (Provider is not null || Node is not (null or SeparatorNode));
 
-    /// <summary>Ctrl+Enter (search mode): only a node found by search has a containing folder to jump to.</summary>
-    public bool CanShowInFolder => Node is not null && ParentChain.Count > 0;
+    /// <summary>Ctrl+Enter (search mode): a node found by search has a containing folder to jump to; a provider row that stands for a file (<see cref="ProviderResult.LocationPath"/>) is revealed in Explorer.</summary>
+    public bool CanShowInFolder => !IsPlaceholder && ((Node is not null && ParentChain.Count > 0) || Provider?.LocationPath is { Length: > 0 });
 
     /// <summary>Rendered as a plain divider line instead of icon + name.</summary>
     public bool IsSeparator => Node is SeparatorNode;

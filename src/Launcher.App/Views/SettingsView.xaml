@@ -167,9 +167,23 @@
             <CheckBox Grid.Column="1" IsChecked="{Binding ShowHintBar}" VerticalAlignment="Center" />
         </Grid>
 
+        <!-- File search prefix -->
+        <Grid Style="{StaticResource Row}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{x:Static loc:Strings.SettingsFileSearchPrefix}" Style="{StaticResource FieldLabel}" />
+            <TextBox x:Name="FileSearchPrefixBox" Grid.Column="1" Width="60" HorizontalAlignment="Left"
+                     Text="{Binding FileSearchPrefix, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock Grid.Column="2" Text="{x:Static loc:Strings.SettingsFileSearchPrefixHint}" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource SecondaryTextBrush}" />
+        </Grid>
+
         <!-- Buttons -->
         <WrapPanel Margin="0,6,0,0">
             <Button Content="Open config folder" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenConfigFolderButton_OnClick" />
+            <Button Content="{x:Static loc:Strings.SettingsOpenPluginsFolder}" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="OpenPluginsFolderButton_OnClick" />
             <Button Content="Export…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ExportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
             <Button Content="Import…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportButton_OnClick" IsEnabled="{Binding CanExportImport}" />
             <Button x:Name="ImportBookmarksButton" Content="Import bookmarks…" Style="{StaticResource ActionButton}" Margin="0,0,8,6" Click="ImportBookmarksButton_OnClick" IsEnabled="{Binding CanExportImport}" />

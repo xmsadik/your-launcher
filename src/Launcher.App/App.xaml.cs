@@ -6,7 +6,9 @@ using System.Windows.Interop;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
 using YourLauncher.App.Localization;
+using YourLauncher.App.Plugins;
 using YourLauncher.App.Providers;
+using YourLauncher.App.Providers.FileSearch;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.App.Views;
@@ -38,6 +40,9 @@ public partial class App : Application
     private ThemeService? _themeService;
     private UsageService? _usageService;
     private MainViewModel? _viewModel;
+    private PluginProviderHost? _pluginHost;
+    private string _lastPluginProblems = "";
+    private string _pluginPrefix = "";
     private MainWindow? _mainWindow;
     private string _lastHotkeyText = "";
     private string _lastHotkeyFailureMessage = "";
@@ -106,6 +111,19 @@ public partial class App : Application
         var searchService = new SearchService(configService.Config, usageService.GetScore);
         var iconService = new IconService(configDir, Win32.GetDpiForSystem() / 96.0);
 
+        // File search ("f report"): Everything when it is running, otherwise the Windows Search index.
+        var fileSearchProvider = new FileSearchProvider(
+            [new EverythingBackend(Dispatcher), new WindowsSearchBackend()],
+            () => configService.Config.Settings.FileSearchPrefix,
+            launchService);
+
+        // Out-of-process plugins (<config dir>\plugins): scanned now, rescanned on every config reload. The host
+        // IS the async provider list, so a rescan needs no cooperation from the view model.
+        var pluginHost = new PluginProviderHost(configDir, [fileSearchProvider]);
+        _pluginHost = pluginHost;
+        var pluginProblems = pluginHost.Rescan(configService.Config.Settings.FileSearchPrefix);
+        _pluginPrefix = configService.Config.Settings.FileSearchPrefix;
+
         var viewModel = new MainViewModel(
             configService,
             launchService,
@@ -120,7 +138,7 @@ public partial class App : Application
             ShellLinkResolver.Resolve,
             () => _startupService?.StatusNote,
             syncProviders: [new CalculatorProvider(), new SystemCommandProvider(), new WindowSwitcherProvider()],
-            asyncProviders: Array.Empty<IAsyncResultProvider>(), // ...and file search / plugins here
+            asyncProviders: pluginHost,
             usageScore: usageService.GetScore,
             previewTheme: PreviewTheme,
             restoreTheme: ApplyConfiguredTheme);
@@ -179,6 +197,8 @@ public partial class App : Application
         {
             _mainWindow.ShowLauncher();
         }
+
+        ReportPluginProblems(pluginProblems);
 
         // Store updates install silently, so say once what changed (a click opens the release notes).
         if (updated)
@@ -355,6 +375,39 @@ public partial class App : Application
             warning: true);
 
     /// <summary>
+    /// One tray balloon (and an error.log entry) per DISTINCT set of skipped plugins: a reload that finds the
+    /// same broken plugin again stays quiet, and fixing it resets the memory so a later break is reported anew.
+    /// </summary>
+    private void RescanPlugins()
+    {
+        if (_pluginHost is null || _configService is null)
+        {
+            return;
+        }
+
+        _pluginPrefix = _configService.Config.Settings.FileSearchPrefix;
+        ReportPluginProblems(_pluginHost.Rescan(_pluginPrefix));
+    }
+
+    private void ReportPluginProblems(IReadOnlyList<string> problems)
+    {
+        var text = string.Join("\n", problems);
+        if (text == _lastPluginProblems)
+        {
+            return;
+        }
+
+        _lastPluginProblems = text;
+        if (problems.Count == 0)
+        {
+            return;
+        }
+
+        _errorLog?.Write("Plugins", new InvalidDataException(text), DateTime.Now);
+        _trayService?.ShowBalloon("Your Launcher", Strings.PluginsSkipped + "\n" + text, warning: true);
+    }
+
+    /// <summary>
     /// Hotkey/startup-registry/theme side effects of a reload (spec §4: "re-register hotkey if changed,
     /// re-sync startup registry"; §10 revision item 2: "an external reload that changes theme also calls
     /// ThemeService.Apply") - kept at the App level since MainViewModel deliberately holds no Win32/
@@ -374,6 +427,11 @@ public partial class App : Application
         }
 
         SyncItemHotkeys(); // the reloaded tree may carry different (or conflicting) item hotkeys.
+
+        if (_pluginHost is not null)
+        {
+            RescanPlugins();
+        }
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
 
@@ -409,6 +467,11 @@ public partial class App : Application
 
         _startupService?.Sync(_configService.Config.Settings.StartWithWindows);
         ApplyConfiguredTheme();
+        if (_configService.Config.Settings.FileSearchPrefix != _pluginPrefix)
+        {
+            RescanPlugins(); // a plugin keyword may now collide with (or be freed from) the file-search prefix.
+        }
+
         SyncItemHotkeys(); // settings.hotkey is now final: items that clash with it are skipped, ones that no longer do are registered.
     }
 

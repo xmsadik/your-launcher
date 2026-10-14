@@ -71,6 +71,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _showHintBar;
 
     [ObservableProperty]
+    private string _fileSearchPrefix;
+
+    [ObservableProperty]
     private string _errorMessage = "";
 
     /// <summary>True the moment a hotkey-registration failure at startup/reload opened this page (spec §10 item 13) - FocusFirstField() puts the caret in the hotkey box instead of the top of the form.</summary>
@@ -140,6 +143,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _defaultShell = current.DefaultShell;
         _rememberLastLocation = current.RememberLastLocation;
         _showHintBar = current.ShowHintBar;
+        _fileSearchPrefix = current.FileSearchPrefix;
 
         if (isReadOnly)
         {
@@ -258,6 +262,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             DefaultShell = DefaultShell,
             RememberLastLocation = RememberLastLocation,
             ShowHintBar = ShowHintBar,
+            FileSearchPrefix = (FileSearchPrefix ?? "").Trim(),
         });
     }
 

@@ -580,6 +580,12 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
+        if (item.Provider?.LocationPath is { Length: > 0 } location)
+        {
+            RevealInExplorer(item.Provider, location);
+            return;
+        }
+
         _folderStack.Clear();
         _folderStack.AddRange(item.ParentChain);
         UpdateBreadcrumb();
@@ -587,6 +593,36 @@ public sealed partial class MainViewModel : ObservableObject
 
         var indexInFolder = Items.ToList().FindIndex(i => ReferenceEquals(i.Node, item.Node));
         SelectedIndex = indexInFolder >= 0 ? indexInFolder : (Items.Count > 0 ? 0 : -1);
+    }
+
+    /// <summary>
+    /// Ctrl+Enter on a file row: opens Explorer with the file selected (<c>explorer /select,"path"</c>). The
+    /// path is one quoted argument because explorer parses its command line by hand and does not accept the
+    /// split form. Counts as a use of the row and follows closeAfterLaunch like Enter does.
+    /// </summary>
+    private void RevealInExplorer(ProviderResult provider, string path)
+    {
+        try
+        {
+            using var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{path}\"",
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[YourLauncher] Show in folder '{path}' failed: {ex.Message}");
+            ErrorMessage = string.Format(Strings.ProviderActionError, provider.Title, ex.Message);
+            return;
+        }
+
+        _recordUsage(provider.UsageKey);
+        if (_config.Settings.CloseAfterLaunch)
+        {
+            RequestHide?.Invoke();
+        }
     }
 
     /// <summary>Nodes marked <see cref="Node.ConfirmLaunch"/> (e.g. shutdown/restart) go through the inline confirm bar first; everything else launches immediately.</summary>
@@ -1848,7 +1884,23 @@ public sealed partial class MainViewModel : ObservableObject
         SelectedIndex = -1;
         Items.Clear();
 
-        if (IsSearchMode)
+        // A prefix-triggered provider ("f report") owns the whole query: nothing else is searched or shown.
+        var claim = IsSearchMode ? ProviderClaim.Pick(_asyncProviders, SearchText) : null;
+
+        if (claim is { } claimed)
+        {
+            if (claimed.Provider.PendingText is { Length: > 0 } pending)
+            {
+                Items.Add(new ListItemViewModel
+                {
+                    IsPlaceholder = true,
+                    Name = pending,
+                    Glyph = "", // Search
+                    SecondaryText = "",
+                });
+            }
+        }
+        else if (IsSearchMode)
         {
             var stopwatch = Stopwatch.StartNew();
             var results = _searchService.Search(SearchText);
@@ -1886,7 +1938,11 @@ public sealed partial class MainViewModel : ObservableObject
         IsEmpty = Items.Count == 0;
         SelectedIndex = Items.Count > 0 ? 0 : -1;
 
-        if (IsSearchMode)
+        if (claim is { } started)
+        {
+            StartClaimedProvider(started, _listGeneration);
+        }
+        else if (IsSearchMode)
         {
             StartAsyncProviders(SearchText);
         }
@@ -1930,8 +1986,21 @@ public sealed partial class MainViewModel : ObservableObject
         var generation = _listGeneration;
         foreach (var provider in _asyncProviders)
         {
-            _ = RunAsyncProviderAsync(provider, query, generation, cts.Token);
+            if (provider.ClaimOnly)
+            {
+                continue; // file search & co. have nothing to say about a query they did not claim.
+            }
+
+            _ = RunAsyncProviderAsync(provider, query, generation, cts.Token, replace: false);
         }
+    }
+
+    /// <summary>Claimed mode: only the claiming provider runs, with the text after its prefix.</summary>
+    private void StartClaimedProvider(ProviderClaimResult claim, int generation)
+    {
+        var cts = new CancellationTokenSource();
+        _asyncProvidersCts = cts;
+        _ = RunAsyncProviderAsync(claim.Provider, claim.InnerQuery, generation, cts.Token, replace: true);
     }
 
     /// <summary>
@@ -1939,7 +2008,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// to the dispatcher. Failures are swallowed on purpose: a slow or broken background source must be
     /// invisible, not an error line on every keystroke.
     /// </summary>
-    private async Task RunAsyncProviderAsync(IAsyncResultProvider provider, string query, int generation, CancellationToken ct)
+    private async Task RunAsyncProviderAsync(IAsyncResultProvider provider, string query, int generation, CancellationToken ct, bool replace)
     {
         try
         {
@@ -1954,7 +2023,17 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
 
-            _ = _dispatcher.BeginInvoke(() => AppendAsyncResults(results, generation));
+            _ = _dispatcher.BeginInvoke(() =>
+            {
+                if (replace)
+                {
+                    ShowClaimedResults(results, generation);
+                }
+                else
+                {
+                    AppendAsyncResults(results, generation);
+                }
+            });
         }
         catch (OperationCanceledException)
         {
@@ -1962,7 +2041,36 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             Debug.WriteLine($"[YourLauncher] Async provider {provider.GetType().Name} failed: {ex.Message}");
+            if (replace && !ct.IsCancellationRequested)
+            {
+                // The pending row must not spin forever: a failed claimed query ends as "No results".
+                _ = _dispatcher.BeginInvoke(() => ShowClaimedResults([], generation));
+            }
         }
+    }
+
+    /// <summary>
+    /// Claimed mode: the provider's rows REPLACE the pending row (nothing else is on screen, so replacing and
+    /// selecting the first row is safe, unlike <see cref="AppendAsyncResults"/>). Zero rows leaves the list
+    /// empty, which shows the usual "No results" line. Skipped when the list was rebuilt meanwhile.
+    /// </summary>
+    private void ShowClaimedResults(IReadOnlyList<ProviderResult> results, int generation)
+    {
+        if (generation != _listGeneration || !IsSearchMode)
+        {
+            return;
+        }
+
+        var ordered = ResultMerger.OrderAppended(results, _usageScore);
+        SelectedIndex = -1;
+        Items.Clear();
+        foreach (var result in ordered)
+        {
+            Items.Add(ToProviderListItem(result));
+        }
+
+        IsEmpty = Items.Count == 0;
+        SelectedIndex = Items.Count > 0 ? 0 : -1;
     }
 
     /// <summary>

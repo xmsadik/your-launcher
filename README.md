@@ -633,7 +633,8 @@ Shape (spec §4.2–§4.5):
     "maxVisibleItems": 8,
     "defaultShell": "pwsh",       // pwsh | powershell | cmd
     "rememberLastLocation": false,
-    "showHintBar": true
+    "showHintBar": true,
+    "fileSearchPrefix": "f"      // "f report" searches files; empty turns file search off
   },
   "root": {
     "id": "root", "type": "folder", "name": "Root",
@@ -658,6 +659,9 @@ such a node — Enter, double-click or the context menu's Open — first shows a
 shut down / restart / log out. The field is omitted from config.json while false.
 
 ### Parameterized items (`{query}`)
+
+> If a plugin (see "Plugins") or the file-search prefix uses the same word as an item keyword, they take
+> precedence: file search > plugin > `{query}` item trigger.
 
 A `url` node's `target`, a `command` node's `command`, or an `app` node's `arguments` may contain the
 placeholder `{query}`. Such an item is launched together with text you type after one of its keywords:
@@ -830,6 +834,217 @@ raises all of that app's windows in later rankings. The window list is re-read a
 type, so a keystroke costs about a millisecond. The row's icon is the process executable's; for elevated
 processes (which a normal-rights launcher cannot inspect) the row shows a generic window glyph and no process
 name, and bringing such a window forward may be refused by Windows.
+
+### File search
+
+Type the prefix, a space and part of a file name (`f report`, `f budget 2024`) and the list switches to file
+search: the panel shows only matching files and folders (your items, system commands and windows are not
+searched meanwhile), first a "Searching files…" row, then up to 20 results after a 150 ms pause in typing.
+Several words must all appear in the name, in any order. Each row shows the name (matched letters
+highlighted), the parent folder as the second line and the file's own icon. Enter opens the file with its
+default program (like a path item), Ctrl+Enter shows it selected in Explorer. The results keep the
+backend's order. The
+prefix is `settings.fileSearchPrefix` (default `f`, also a box on the settings page); it is matched without
+regard to case, must be followed by a space (so `fox` is a normal search) and an empty value turns file
+search off. A bare `f ` with nothing after it stays a normal search.
+
+Two backends, chosen per query:
+
+- **Everything** (voidtools) when it is running: the launcher talks to its window over the documented IPC
+  (`WM_COPYDATA`, `EVERYTHING_IPC_COPYDATA_QUERY2W`; both the 1.4 and the 1.5 alpha window class are tried),
+  so there is no DLL to ship and nothing to configure. Your text is passed through as typed, so Everything
+  syntax such as `ext:pdf` or `"exact phrase"` works. No answer within 1.5 s counts as no results.
+- **Windows Search** otherwise: the system index through its OLE DB provider (`Search.CollatorDSO`), a
+  file-name substring match per word (`System.FileName LIKE '%word%'`, newest first), so it only finds what
+  Windows has indexed (Settings, Privacy and security, Searching Windows). If the Windows Search service is
+  off, file search simply returns no results.
+
+Neither backend needs a package capability, so the Microsoft Store build supports file search as is.
+
+## Plugins
+
+Plugins add your own search sources without touching the launcher: a plugin is **any program** (PowerShell,
+Python, Node, a compiled exe ...) that reads one JSON line on stdin and prints one JSON object on stdout.
+Each plugin runs as a separate short-lived process, so a crash, hang or memory leak in a plugin can never
+affect the launcher. There is no plugin store and nothing is downloaded; you put plugin folders in place
+yourself. **Only install plugins you trust** — a plugin runs with your user rights, like any program.
+
+A plugin only runs when the query starts with its **keyword** followed by a space (`uuid 3`, `gh react`), so
+nothing is started while you type ordinary searches. While the plugin works the list shows a
+"*name*: searching…" row, then the plugin's results; only that plugin's rows are shown for the query.
+
+**Keyword precedence:** file search (its prefix, `settings.fileSearchPrefix`, default `f`) > plugin keyword > a
+`{query}` item's keyword. A plugin whose keyword equals the file-search prefix never runs: it is skipped and
+reported with the other skipped plugins. A plugin keyword that equals a `{query}` item keyword shadows that
+item's trigger while the plugin is installed (the item still shows up in ordinary searches).
+
+### Installing
+
+Settings (`Ctrl+,`) → **Open plugins folder** (created if missing), or use `<config folder>\plugins`
+(next to `config.json`). One sub-folder per plugin, each with a `plugin.json`:
+
+```
+plugins\
+  uuid\
+    plugin.json
+    uuid.ps1
+```
+
+The launcher scans the folder at startup and whenever the config is reloaded (**Reload config** in the tray
+menu, or an external edit of `config.json`). Plugins that cannot be loaded (invalid `plugin.json`, a keyword
+already used by another plugin — the folder that sorts first wins) are skipped and listed once in a tray
+balloon and in `error.log`.
+
+A ready-made example lives in [`examples/plugins/uuid`](examples/plugins/uuid): copy that folder into the
+plugins folder and reload, then type `uuid` followed by a space (`uuid 3` for three GUIDs); Enter copies the
+selected one.
+
+### plugin.json
+
+```json
+{
+  "name": "GitHub",
+  "keyword": "gh",
+  "command": "pwsh",
+  "args": ["-NoProfile", "-File", "search.ps1"],
+  "workingDirectory": null,
+  "timeoutMs": 3000,
+  "debounceMs": 200,
+  "glyph": null,
+  "icon": null
+}
+```
+
+| Field | Required | Meaning |
+|---|---|---|
+| `keyword` | yes | Trigger word, no spaces; matched case-insensitively and Turkish-aware (`İ`/`ı`). |
+| `command` | yes | Program to start. A bare name (`pwsh`, `python`) is looked up on `PATH`; a value with a path separator (`bin\tool.exe`) is relative to the plugin folder. Started directly, **not through a shell**. |
+| `args` | no | Argument list (default none). Relative file names resolve against the working directory. |
+| `name` | no | Shown in "*name*: searching…". Default: the folder name. |
+| `workingDirectory` | no | Default: the plugin folder. Relative values are relative to the plugin folder. |
+| `timeoutMs` | no | Default 3000 (clamped to 100–30000). On timeout the process tree is killed and the run is discarded. |
+| `debounceMs` | no | Quiet time after the last keystroke before the plugin is started. Default 200 (0–2000). |
+| `glyph` | no | A single Segoe Fluent Icons character for the rows (default: a puzzle piece). |
+| `icon` | no | Image / `.ico` / `.exe` shown on the rows instead of the glyph; relative to the plugin folder or absolute. |
+
+Comments and trailing commas are allowed; unknown fields are ignored.
+
+### Protocol (version 1)
+
+The launcher starts `command args` with the plugin folder as working directory, writes **one line** of UTF-8
+JSON (no BOM) to its stdin and closes stdin:
+
+```json
+{"query": "react hooks", "version": 1}
+```
+
+`query` is the text after the keyword (empty when only `gh ` was typed). The same text is in the environment
+variable `YOURLAUNCHER_QUERY`, and `YOURLAUNCHER_PLUGIN_DIR` is the plugin folder — handy for plugins that
+ignore stdin. The plugin prints **one JSON object** to stdout (UTF-8) and exits with code 0:
+
+```json
+{
+  "items": [
+    { "title": "facebook/react", "subtitle": "A JavaScript library", "icon": "icons\\repo.png",
+      "action": { "type": "open", "target": "https://github.com/facebook/react" } },
+    { "title": "Copy clone URL",
+      "action": { "type": "copy", "text": "https://github.com/facebook/react.git" } },
+    { "title": "Open in editor",
+      "action": { "type": "run", "command": "code", "args": ["C:\\src\\react"] } }
+  ]
+}
+```
+
+| Item field | Meaning |
+|---|---|
+| `title` | Required, the main text. |
+| `subtitle` | Optional second line. |
+| `icon` | Optional per-row image path (relative to the plugin folder, or absolute); overrides the manifest icon. |
+| `action` | Required. What Enter does, one of the three below. |
+
+Actions:
+
+- `{"type": "open", "target": "https://… or a file/folder path"}` — opens it with the default program (like double-clicking).
+- `{"type": "copy", "text": "…"}` — puts the text on the clipboard and closes the panel.
+- `{"type": "run", "command": "exe", "args": ["…"]}` — starts a program directly (argument list, no shell, no console window, working directory = the plugin folder). A `command` with a path separator is relative to the plugin folder, like the manifest's `command`.
+
+Rules the launcher enforces:
+
+- At most **50 items** (extra rows are dropped); stdout is read up to **1 MB** — more than that counts as broken.
+- A non-zero exit code, empty output or invalid JSON gives **zero items** (the panel just shows nothing). A single bad item
+  (no title, unknown action type, missing target) is skipped; the others are kept. stderr is captured for the debug log only.
+- A new keystroke cancels the previous run: the plugin's whole process tree is killed and its answer is discarded. Plugins
+  should therefore be quick and side-effect free (the query is a *preview*, not a command).
+- Rows rank in the order the plugin prints them; recently chosen rows float up after you have used them.
+
+### Example: PowerShell
+
+`plugins\uuid\plugin.json` and `uuid.ps1` (shipped in `examples/plugins/uuid`):
+
+```json
+{ "name": "UUID", "keyword": "uuid", "command": "powershell",
+  "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "uuid.ps1"] }
+```
+
+```powershell
+# The launcher talks UTF-8 (no BOM) in both directions; PowerShell would otherwise use the OEM code page.
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+
+$request = [Console]::In.ReadToEnd() | ConvertFrom-Json
+$count = 1
+if ($request.query -match '^\d+$') { $count = [Math]::Min([int]$request.query, 10) }   # "uuid 3" -> three GUIDs
+
+$items = @()
+for ($i = 0; $i -lt $count; $i++) {
+    $guid = [guid]::NewGuid().ToString()
+    $items += @{ title = $guid; subtitle = 'lowercase, dashes'; action = @{ type = 'copy'; text = $guid } }
+    $items += @{ title = $guid.ToUpper(); subtitle = 'UPPERCASE, dashes'; action = @{ type = 'copy'; text = $guid.ToUpper() } }
+    $items += @{ title = $guid.Replace('-', ''); subtitle = 'no dashes'; action = @{ type = 'copy'; text = $guid.Replace('-', '') } }
+}
+
+@{ items = $items } | ConvertTo-Json -Depth 5 -Compress
+```
+
+(`pwsh` — PowerShell 7 — starts faster than Windows PowerShell's `powershell` if you have it installed.)
+You can test any plugin by hand: `'{"query":"3","version":1}' | powershell -NoProfile -File uuid.ps1`.
+
+### Example: Python
+
+`plugins\websearch\plugin.json`: `{ "keyword": "web", "command": "python", "args": ["search.py"] }`
+
+```python
+import json
+import sys
+
+# The launcher talks UTF-8; Python would otherwise decode stdin with the legacy console code page.
+sys.stdin.reconfigure(encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")
+
+# Read the single request line the launcher writes to stdin.
+request = json.loads(sys.stdin.readline())
+query = request["query"].strip()
+
+items = []
+if query:
+    items.append({
+        "title": f"Search the web for '{query}'",
+        "subtitle": "Opens your default browser",
+        "action": {"type": "open", "target": "https://duckduckgo.com/?q=" + query.replace(" ", "+")},
+    })
+    items.append({
+        "title": f"Copy '{query}' in upper case",
+        "action": {"type": "copy", "text": query.upper()},
+    })
+
+print(json.dumps({"items": items}, ensure_ascii=False))
+```
+
+### Microsoft Store build
+
+The Store build starts plugins like any other program the launcher runs (outside its package), so a plugin
+sees its real folder; the plugins folder is created next to `config.json` and opened by the Settings button.
+No extra permission is involved.
 
 ## Memory and publish size (Phase 5/6, spec §8/§15)
 

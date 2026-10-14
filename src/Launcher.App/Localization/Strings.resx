@@ -180,4 +180,28 @@
     <value>Start menu import: {0} added, {1} updated, {2} removed (folder '{3}').</value>
     <comment>{0} added, {1} updated, {2} removed nodes; {3} = folder name.</comment>
   </data>
+  <data name="PluginSearching" xml:space="preserve">
+    <value>{0}: searching…</value>
+    <comment>Placeholder row while a plugin runs. {0} = plugin name.</comment>
+  </data>
+  <data name="PluginsSkipped" xml:space="preserve">
+    <value>Plugins skipped:</value>
+    <comment>Tray balloon heading; followed by one line per plugin that could not be loaded.</comment>
+  </data>
+  <data name="SettingsOpenPluginsFolder" xml:space="preserve">
+    <value>Open plugins folder</value>
+    <comment>Settings page button: opens (and creates if missing) the plugins folder.</comment>
+  </data>
+  <data name="FileSearchPending" xml:space="preserve">
+    <value>Searching files…</value>
+    <comment>Single placeholder row shown while a file search ("f report") is running.</comment>
+  </data>
+  <data name="SettingsFileSearchPrefix" xml:space="preserve">
+    <value>File search prefix</value>
+    <comment>Settings label of the text that, followed by a space, switches the list to file search.</comment>
+  </data>
+  <data name="SettingsFileSearchPrefixHint" xml:space="preserve">
+    <value>e.g. "f report"; empty turns file search off</value>
+    <comment>Hint next to the file search prefix box.</comment>
+  </data>
 </root>

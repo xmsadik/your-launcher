@@ -61,4 +61,12 @@ public sealed class Settings
     public bool RememberLastLocation { get; set; } = false;
 
     public bool ShowHintBar { get; set; } = true;
+
+    /// <summary>
+    /// Typing "&lt;prefix&gt; &lt;text&gt;" (default "f report") switches the list to file search. Empty disables file
+    /// search. Matched case-insensitively and only when followed by a space, so "fox" never triggers it.
+    /// </summary>
+    public string FileSearchPrefix { get; set; } = DefaultFileSearchPrefix;
+
+    public const string DefaultFileSearchPrefix = "f";
 }

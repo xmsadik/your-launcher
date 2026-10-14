@@ -133,4 +133,19 @@ public static class Strings
 
     /// <summary>{0} added, {1} updated, {2} removed nodes; {3} = folder name.</summary>
     public static string StartMenuImportDone => Get(nameof(StartMenuImportDone));
+
+    /// <summary>{0} = plugin name.</summary>
+    public static string PluginSearching => Get(nameof(PluginSearching));
+
+    /// <summary>Tray balloon heading for plugins that failed to load.</summary>
+    public static string PluginsSkipped => Get(nameof(PluginsSkipped));
+
+    /// <summary>Settings page button label.</summary>
+    public static string SettingsOpenPluginsFolder => Get(nameof(SettingsOpenPluginsFolder));
+
+    public static string FileSearchPending => Get(nameof(FileSearchPending));
+
+    public static string SettingsFileSearchPrefix => Get(nameof(SettingsFileSearchPrefix));
+
+    public static string SettingsFileSearchPrefixHint => Get(nameof(SettingsFileSearchPrefixHint));
 }

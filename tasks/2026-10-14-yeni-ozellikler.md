@@ -60,7 +60,7 @@ ajanlarına, plan eleştirisi ve diff incelemesi ayrı bir ajana verilir; son do
   hatası ana kısayoldaki gibi kullanıcıya gösterilir).
 - [x] **Faz 3 — Windows entegrasyonu:** #6 pencere geçişi, #8 Başlat menüsünden içe aktarma (bookmark
   içe aktarmayla aynı düzen: tekrar içe aktarınca aynı klasörü günceller).
-- [ ] **Faz 4 — Büyük işler:** #10 dosya araması, #11 eklenti sistemi.
+- [x] **Faz 4 — Büyük işler:** #10 dosya araması, #11 eklenti sistemi.
 - [ ] **Faz 5 — Türkçe arayüz:** #9. En sona konuldu çünkü önceki fazların ekleyeceği yeni metinler de
   çevrilecek; erken yapılırsa her fazda iki dilde metin tutmak gerekir.
 - [ ] Faz sonu: README güncellemesi, rapor.

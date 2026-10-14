@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Microsoft.Win32;
+using YourLauncher.App.Plugins;
 using YourLauncher.App.Services;
 using YourLauncher.App.ViewModels;
 using YourLauncher.Core.Bookmarks;
@@ -162,6 +163,27 @@ public partial class SettingsView : UserControl
         if (ViewModel is { } vm && ShellCombo.SelectedIndex >= 0)
         {
             vm.DefaultShell = (ShellKind)ShellCombo.SelectedIndex;
+        }
+    }
+
+    /// <summary>Creates the plugins folder on first use so there is always something to open (and to drop a plugin into).</summary>
+    private void OpenPluginsFolderButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var vm = ViewModel;
+        if (vm is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var folder = Path.Combine(vm.ConfigDirectory, PluginProviderHost.FolderName);
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(PackageContext.ToPhysicalPath(folder)) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+            Debug.WriteLine($"[YourLauncher] Could not open the plugins folder: {ex.Message}");
         }
     }
 

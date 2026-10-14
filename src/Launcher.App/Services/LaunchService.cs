@@ -51,6 +51,10 @@ public sealed class LaunchService
         return Execute(plan, node.Name, isHiddenCommand);
     }
 
+    /// <summary>Opens a file or folder found on disk with its default program; the path is used literally (no env expansion).</summary>
+    public bool OpenPath(string path, string displayName) =>
+        Execute(CommandLineBuilder.BuildForLiteralPath(path), displayName, false);
+
     private bool Execute(LaunchPlan plan, string displayName, bool isHiddenCommand)
     {
         // Apps, paths and URLs (raw-argument shell launches) go through ShellExecuteEx so the new window

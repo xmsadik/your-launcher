@@ -14,6 +14,9 @@
     "defaultShell": "pwsh",
     "rememberLastLocation": false,
     "showHintBar": true,
+    // Type "<prefix> <text>" (e.g. "f report") to search files with Everything (when it is running) or the
+    // Windows Search index. Empty turns file search off.
+    "fileSearchPrefix": "f",
   },
   "root": {
     "id": "root",

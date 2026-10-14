@@ -42,8 +42,10 @@ internal static class PackageContext
     /// The on-disk location of <paramref name="path"/> as Explorer and other apps see it. Inside the package a
     /// redirected %APPDATA% folder looks like the normal path, but anything started outside the package
     /// (Explorer, the user's editor) only finds it under LocalCache\Roaming - so shell-opens go there instead.
+    /// <paramref name="probeFile"/> is the file inside a folder that decides which copy is current (config.json for the
+    /// config folder, plugin.json for a plugin folder).
     /// </summary>
-    public static string ToPhysicalPath(string path)
+    public static string ToPhysicalPath(string path, string probeFile = "config.json")
     {
         if (!IsPackaged)
         {
@@ -67,8 +69,8 @@ internal static class PackageContext
 
             // Both a redirected copy and a real folder can exist (Store build first, plain exe later); the package
             // then uses the real one, so only pick the redirected copy if it is the file this process actually sees.
-            // A folder is judged by its config.json, the file that matters when it's opened.
-            var probe = Directory.Exists(redirected) ? Path.Combine(relative, "config.json") : relative;
+            // A folder is judged by its probe file, the file that matters when it's opened.
+            var probe = Directory.Exists(redirected) ? Path.Combine(relative, probeFile) : relative;
             var seen = new FileInfo(Path.Combine(roaming, probe));
             var copy = new FileInfo(Path.Combine(ApplicationData.Current.LocalCacheFolder.Path, "Roaming", probe));
             return !seen.Exists || !copy.Exists || (seen.Length == copy.Length && seen.LastWriteTimeUtc == copy.LastWriteTimeUtc)

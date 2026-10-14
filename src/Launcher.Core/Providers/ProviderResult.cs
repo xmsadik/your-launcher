@@ -47,6 +47,12 @@ public sealed class ProviderResult
     /// <summary>File whose shell icon is shown instead of <see cref="Glyph"/>; null when the glyph is enough.</summary>
     public string? IconPath { get; init; }
 
+    /// <summary>
+    /// File or folder this row stands for, if any. Ctrl+Enter then reveals it in Explorer ("show in folder")
+    /// instead of doing nothing; null for rows that are not a file system entry.
+    /// </summary>
+    public string? LocationPath { get; init; }
+
     public ResultTier Tier { get; init; } = ResultTier.SystemCommands;
 
     /// <summary>Order inside the tier, higher first.</summary>

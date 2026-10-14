@@ -1,0 +1,8 @@
+{
+  "name": "UUID",
+  "keyword": "uuid",
+  "command": "powershell",
+  "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "uuid.ps1"],
+  "timeoutMs": 5000,
+  "debounceMs": 100
+}

@@ -31,6 +31,16 @@ public static class CommandLineBuilder
         };
     }
 
+    /// <summary>
+    /// Opens a path exactly as given, with NO environment expansion. For paths found on disk (file search):
+    /// a real file named like "a%TEMP%b" must not be rewritten the way a hand-typed path item is.
+    /// </summary>
+    public static LaunchPlan BuildForLiteralPath(string path) => new()
+    {
+        FileName = path,
+        UseShellExecute = true,
+    };
+
     public static LaunchPlan BuildForPath(PathNode node) => new()
     {
         FileName = EnvExpander.Expand(node.Target) ?? "",
