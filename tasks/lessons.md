@@ -23,7 +23,7 @@
   before uploading (for self-signed, "terminated in a root ... not trusted" = signed).
 
 ## 2026-10-14 — Python string inside a shell heredoc silently dropped a report
-- What happened: a long Turkish report was inserted with a Python heredoc; a Windows path in it (`examples\\plugins\\uuid`)
+- What happened: a long Turkish report was inserted with a Python heredoc; a Windows path in it (`examples\plugins\uuid`)
   formed a `\u` escape, Python failed, and the chained `git commit` still ran, so the commit message claimed a
   report that was not in the file.
 - Rule: write long text with the Write tool (or a raw file), never as a Python/heredoc string literal; chain
