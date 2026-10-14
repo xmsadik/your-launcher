@@ -5,7 +5,8 @@ Partner Center alanlarına aynen yapıştırılacak metinler aşağıda. Paket 0
 ve **Turkish (Turkey)**. İkisinin metinleri aşağıda.
 Kimlik: `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271DD`, PublisherDisplayName `ABAPer`.
 
-Son güncelleme: 2026-10-14 (0.2.0 gönderimi için).
+Son güncelleme: 2026-10-14 (0.2.1 gönderimi için). 0.2.0 Store'a gönderilmedi; Store kullanıcıları 0.1.1'den
+0.2.1'e geçtiği için "yenilikler" metinleri 0.2.0'dakiyle aynı.
 
 ## Properties
 - **Category:** Productivity. Alternatif: Utilities & tools.
@@ -18,7 +19,7 @@ Son güncelleme: 2026-10-14 (0.2.0 gönderimi için).
 
 ## Store listing — English (United States)
 
-**What's new in this version** (0.2.0)
+**What's new in this version** (0.2.1)
 
 ```
 Big update: themes, calculator, window switching, file search, plugins and a Turkish interface.
@@ -95,7 +96,7 @@ Keyboard-first launcher: your own tree of apps, links and commands, plus window 
 
 ## Store listing — Turkish (Turkey)
 
-**Bu sürümdeki yenilikler** (0.2.0)
+**Bu sürümdeki yenilikler** (0.2.1)
 
 ```
 Büyük güncelleme: temalar, hesap makinesi, pencere geçişi, dosya araması, eklentiler ve Türkçe arayüz.
