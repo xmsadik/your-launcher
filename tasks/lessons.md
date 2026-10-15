@@ -41,3 +41,19 @@
   real windows showed the class names that separate them.
 - Rule: when a feature depends on OS state (power states, window manager behavior), measure it on the user's
   machine with a read-only probe before choosing the rule.
+
+## 2026-10-15 — Manifest schema written from memory, caught only by packing
+- What happened: the app execution alias was added as `uap5:AppExecutionAlias` > `desktop:ExecutionAlias`. Both the
+  reviewing and the implementing agent "knew" this was right; build and tests passed. `makeappx pack` rejected it
+  (`desktop:ExecutionAlias` belongs under `uap3:AppExecutionAlias`; under uap5 it must be `uap5:ExecutionAlias`).
+- Rule: after any AppxManifest change, pack a *scratch copy* of `dist\layout-<arch>` with the substituted manifest
+  (makeappx pack /d <copy> /p <scratch>.msix) before calling it done. Never run pack.ps1/pack-store.ps1 for this —
+  they overwrite the signed packages in dist\.
+
+## 2026-10-15 — UI measurements from a non-DPI-aware PowerShell
+- What happened: window rects read from PowerShell were DPI-virtualized (2560x1440 reported on a 3840x2160 @150%
+  screen); a report said "100% scale". CopyFromScreen then captured the wrong region.
+- Rule: call SetProcessDpiAwarenessContext(-4) first in any measuring/capturing script; state the real resolution
+  and scale. Also: a manually started YourLauncher shows its panel on start (only `--silent` / the startup task
+  doesn't) — start the first test instance with `--silent` when testing the "show" request, and wait for
+  WaitForExit() + a pause between instances on the same config dir (the single-instance mutex lingers).

@@ -1,28 +1,32 @@
 ## Görev dosyaları
+- 2026-10-15 · Sürüm 0.3.0 · TAMAMLANDI · [dosya](2026-10-15-surum-0-3-0.md)
+- 2026-10-15 · Caelestia görünümü: kenara yapışık panel stili · TAMAMLANDI · [dosya](2026-10-15-caelestia-gorunumu.md)
+- 2026-10-15 · Panelin ekrandaki konumu için ayar · TAMAMLANDI · [dosya](2026-10-15-panel-konumu.md)
 - 2026-10-14 · Yeni özellikler (11 özellik, 6 faz) · TAMAMLANDI · [dosya](2026-10-14-yeni-ozellikler.md)
 - 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
 - 2026-10-14 · Sürüm 0.2.1: eklenti düzeltmesi · TAMAMLANDI · [dosya](2026-10-14-surum-0-2-1.md)
 
-## Devam noktası (güncel: 2026-10-14)
+## Devam noktası (güncel: 2026-10-15)
 
-**Nerede kaldık:** 0.2.1 GitHub'da yayımlandı (0.2.0 + eklenti düzeltmesi). Store'a 0.2.0 değil 0.2.1
-gönderilecek; gönderimi kullanıcı yapacak. Yayından sonra bir sorun çıkarsa buradan devam edilecek.
+**Nerede kaldık:** 0.3.0 GitHub'da yayımlandı (panel konumu, kenara yapışık stil, Caelestia teması,
+`yourlauncher.exe` komutu). Store bundle'ı hazır; gönderimi kullanıcı yapacak.
 
-- **Kod:** `main` = `origin/main`. Düzeltme commit'i `7d8e689` (`PluginProvider.ClaimOnly => true`: 0.2.0'da
-  eklentiler anahtar kelime yazılmadan her tuşta çalışıyordu), sürüm commit'i `aa90500`. 792 test geçiyor.
-  Ayrıntı: `tasks/2026-10-14-surum-0-2-1.md`.
-- **GitHub:** https://github.com/xmsadik/your-launcher/releases/tag/v0.2.1 (imzalı x64 + arm64 MSIX + `.cer`,
-  sertifika 0.2.0 ile aynı).
-- **Store:** paket `dist\store\YourLauncher_0.2.1.0_Bundle.msixbundle`. Kullanıcı yükleyecek. Paket `en-US`
-  ve `tr-TR` bildiriyor, bu yüzden Partner Center Türkçe sayfa da ister. Metinler `tasks/store-submission.md`
-  içinde. Ekran görüntüleri: `dist\store\screenshots-en\` ve `screenshots-tr\` (sahte verili ayrı config ile
-  gerçek uygulamadan çekildi).
+- **Kod:** `main` = `origin/main`. Özellik commit'i `3c99fe7`, sürüm commit'i `90461c2` (etiket `v0.3.0`).
+  800 test geçiyor. Ayrıntı: `tasks/2026-10-15-surum-0-3-0.md`, `tasks/2026-10-15-caelestia-gorunumu.md`,
+  `tasks/2026-10-15-panel-konumu.md`.
+- **GitHub:** https://github.com/xmsadik/your-launcher/releases/tag/v0.3.0 (imzalı x64 + arm64 MSIX + `.cer`,
+  sertifika 0.2.x ile aynı).
+- **Store:** paket `dist\store\YourLauncher_0.3.0.0_Bundle.msixbundle`. Metinler `tasks/store-submission.md`
+  (0.3.0 için güncellendi). Ekran görüntüleri değişmedi: `dist\store\screenshots-en\` ve `screenshots-tr\`.
+  0.2.1 gönderimi hâlâ sertifikasyondaysa yenisi için onun bitmesi beklenmeli ya da iptal edilmeli.
 - **Paketleme tuzağı:** `pack-store.ps1`, `pack.ps1`'i imzasız çağırıyor ve `dist\` altındaki imzalı MSIX'lerin
-  üstüne yazıyor. Önce Store bundle'ını, sonra imzalı paketleri üret.
+  üstüne yazıyor. Önce Store bundle'ını, sonra imzalı paketleri üret. Manifest değişince geçici bir layout
+  kopyasıyla `makeappx pack` doğrulaması yap (lessons.md).
 - **Açık küçük konular:** Türkçe ayarlarda "Windows vurgu rengini kullan" etiketi taşıyor; uygulama ikonları
-  ara sıra genel ikonla yükleniyor (Chrome, Görev Yöneticisi). İkisi de araştırılmadı.
-- **0.2.0'ın içeriği ve tasarım kuralları:** `tasks/2026-10-14-yeni-ozellikler.md` (A bölümü "Tasarım
-  kuralları", B bölümü rapor). Temalar: `tasks/2026-10-14-temalar-ve-opaklik.md`.
+  ara sıra genel ikonla yükleniyor. Zebar oturumu düşük öncelikli bir panel genişliği ayarı istedi (mockup 760
+  DIP, uygulama 640). Zebar teması değişince başlatıcının da değişmesi (6. istek) yapılmadı.
+- **0.2.0'ın içeriği ve tasarım kuralları:** `tasks/2026-10-14-yeni-ozellikler.md`. Temalar:
+  `tasks/2026-10-14-temalar-ve-opaklik.md`.
 
 **Yayın sonrası olası konular ve ilk bakılacak yer**
 
@@ -36,6 +40,9 @@ gönderilecek; gönderimi kullanıcı yapacak. Yayından sonra bir sorun çıkar
 | Uyku yerine hazırda bekletme | `SystemCommandProvider.Sleep`; Modern Standby'da ekranı kapatıyor |
 | Türkçe metin taşıyor | `Strings.tr.resx`; ayarlar etiket sütunu 180 px |
 | Kısayol tuşu çalışmıyor ya da çakışıyor | `HotkeyService`, `HotkeyConflicts`; AltGr notu README'de |
+| Store reddi: `appExecutionAlias` | `packaging/AppxManifest.xml` uap5 bloğu; çıkarmak yalnız `yourlauncher.exe` komutunu kaldırır |
+| Varsayılan (floating) görünüm değişti | `MainWindow.xaml.cs` `_docked` dalları; yazı tipi artık `PanelFontFamily` kaynağından |
+| Yapışık stilde köşe/şekil bozuk, yazı bulanık | `MainWindow.xaml.cs` `BuildDockedChrome`, `UpdateDockedClip`; katmanlı pencere |
 
 **Bilerek bırakılan açık konular:** Dil değişikliği yeniden başlatma gerektiriyor. Everything ada göre sıralıyor.
 Boşta bellek 80 MB hedefinin üzerinde. `icons\` klasöründe sahipsiz kalan dosyalar temizlenmiyor.
