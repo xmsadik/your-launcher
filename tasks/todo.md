@@ -9,7 +9,8 @@
 ## Devam noktası (güncel: 2026-10-15)
 
 **Nerede kaldık:** 0.3.0 GitHub'da yayımlandı (panel konumu, kenara yapışık stil, Caelestia teması,
-`yourlauncher.exe` komutu). Store bundle'ı hazır; gönderimi kullanıcı yapacak.
+`yourlauncher.exe` komutu). Kullanıcı 0.3.0 bundle'ını 2026-10-15'te Store'a gönderdi; sertifikasyon
+bekleniyor. Ret gelirse aşağıdaki tabloya bak; onay gelirse yapılacak bir şey yok.
 
 - **Kod:** `main` = `origin/main`. Özellik commit'i `3c99fe7`, sürüm commit'i `90461c2` (etiket `v0.3.0`).
   800 test geçiyor. Ayrıntı: `tasks/2026-10-15-surum-0-3-0.md`, `tasks/2026-10-15-caelestia-gorunumu.md`,
