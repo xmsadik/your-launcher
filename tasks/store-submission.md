@@ -5,8 +5,9 @@ Partner Center alanlarına aynen yapıştırılacak metinler aşağıda. Paket 0
 ve **Turkish (Turkey)**. İkisinin metinleri aşağıda.
 Kimlik: `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271DD`, PublisherDisplayName `ABAPer`.
 
-Son güncelleme: 2026-10-14 (0.2.1 gönderimi için). 0.2.0 Store'a gönderilmedi; Store kullanıcıları 0.1.1'den
-0.2.1'e geçtiği için "yenilikler" metinleri 0.2.0'dakiyle aynı.
+Son güncelleme: 2026-10-15 (0.3.0 gönderimi için). "Yenilikler" metni önce 0.3'ü, sonra kısaca 0.2 serisini
+anlatır: 0.2.1 Store'a gönderilmediyse Store kullanıcıları 0.1.1'den doğrudan 0.3.0'a geçer. 0.2.1 gönderimi hâlâ
+sertifikasyondaysa yenisini oluşturmadan önce onun bitmesini bekleyin ya da iptal edin.
 
 **Paket:** Packages sayfasına yalnızca `dist\store\YourLauncher_<sürüm>_Bundle.msixbundle` yüklenir. `dist\`
 altındaki tek `.msix` dosyaları GitHub içindir; yüklenirse Partner Center "must continue to contain a Windows
@@ -23,20 +24,15 @@ altındaki tek `.msix` dosyaları GitHub içindir; yüklenirse Partner Center "m
 
 ## Store listing — English (United States)
 
-**What's new in this version** (0.2.1)
+**What's new in this version** (0.3.0)
 
 ```
-Big update: themes, calculator, window switching, file search, plugins and a Turkish interface.
-• 21 themes (Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine, Windows Light/Dark) with live preview, background opacity and the Windows accent color.
-• Calculator: type 12*4+0x10 and press Enter to copy the result.
-• System commands: lock, sleep, restart, shut down, sign out, empty Recycle Bin.
-• Switch to any open window by typing its name, optionally across virtual desktops and tiling-WM workspaces.
-• {query} items: "g cats" searches Google, "jira ABC-123" opens the ticket.
-• Per-item global hotkeys.
-• Import apps from the Start menu, including Store apps.
-• File search: type "f report" (uses Everything if it is running, otherwise Windows Search).
-• Plugins: tiny programs in any language add their own results.
-• Turkish interface (follows Windows, or pick a language in Settings).
+New in 0.3: put the panel where you want it.
+• Panel position: centered as before, or docked to the top or bottom edge of the screen, with an adjustable gap.
+• Docked style: an opaque panel that blends into a desktop bar; docked at the bottom, the search box sits at the bottom too.
+• New theme: Caelestia (Dark Glass), with the Rubik font.
+• The "yourlauncher" command opens the panel, so desktop bars and scripts can show it.
+Coming from 0.1? The 0.2 update added 21 themes with live preview and opacity, a calculator, system commands, window switching, {query} items, per-item hotkeys, Start menu import, file search (Everything or Windows Search), plugins and a Turkish interface.
 ```
 
 **Description**
@@ -60,7 +56,8 @@ One search box
 • Plugins: small programs in any language (PowerShell, Python, ...) can add their own results via simple JSON.
 
 Looks and feel
-• 21 themes: Windows Light and Dark, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub and Rosé Pine, with live preview, adjustable background opacity over Mica/Acrylic, and the Windows accent color.
+• 22 themes: Windows Light and Dark, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine and Caelestia, with live preview, adjustable background opacity over Mica/Acrylic, and the Windows accent color.
+• Open the panel centered, or docked to the top or bottom edge of the screen as part of your desktop bar.
 • English and Turkish interface.
 • Fully keyboard driven: add, edit, cut, paste, duplicate and delete without touching the mouse.
 • Tray icon, optional start with Windows, opens on the monitor you're working on.
@@ -94,26 +91,22 @@ Keyboard-first launcher: your own tree of apps, links and commands, plus window 
 - File search via Everything or Windows Search
 - Plugins in any language
 - Import from the Start menu and browser bookmarks
-- 21 themes with live preview and opacity
+- 22 themes with live preview and opacity
+- Centered or docked to a screen edge
 - English and Turkish interface
 - No network access, no data collection
 
 ## Store listing — Turkish (Turkey)
 
-**Bu sürümdeki yenilikler** (0.2.1)
+**Bu sürümdeki yenilikler** (0.3.0)
 
 ```
-Büyük güncelleme: temalar, hesap makinesi, pencere geçişi, dosya araması, eklentiler ve Türkçe arayüz.
-• 21 tema (Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine, Windows Açık/Koyu); canlı önizleme, arka plan opaklığı ve Windows vurgu rengi.
-• Hesap makinesi: 12*4+0x10 yazın, sonucu Enter ile kopyalayın.
-• Sistem komutları: kilitle, uyku, yeniden başlat, bilgisayarı kapat, oturumu kapat, geri dönüşüm kutusunu boşalt.
-• Açık pencerelere adını yazarak geçin; isterseniz diğer sanal masaüstlerindeki ve döşeme pencere yöneticisi çalışma alanlarındaki pencerelere de.
-• {query} öğeleri: "g kediler" Google'da arar, "jira ABC-123" kaydı açar.
-• Her öğeye ayrı kısayol tuşu.
-• Başlat menüsünden uygulama içe aktarma (Store uygulamaları dahil).
-• Dosya araması: "f rapor" yazın (Everything çalışıyorsa onu, yoksa Windows Search'ü kullanır).
-• Eklentiler: herhangi bir dilde yazılmış küçük programlar kendi sonuçlarını ekler.
-• Türkçe arayüz (Windows'un dilini izler; Ayarlar'dan da seçilebilir).
+0.3'te yeni: paneli istediğiniz yere koyun.
+• Panel konumu: eskisi gibi ortada ya da ekranın üst veya alt kenarına yapışık; kenar boşluğu ayarlanabilir.
+• Kenara yapışık stil: masaüstü çubuğuyla kaynaşan opak bir panel; alt kenarda arama kutusu da altta durur.
+• Yeni tema: Caelestia (Dark Glass), Rubik yazı tipiyle.
+• "yourlauncher" komutu paneli açar; masaüstü çubukları ve betikler paneli gösterebilir.
+0.1'den mi geliyorsunuz? 0.2 güncellemesi şunları eklemişti: canlı önizlemeli ve opaklık ayarlı 21 tema, hesap makinesi, sistem komutları, pencere geçişi, {query} öğeleri, öğe başına kısayol tuşu, Başlat menüsünden içe aktarma, dosya araması (Everything veya Windows Search), eklentiler ve Türkçe arayüz.
 ```
 
 **Açıklama**
@@ -137,7 +130,8 @@ Tek arama kutusu
 • Eklentiler: herhangi bir dilde (PowerShell, Python, ...) yazılmış küçük programlar basit JSON ile kendi sonuçlarını ekler.
 
 Görünüm
-• 21 tema: Windows Açık ve Koyu, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub ve Rosé Pine. Canlı önizleme, Mica/Acrylic üzerinde ayarlanabilir arka plan opaklığı ve Windows vurgu rengi.
+• 22 tema: Windows Açık ve Koyu, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine ve Caelestia. Canlı önizleme, Mica/Acrylic üzerinde ayarlanabilir arka plan opaklığı ve Windows vurgu rengi.
+• Paneli ortada ya da masaüstü çubuğunuzun parçası gibi ekranın üst veya alt kenarına yapışık açın.
 • Türkçe ve İngilizce arayüz.
 • Tamamen klavyeyle: fareye dokunmadan ekleyin, düzenleyin, kesin, yapıştırın, çoğaltın ve silin.
 • Bildirim alanı simgesi, isteğe bağlı Windows ile başlatma; çalıştığınız ekranda açılır.
@@ -171,7 +165,8 @@ Klavyeyle kullanılan başlatıcı: kendi uygulama, bağlantı ve komut ağacın
 - Everything veya Windows Search ile dosya araması
 - Herhangi bir dilde eklentiler
 - Başlat menüsünden ve tarayıcı yer imlerinden içe aktarma
-- Canlı önizlemeli ve opaklık ayarlı 21 tema
+- Canlı önizlemeli ve opaklık ayarlı 22 tema
+- Ortada ya da ekran kenarına yapışık panel
 - Türkçe ve İngilizce arayüz
 - İnternet erişimi yok, veri toplama yok
 
