@@ -58,6 +58,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _useWindowsAccent;
 
     [ObservableProperty]
+    private PanelPosition _position;
+
+    [ObservableProperty]
+    private int _edgeMargin;
+
+    [ObservableProperty]
+    private PanelStyle _panelStyle;
+
+    [ObservableProperty]
     private bool _includeOtherDesktopWindows;
 
     [ObservableProperty]
@@ -146,6 +155,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _language = current.Language;
         _opacity = current.Opacity;
         _useWindowsAccent = current.UseWindowsAccent;
+        _position = current.Position;
+        _edgeMargin = current.EdgeMargin;
+        _panelStyle = current.PanelStyle;
         _includeOtherDesktopWindows = current.IncludeOtherDesktopWindows;
         _startWithWindows = current.StartWithWindows;
         _closeAfterLaunch = current.CloseAfterLaunch;
@@ -175,6 +187,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// the language is applied before any UI text exists, so a change only takes effect after a restart.
     /// </summary>
     public string LanguageNote => Language == LanguageService.Applied ? "" : Strings.SettingsLanguageRestartNote;
+
+    partial void OnPanelStyleChanged(PanelStyle value) => OnPropertyChanged(nameof(PanelStyleNote));
+
+    /// <summary>
+    /// Shown under the panel style combo while the chosen style differs from the one this process started with:
+    /// a transparent (docked) window cannot be switched on a live window, so a change only takes effect after a restart.
+    /// </summary>
+    public string PanelStyleNote => PanelStyle == PanelStyleService.Applied ? "" : Strings.SettingsPanelStyleRestartNote;
+
+    /// <summary>Shown under the opacity box while the docked style is running: its panel is opaque.</summary>
+    public string OpacityNote => PanelStyleService.Applied == PanelStyle.Docked ? Strings.SettingsOpacityDockedNote : "";
 
     partial void OnOpacityChanged(int value) => Preview();
 
@@ -245,6 +268,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         MaxVisibleItems = Math.Clamp(MaxVisibleItems, 3, 20);
         Opacity = Math.Clamp(Opacity, Settings.MinOpacity, 100);
+        EdgeMargin = Math.Clamp(EdgeMargin, 0, Settings.MaxEdgeMargin);
 
         string? hotkeyError = null;
         var hotkeyChanged = !string.Equals(HotkeyText, _originalHotkeyText, StringComparison.Ordinal);
@@ -275,6 +299,9 @@ public sealed partial class SettingsViewModel : ObservableObject
             Language = Language,
             Opacity = Opacity,
             UseWindowsAccent = UseWindowsAccent,
+            Position = Position,
+            EdgeMargin = EdgeMargin,
+            PanelStyle = PanelStyle,
             IncludeOtherDesktopWindows = IncludeOtherDesktopWindows,
             StartWithWindows = StartWithWindows,
             CloseAfterLaunch = CloseAfterLaunch,

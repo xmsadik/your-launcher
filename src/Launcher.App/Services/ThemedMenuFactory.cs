@@ -25,6 +25,10 @@ public static class ThemedMenuFactory
     private static Brush ThemeBrush(string key) =>
         Application.Current?.TryFindResource(key) as Brush ?? Brushes.Black;
 
+    /// <summary>The theme's panel font (<c>PanelFontFamily</c>), so menus follow it like the panel does.</summary>
+    private static FontFamily ThemeFont() =>
+        Application.Current?.TryFindResource("PanelFontFamily") as FontFamily ?? new FontFamily(ThemeService.DefaultFontFamily);
+
     public static Style CreateMenuStyle()
     {
         var background = ThemeBrush("PanelBackgroundBrush");
@@ -45,7 +49,7 @@ public static class ThemedMenuFactory
         var template = new ControlTemplate(typeof(ContextMenu)) { VisualTree = border };
         var style = new Style(typeof(ContextMenu));
         style.Setters.Add(new Setter(Control.TemplateProperty, template));
-        style.Setters.Add(new Setter(Control.FontFamilyProperty, new FontFamily("Segoe UI Variable, Segoe UI")));
+        style.Setters.Add(new Setter(Control.FontFamilyProperty, ThemeFont()));
         style.Setters.Add(new Setter(Control.FontSizeProperty, 13.0));
         style.Setters.Add(new Setter(Control.BackgroundProperty, background));
         style.Setters.Add(new Setter(Control.ForegroundProperty, foreground));

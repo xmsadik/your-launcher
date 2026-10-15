@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shell;
 using System.Windows.Threading;
 using YourLauncher.App.Interop;
@@ -48,15 +49,56 @@ public partial class MainWindow : Window
     private Point _listDragStartPoint;
     private ListItemViewModel? _listDragCandidate;
 
+    /// <summary>Device-pixel y of the panel's bottom edge while settings.position is Bottom (re-applied on every height change), else null.</summary>
+    private double? _bottomAnchorPx;
+
     /// <summary>Fixed row height so the list can be capped at exactly settings.maxVisibleItems rows.</summary>
     public const double RowHeight = 36;
 
-    public MainWindow(MainViewModel viewModel, ThemeService themeService)
+    // ---- Docked panel style (settings.panelStyle = docked); everything below is inert while Floating. ----
+
+    /// <summary>Width of the panel itself (the XAML Width); the docked window adds the fillet margins on both sides.</summary>
+    private const double PanelWidth = 640;
+
+    /// <summary>Radius of the concave fillets, and the width of the transparent margin each side of the docked panel.</summary>
+    private const double FilletRadius = 22;
+
+    /// <summary>Corner radius of the docked panel's rounded corners.</summary>
+    private const double PanelCornerRadius = 28;
+
+    /// <summary>Duration of the slide-in when the docked panel opens at the top/bottom edge.</summary>
+    private static readonly Duration SlideDuration = new(TimeSpan.FromMilliseconds(250));
+
+    /// <summary>True when the window was created as a docked (transparent, layered) panel; decided once at startup.</summary>
+    private readonly bool _docked;
+
+    /// <summary>Docked only: the content root that holds the panel and the fillets, and carries the slide-in transform.</summary>
+    private Grid? _dockedRoot;
+    private TranslateTransform? _slide;
+    private System.Windows.Shapes.Path? _filletLeft;
+    private System.Windows.Shapes.Path? _filletRight;
+
+    /// <summary>Docked only: each row-grid child's row as laid out in XAML, so the vertical order can be changed and restored.</summary>
+    private Dictionary<UIElement, int>? _baseRows;
+
+    /// <summary>settings.position/edgeMargin as last applied to the window, so a settings save that leaves them unchanged does not move it.</summary>
+    private (PanelPosition Position, int EdgeMargin) _placedWith;
+    private bool _rowsReversed;
+
+    public MainWindow(MainViewModel viewModel, ThemeService themeService, PanelStyle panelStyle = PanelStyle.Floating)
     {
         _viewModel = viewModel;
         _themeService = themeService;
         DataContext = viewModel;
         InitializeComponent();
+        _placedWith = (viewModel.PanelPosition, viewModel.EdgeMargin);
+        if (panelStyle == PanelStyle.Docked)
+        {
+            // AllowsTransparency can only change before the HWND exists, so the style is fixed at construction.
+            _docked = true;
+            BuildDockedChrome();
+        }
+
         ItemsList.MaxHeight = RowHeight * Math.Max(1, viewModel.MaxVisibleItems);
 
         // Keep the selected row visible when moving past maxVisibleItems (↑↓, PgUp/PgDn, Home/End).
@@ -77,12 +119,41 @@ public partial class MainWindow : Window
             {
                 // Let the Visibility bindings for the new page apply before moving focus into it.
                 Dispatcher.BeginInvoke(DispatcherPriority.Input, MoveFocusToCurrentPage);
+                if (_docked)
+                {
+                    ApplyDockedRowOrder();
+                }
             }
             else if (e.PropertyName == nameof(MainViewModel.MaxVisibleItems))
             {
                 // settings.maxVisibleItems can change via a config reload (spec §10 item 2) - MaxHeight
                 // isn't bound (it's a fixed-row-count computation, not a simple value), so re-apply it here.
                 ItemsList.MaxHeight = RowHeight * Math.Max(1, _viewModel.MaxVisibleItems);
+            }
+            else if ((e.PropertyName is nameof(MainViewModel.PanelPosition) or nameof(MainViewModel.EdgeMargin))
+                     && (_viewModel.PanelPosition, _viewModel.EdgeMargin) != _placedWith)
+            {
+                _placedWith = (_viewModel.PanelPosition, _viewModel.EdgeMargin);
+                // Every settings save/reload raises these; only an actual change may move a visible panel (otherwise
+                // saving any setting would jump it to the cursor's monitor).
+                if (IsVisible)
+                {
+                    PositionOnCursorMonitor();
+                }
+
+                if (_docked)
+                {
+                    ApplyDockedShape();
+                }
+            }
+        };
+
+        // SizeToContent grows/shrinks the window from its top edge; a bottom-docked panel must keep its bottom edge put.
+        SizeChanged += (_, e) =>
+        {
+            if (e.HeightChanged && _bottomAnchorPx is { } bottomPx)
+            {
+                Top = bottomPx / VisualTreeHelper.GetDpi(this).DpiScaleY - ActualHeight;
             }
         };
     }
@@ -102,12 +173,17 @@ public partial class MainWindow : Window
         _viewModel.ResetToRoot();
         PositionOnCursorMonitor();
 
+        var slideIn = _docked && PrepareSlideIn();
         Show();
         Activate();
         ForceForeground();
 
         SearchBox.Focus();
         Keyboard.Focus(SearchBox);
+        if (slideIn)
+        {
+            BeginSlideIn();
+        }
 
         stopwatch.Stop();
         Debug.WriteLine($"[YourLauncher] Show latency (WM_HOTKEY/pipe/tray -> Activated): {stopwatch.ElapsedMilliseconds} ms");
@@ -136,6 +212,11 @@ public partial class MainWindow : Window
         _viewModel.ClearCutState();
         _viewModel.EndHotkeyCaptures();
         _viewModel.FlushPendingReloadIfAny();
+        if (_docked)
+        {
+            StopSlide(); // hidden mid-slide: the next show starts from a clean transform.
+        }
+
         Hide();
     }
 
@@ -175,7 +256,13 @@ public partial class MainWindow : Window
 
         if (Win32.GetForegroundWindow() != hwnd)
         {
-            Hide();
+            // While a Browse… dialog is open Windows activates that owned modal dialog instead - not a failure, and
+            // hiding here would leave the panel hidden once the dialog closes.
+            if (_suppressAutoHideCount == 0)
+            {
+                Hide();
+            }
+
             return;
         }
 
@@ -290,7 +377,10 @@ public partial class MainWindow : Window
     /// on a monitor at a different scale than the one the window last lived on) - work-area pixels must be
     /// converted using the target monitor's own DPI (<c>GetDpiForMonitor</c>), while the window's DIP
     /// <see cref="Width"/> is scaled by targetScale/currentScale so its actual on-screen footprint is
-    /// centered correctly once WPF renders it at whichever DPI the window ends up on.
+    /// centered correctly once WPF renders it at whichever DPI the window ends up on. The vertical placement
+    /// follows settings.position: a third of the way down (Center), or flush with the top/bottom edge of the
+    /// work area minus settings.edgeMargin. Bottom also records <see cref="_bottomAnchorPx"/> so later height
+    /// changes keep the bottom edge in place.
     /// </summary>
     private void PositionOnCursorMonitor()
     {
@@ -319,9 +409,26 @@ public partial class MainWindow : Window
         var workHeight = (info.rcWork.Bottom - info.rcWork.Top) / targetScale;
 
         var effectiveWidth = Width * targetScale / currentScale;
+        var effectiveHeight = ActualHeight * targetScale / currentScale;
+        var margin = Math.Clamp(_viewModel.EdgeMargin, 0, Settings.MaxEdgeMargin);
 
         Left = workLeft + (workWidth - effectiveWidth) / 2.0;
-        Top = workTop + workHeight / 3.0;
+        _bottomAnchorPx = null;
+        switch (_viewModel.PanelPosition)
+        {
+            case PanelPosition.Top:
+                Top = workTop + margin;
+                break;
+
+            case PanelPosition.Bottom:
+                Top = workTop + workHeight - margin - effectiveHeight;
+                _bottomAnchorPx = (workTop + workHeight - margin) * targetScale;
+                break;
+
+            default:
+                Top = workTop + workHeight / 3.0;
+                break;
+        }
     }
 
     /// <summary>Spec §10 item 10: re-run the fixed centering whenever the window's own DPI changes (e.g. dragged/moved across monitors of different scale - not expected for this cursor-monitor-only panel, but cheap to keep correct).</summary>
@@ -348,8 +455,237 @@ public partial class MainWindow : Window
             HwndSource.FromHwnd(hwnd)?.AddHook(SettingChangeWndProc);
         }
 
-        ApplyWindowChromeAndBackdrop();
+        if (_docked)
+        {
+            ApplyDockedWindowAttributes();
+        }
+        else
+        {
+            ApplyWindowChromeAndBackdrop();
+        }
+
         ApplyTheme(_themeService.IsDark);
+    }
+
+    /// <summary>
+    /// Docked style, called once from the constructor (before the HWND exists): turns the window into a transparent
+    /// layered one and wraps the panel (<see cref="RootBorder"/>) in a root grid together with the two concave fillets.
+    /// The panel keeps its opaque theme background (PanelBackgroundBrush) - there is no Mica and no WindowChrome here -
+    /// and the window gets a transparent margin of <see cref="FilletRadius"/> on each side to draw the fillets in.
+    /// </summary>
+    private void BuildDockedChrome()
+    {
+        AllowsTransparency = true;
+        Background = Brushes.Transparent;
+        Width = PanelWidth + 2 * FilletRadius;
+
+        var grid = (Grid)RootBorder.Child;
+        _baseRows = grid.Children.Cast<UIElement>().ToDictionary(child => child, Grid.GetRow);
+        grid.SizeChanged += (_, _) => UpdateDockedClip();
+
+        Content = null;
+        RootBorder.BorderThickness = new Thickness(0);
+        RootBorder.Margin = new Thickness(FilletRadius, 0, FilletRadius, 0);
+        RenderOptions.SetClearTypeHint(RootBorder, ClearTypeHint.Enabled); // ClearType is only honoured on opaque pixels.
+
+        _slide = new TranslateTransform();
+        _filletLeft = CreateFillet(mirrorX: false);
+        _filletRight = CreateFillet(mirrorX: true);
+        _dockedRoot = new Grid { RenderTransform = _slide };
+        _dockedRoot.Children.Add(RootBorder);
+        _dockedRoot.Children.Add(_filletLeft);
+        _dockedRoot.Children.Add(_filletRight);
+        Content = _dockedRoot;
+
+        ApplyDockedShape();
+    }
+
+    private static System.Windows.Shapes.Path CreateFillet(bool mirrorX)
+    {
+        var fillet = new System.Windows.Shapes.Path
+        {
+            Width = FilletRadius + 1,
+            Height = FilletRadius,
+            HorizontalAlignment = mirrorX ? HorizontalAlignment.Right : HorizontalAlignment.Left,
+        };
+        fillet.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, "PanelBackgroundBrush");
+        return fillet;
+    }
+
+    /// <summary>
+    /// Docked style: shapes the panel after settings.position (re-run live when it changes). Bottom/Top square the
+    /// corners on the docked edge, round the other two and add the fillets there; Center rounds all four with no
+    /// fillets. At the bottom the search box also moves to the bottom, with the list above it.
+    /// </summary>
+    private void ApplyDockedShape()
+    {
+        var position = _viewModel.PanelPosition;
+        RootBorder.CornerRadius = position switch
+        {
+            PanelPosition.Bottom => new CornerRadius(PanelCornerRadius, PanelCornerRadius, 0, 0),
+            PanelPosition.Top => new CornerRadius(0, 0, PanelCornerRadius, PanelCornerRadius),
+            _ => new CornerRadius(PanelCornerRadius),
+        };
+
+        var top = position == PanelPosition.Top;
+        foreach (var (fillet, mirrorX) in new[] { (_filletLeft!, false), (_filletRight!, true) })
+        {
+            fillet.Visibility = position == PanelPosition.Center ? Visibility.Collapsed : Visibility.Visible;
+            fillet.VerticalAlignment = top ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+            fillet.Data = CreateFilletGeometry(mirrorX, top);
+        }
+
+        ApplyDockedRowOrder();
+        UpdateDockedClip();
+    }
+
+    /// <summary>
+    /// One fillet: a (r + 1) x r box beside the panel, filled except for a quarter circle of radius r centered on the box's
+    /// outer corner on the open side (the top-outer corner for a bottom-docked panel), so the panel's side curves
+    /// outwards into the bar it is docked to. The box runs 1 DIP under the panel to avoid an anti-aliasing seam.
+    /// Drawn for the left side with the panel to its right; <paramref name="mirrorX"/> flips it for the right side and
+    /// <paramref name="top"/> for a top-docked panel (a flip reverses the arc's sweep direction).
+    /// </summary>
+    private static Geometry CreateFilletGeometry(bool mirrorX, bool top)
+    {
+        const double r = FilletRadius;
+        const double w = r + 1;
+        double X(double x) => mirrorX ? w - x : x;
+        double Y(double y) => top ? r - y : y;
+
+        var geometry = new StreamGeometry();
+        using (var context = geometry.Open())
+        {
+            context.BeginFigure(new Point(X(r), Y(0)), isFilled: true, isClosed: true);
+            context.LineTo(new Point(X(w), Y(0)), isStroked: false, isSmoothJoin: false);
+            context.LineTo(new Point(X(w), Y(r)), isStroked: false, isSmoothJoin: false);
+            context.LineTo(new Point(X(0), Y(r)), isStroked: false, isSmoothJoin: false);
+            context.ArcTo(
+                new Point(X(r), Y(0)),
+                new Size(r, r),
+                rotationAngle: 0,
+                isLargeArc: false,
+                mirrorX ^ top ? SweepDirection.Clockwise : SweepDirection.Counterclockwise,
+                isStroked: false,
+                isSmoothJoin: false);
+        }
+
+        geometry.Freeze();
+        return geometry;
+    }
+
+    /// <summary>
+    /// Docked + Bottom, list pages only: moves the search row next to the bar it is docked to. Top to bottom the rows
+    /// become list, error line, hint/confirm bar, separator, search - so the hint/confirm bars keep their top separator
+    /// line and sit right above the search box. Other pages (settings, editor, pickers) are forms and keep the XAML
+    /// order, header on top. Re-evaluated when the page or settings.position changes.
+    /// </summary>
+    private void ApplyDockedRowOrder()
+    {
+        var searchAtBottom = _viewModel.PanelPosition == PanelPosition.Bottom && _viewModel.IsListPage;
+        if (searchAtBottom == _rowsReversed || _baseRows is null)
+        {
+            return;
+        }
+
+        _rowsReversed = searchAtBottom;
+        foreach (var (child, row) in _baseRows)
+        {
+            Grid.SetRow(child, searchAtBottom ? SearchAtBottomRows[row] : row);
+        }
+    }
+
+    /// <summary>XAML row (0 search/header, 1 separator, 2 list/page, 3 error line, 4 hint/confirm bars) -> row with the search at the bottom.</summary>
+    private static readonly int[] SearchAtBottomRows = [4, 3, 0, 1, 2];
+
+    /// <summary>
+    /// Docked: clips the panel content to the panel's own outline. A Border does not clip its child to its CornerRadius;
+    /// in the floating style DWM's rounded window corners hide that, but a layered window shows a full-width selected
+    /// row or bar poking out past the rounded corners. The docked edge stays square (the half-height rectangle unioned
+    /// with the rounded one squares those two corners).
+    /// </summary>
+    private void UpdateDockedClip()
+    {
+        var content = (FrameworkElement)RootBorder.Child;
+        var width = content.ActualWidth;
+        var height = content.ActualHeight;
+        if (width <= 0 || height <= 0)
+        {
+            return;
+        }
+
+        Geometry clip = new RectangleGeometry(new Rect(0, 0, width, height), PanelCornerRadius, PanelCornerRadius);
+        var position = _viewModel.PanelPosition;
+        if (position != PanelPosition.Center)
+        {
+            var squareHalf = position == PanelPosition.Bottom
+                ? new Rect(0, height / 2, width, height / 2)
+                : new Rect(0, 0, width, height / 2);
+            clip = new CombinedGeometry(GeometryCombineMode.Union, clip, new RectangleGeometry(squareHalf));
+        }
+
+        clip.Freeze();
+        content.Clip = clip;
+    }
+
+    /// <summary>
+    /// Docked + Top/Bottom: clears any running slide and, when the slide will play, parks the content one panel height
+    /// beyond its edge so the first frame after Show() is already off-screen. Returns whether to animate.
+    /// </summary>
+    private bool PrepareSlideIn()
+    {
+        StopSlide();
+        var height = _dockedRoot!.ActualHeight;
+        if (_viewModel.PanelPosition == PanelPosition.Center || !SystemParameters.ClientAreaAnimation || height <= 0)
+        {
+            return false;
+        }
+
+        _slide!.Y = SlideOffset(height);
+        return true;
+    }
+
+    /// <summary>Slides the content (panel and fillets) from beyond the docked edge to its place. The window itself never moves: its Top is rewritten by the bottom anchor on every height change.</summary>
+    private void BeginSlideIn()
+    {
+        var height = _dockedRoot!.ActualHeight;
+        if (height <= 0)
+        {
+            StopSlide();
+            return;
+        }
+
+        var animation = new DoubleAnimation(SlideOffset(height), 0, SlideDuration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+        _slide!.BeginAnimation(TranslateTransform.YProperty, animation, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    /// <summary>Starts below the panel when docked at the bottom, above it at the top.</summary>
+    private double SlideOffset(double height) => _viewModel.PanelPosition == PanelPosition.Bottom ? height : -height;
+
+    private void StopSlide()
+    {
+        _slide!.BeginAnimation(TranslateTransform.YProperty, null);
+        _slide.Y = 0;
+    }
+
+    /// <summary>Docked style: DWM must not round the (transparent) window's corners itself; the panel draws its own shape.</summary>
+    private void ApplyDockedWindowAttributes()
+    {
+        try
+        {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero || Environment.OSVersion.Version.Build < 22000)
+            {
+                return;
+            }
+
+            var corner = Win32.DWMWCP_DONOTROUND;
+            Win32.DwmSetWindowAttribute(hwnd, Win32.DWMWA_WINDOW_CORNER_PREFERENCE, ref corner, sizeof(int));
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            Debug.WriteLine($"[YourLauncher] Could not disable the DWM corner rounding: {ex.Message}");
+        }
     }
 
     private void ApplyWindowChromeAndBackdrop()

@@ -8,6 +8,13 @@
     "theme": "system",
     "opacity": 90,
     "useWindowsAccent": false,
+    // Where the panel opens: "center" (a third of the way down), "top" or "bottom" (docked to that edge).
+    // edgeMargin is the gap in px between the screen edge and a top/bottom-docked panel.
+    "position": "center",
+    "edgeMargin": 0,
+    // "floating" (default) or "docked": an opaque panel fused with the screen edge (opacity is ignored).
+    // Applied at the next start.
+    "panelStyle": "floating",
     "includeOtherDesktopWindows": false,
     "startWithWindows": true,
     "closeAfterLaunch": true,

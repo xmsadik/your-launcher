@@ -31,6 +31,7 @@ public enum Theme
     GithubDark,
     GithubLight,
     RosePine,
+    CaelestiaDarkGlass,
 }
 
 /// <summary>
@@ -42,6 +43,30 @@ public enum AppLanguage
     System,
     En,
     Tr,
+}
+
+/// <summary>
+/// Where the panel opens on the cursor's monitor; always horizontally centered in the work area. Config names:
+/// "center" (top edge at a third of the work area - the original placement), "top", "bottom" (flush with that
+/// edge of the work area, minus <see cref="Settings.EdgeMargin"/>).
+/// </summary>
+public enum PanelPosition
+{
+    Center,
+    Top,
+    Bottom,
+}
+
+/// <summary>
+/// How the panel window is drawn. <see cref="Floating"/> (default) is the original rounded window over the Mica/Acrylic
+/// backdrop. <see cref="Docked"/> is an opaque panel with transparent side margins, shaped by <see cref="Settings.Position"/>
+/// so it fuses with a screen-edge bar. Config names: "floating", "docked". Decided once at startup (a layered window
+/// cannot be switched later), so a change takes effect after the next start.
+/// </summary>
+public enum PanelStyle
+{
+    Floating,
+    Docked,
 }
 
 /// <summary>Application settings, spec §4.5 / §11.</summary>
@@ -63,6 +88,18 @@ public sealed class Settings
 
     /// <summary>When true the panel's accent color follows the Windows accent color instead of the palette's own accent (the rest of the palette is unchanged).</summary>
     public bool UseWindowsAccent { get; set; } = false;
+
+    [JsonConverter(typeof(JsonCamelCaseEnumConverter<PanelPosition>))]
+    public PanelPosition Position { get; set; } = PanelPosition.Center;
+
+    /// <summary>Gap in DIPs between the work-area edge and the panel when <see cref="Position"/> is Top or Bottom (0-<see cref="MaxEdgeMargin"/>); unused for Center.</summary>
+    public int EdgeMargin { get; set; } = 0;
+
+    public const int MaxEdgeMargin = 200;
+
+    /// <summary>Window style of the panel; applied at the next start. <see cref="Opacity"/> has no effect while Docked (the panel is opaque).</summary>
+    [JsonConverter(typeof(JsonCamelCaseEnumConverter<PanelStyle>))]
+    public PanelStyle PanelStyle { get; set; } = PanelStyle.Floating;
 
     /// <summary>
     /// When true the window switcher also lists windows that are cloaked because they sit on another virtual

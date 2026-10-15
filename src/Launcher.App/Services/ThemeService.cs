@@ -20,6 +20,12 @@ public sealed class ThemeService
     private const string PersonalizeKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
     private const string AppsUseLightThemeValue = "AppsUseLightTheme";
 
+    /// <summary>Where the embedded theme fonts live (WPF resources, <c>Fonts\*.ttf</c> in the App project).</summary>
+    private static readonly Uri FontsBaseUri = new("pack://application:,,,/Fonts/");
+
+    /// <summary>The panel font when a palette has none of its own.</summary>
+    public const string DefaultFontFamily = "Segoe UI Variable, Segoe UI";
+
     private ResourceDictionary? _activeDictionary;
 
     /// <summary>The last-resolved effective theme (true = dark), kept for callers that need it outside the Apply call itself (e.g. MainWindow re-applying the DWM dark-mode flag after a later HWND-level change).</summary>
@@ -70,6 +76,7 @@ public sealed class ThemeService
             ["WarningBrush"] = Brush(Parse(palette.Warning)),
             ["MissingBadgeBrush"] = Brush(Parse(palette.MissingBadge)),
             ["InputBackgroundBrush"] = Brush(Parse(palette.InputBackground)),
+            ["PanelFontFamily"] = PanelFont(palette),
         };
 
         var merged = Application.Current!.Resources.MergedDictionaries;
@@ -101,6 +108,12 @@ public sealed class ThemeService
             return null;
         }
     }
+
+    /// <summary>The palette's embedded font with the default Segoe UI stack as fallback, or just the default stack.</summary>
+    private static FontFamily PanelFont(ThemePalette palette) =>
+        palette.FontFamily is { } name
+            ? new FontFamily(FontsBaseUri, $"./#{name}, {DefaultFontFamily}")
+            : new FontFamily(DefaultFontFamily);
 
     private static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);
 

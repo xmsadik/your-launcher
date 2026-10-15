@@ -410,6 +410,36 @@ Ayrıntılar şuraya kaydedildi:
   <data name="SettingsOpacity" xml:space="preserve">
     <value>Arka plan opaklığı</value>
   </data>
+  <data name="SettingsPosition" xml:space="preserve">
+    <value>Panel konumu</value>
+  </data>
+  <data name="SettingsPositionCenter" xml:space="preserve">
+    <value>Orta (üstten üçte bir)</value>
+  </data>
+  <data name="SettingsPositionTop" xml:space="preserve">
+    <value>Üst kenar</value>
+  </data>
+  <data name="SettingsPositionBottom" xml:space="preserve">
+    <value>Alt kenar</value>
+  </data>
+  <data name="SettingsEdgeMargin" xml:space="preserve">
+    <value>Kenar boşluğu</value>
+  </data>
+  <data name="SettingsPanelStyle" xml:space="preserve">
+    <value>Panel stili</value>
+  </data>
+  <data name="SettingsPanelStyleFloating" xml:space="preserve">
+    <value>Yüzen</value>
+  </data>
+  <data name="SettingsPanelStyleDocked" xml:space="preserve">
+    <value>Kenara yapışık</value>
+  </data>
+  <data name="SettingsPanelStyleRestartNote" xml:space="preserve">
+    <value>Panel stili, Your Launcher yeniden başlatıldıktan sonra değişir.</value>
+  </data>
+  <data name="SettingsOpacityDockedNote" xml:space="preserve">
+    <value>Kenara yapışık panel opaktır, bu yüzden opaklık ayarının etkisi yoktur.</value>
+  </data>
   <data name="SettingsStartWithWindows" xml:space="preserve">
     <value>Windows ile başlat</value>
   </data>

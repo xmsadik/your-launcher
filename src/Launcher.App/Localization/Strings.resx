@@ -541,6 +541,46 @@ Details were saved to:
     <value>Background opacity</value>
     <comment>Settings field label.</comment>
   </data>
+  <data name="SettingsPosition" xml:space="preserve">
+    <value>Panel position</value>
+    <comment>Settings field label.</comment>
+  </data>
+  <data name="SettingsPositionCenter" xml:space="preserve">
+    <value>Center (upper third)</value>
+    <comment>Panel position option: horizontally centered, top edge a third of the way down the screen.</comment>
+  </data>
+  <data name="SettingsPositionTop" xml:space="preserve">
+    <value>Top edge</value>
+    <comment>Panel position option: docked to the top of the screen.</comment>
+  </data>
+  <data name="SettingsPositionBottom" xml:space="preserve">
+    <value>Bottom edge</value>
+    <comment>Panel position option: docked to the bottom of the screen.</comment>
+  </data>
+  <data name="SettingsEdgeMargin" xml:space="preserve">
+    <value>Edge gap</value>
+    <comment>Settings field label: gap between the screen edge and the panel when it is docked to the top or bottom.</comment>
+  </data>
+  <data name="SettingsPanelStyle" xml:space="preserve">
+    <value>Panel style</value>
+    <comment>Settings field label: how the panel window is drawn (floating rounded window vs. docked to the screen edge).</comment>
+  </data>
+  <data name="SettingsPanelStyleFloating" xml:space="preserve">
+    <value>Floating</value>
+    <comment>Panel style option: the original rounded, floating window.</comment>
+  </data>
+  <data name="SettingsPanelStyleDocked" xml:space="preserve">
+    <value>Docked to edge</value>
+    <comment>Panel style option: the panel is attached to the screen edge it is positioned at.</comment>
+  </data>
+  <data name="SettingsPanelStyleRestartNote" xml:space="preserve">
+    <value>The panel style changes after you restart Your Launcher.</value>
+    <comment>Note under the panel style combo, shown while the choice differs from the running style.</comment>
+  </data>
+  <data name="SettingsOpacityDockedNote" xml:space="preserve">
+    <value>The docked panel is opaque, so the opacity setting has no effect.</value>
+    <comment>Note under the opacity box, shown while the docked panel style is running.</comment>
+  </data>
   <data name="SettingsStartWithWindows" xml:space="preserve">
     <value>Start with Windows</value>
     <comment>Settings field label.</comment>

@@ -399,6 +399,36 @@ public static class Strings
     public static string SettingsOpacity => Get(nameof(SettingsOpacity));
 
     /// <summary>Settings field label.</summary>
+    public static string SettingsPosition => Get(nameof(SettingsPosition));
+
+    /// <summary>Panel position option: horizontally centered, top edge a third of the way down the screen.</summary>
+    public static string SettingsPositionCenter => Get(nameof(SettingsPositionCenter));
+
+    /// <summary>Panel position option: docked to the top of the screen.</summary>
+    public static string SettingsPositionTop => Get(nameof(SettingsPositionTop));
+
+    /// <summary>Panel position option: docked to the bottom of the screen.</summary>
+    public static string SettingsPositionBottom => Get(nameof(SettingsPositionBottom));
+
+    /// <summary>Settings field label: gap between the screen edge and the panel when it is docked to the top or bottom.</summary>
+    public static string SettingsEdgeMargin => Get(nameof(SettingsEdgeMargin));
+
+    /// <summary>Settings field label: how the panel window is drawn (floating rounded window vs. docked to the screen edge).</summary>
+    public static string SettingsPanelStyle => Get(nameof(SettingsPanelStyle));
+
+    /// <summary>Panel style option: the original rounded, floating window.</summary>
+    public static string SettingsPanelStyleFloating => Get(nameof(SettingsPanelStyleFloating));
+
+    /// <summary>Panel style option: the panel is attached to the screen edge it is positioned at.</summary>
+    public static string SettingsPanelStyleDocked => Get(nameof(SettingsPanelStyleDocked));
+
+    /// <summary>Note under the panel style combo, shown while the choice differs from the running style.</summary>
+    public static string SettingsPanelStyleRestartNote => Get(nameof(SettingsPanelStyleRestartNote));
+
+    /// <summary>Note under the opacity box, shown while the docked panel style is running.</summary>
+    public static string SettingsOpacityDockedNote => Get(nameof(SettingsOpacityDockedNote));
+
+    /// <summary>Settings field label.</summary>
     public static string SettingsStartWithWindows => Get(nameof(SettingsStartWithWindows));
 
     /// <summary>Settings field label.</summary>

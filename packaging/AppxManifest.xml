@@ -5,7 +5,8 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
-  IgnorableNamespaces="uap rescap desktop">
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  IgnorableNamespaces="uap rescap desktop uap5">
 
   <Identity
     Name="ABAPer.YourLauncher"
@@ -53,6 +54,13 @@
         <desktop:Extension Category="windows.startupTask" Executable="YourLauncher.exe" EntryPoint="Windows.FullTrustApplication">
           <desktop:StartupTask TaskId="YourLauncherStartup" Enabled="false" DisplayName="Your Launcher" />
         </desktop:Extension>
+        <!-- Fixed command name (yourlauncher.exe on the user's PATH) so a desktop bar can launch the panel; a second
+             instance forwards "show" to the running one (SingleInstanceService). -->
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="YourLauncher.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="yourlauncher.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
       </Extensions>
     </Application>
   </Applications>

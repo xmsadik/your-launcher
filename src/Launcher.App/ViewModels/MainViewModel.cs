@@ -241,6 +241,10 @@ public sealed partial class MainViewModel : ObservableObject
 
     public int MaxVisibleItems => _config.Settings.MaxVisibleItems;
 
+    public PanelPosition PanelPosition => _config.Settings.Position;
+
+    public int EdgeMargin => _config.Settings.EdgeMargin;
+
     public bool CanNavigateUp => _folderStack.Count > 1;
 
     public FolderNode CurrentFolder => _folderStack[^1];
@@ -1170,6 +1174,8 @@ public sealed partial class MainViewModel : ObservableObject
     private void ApplySettings()
     {
         OnPropertyChanged(nameof(MaxVisibleItems));
+        OnPropertyChanged(nameof(PanelPosition));
+        OnPropertyChanged(nameof(EdgeMargin));
         OnPropertyChanged(nameof(ShowHintBar));
         OnPropertyChanged(nameof(ShowHintBarRow));
     }

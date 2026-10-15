@@ -27,6 +27,9 @@ public sealed record ThemePalette
     public required string Warning { get; init; }
     public required string MissingBadge { get; init; }
     public required string InputBackground { get; init; }
+
+    /// <summary>Family name of an embedded font this theme uses for the panel and its menus (e.g. "Rubik"); null = the default Segoe UI Variable / Segoe UI.</summary>
+    public string? FontFamily { get; init; }
 }
 
 /// <summary>
@@ -177,6 +180,14 @@ public static class ThemeCatalog
             Background = "#191724", Border = "#403D52", Foreground = "#E0DEF4", SecondaryText = "#908CAA",
             Accent = "#C4A7E7", Selection = "#26233A", Hover = "#21202E", Error = "#EB6F92",
             Warning = "#F6C177", MissingBadge = "#EBBCBA", InputBackground = "#1F1D2E",
+        },
+        new()
+        {
+            Theme = Theme.CaelestiaDarkGlass, DisplayName = "Caelestia (Dark Glass)", IsDark = true,
+            Background = "#101013", Border = "#2E2E36", Foreground = "#E7E7EC", SecondaryText = "#8F8F99",
+            Accent = "#C6C3FF", Selection = "#28282B", Hover = "#1D1D20", Error = "#F38BA8",
+            Warning = "#F9E2AF", MissingBadge = "#FAB387", InputBackground = "#0B0B0D",
+            FontFamily = "Rubik",
         },
     ];
 

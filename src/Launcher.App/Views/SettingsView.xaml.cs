@@ -56,6 +56,14 @@ public partial class SettingsView : UserControl
         LanguageCombo.SelectedIndex = (int)vm.Language;
         LanguageCombo.SelectionChanged += LanguageCombo_OnSelectionChanged;
 
+        PositionCombo.SelectionChanged -= PositionCombo_OnSelectionChanged;
+        PositionCombo.SelectedIndex = (int)vm.Position;
+        PositionCombo.SelectionChanged += PositionCombo_OnSelectionChanged;
+
+        PanelStyleCombo.SelectionChanged -= PanelStyleCombo_OnSelectionChanged;
+        PanelStyleCombo.SelectedIndex = (int)vm.PanelStyle;
+        PanelStyleCombo.SelectionChanged += PanelStyleCombo_OnSelectionChanged;
+
         ShellCombo.SelectionChanged -= ShellCombo_OnSelectionChanged;
         ShellCombo.SelectedIndex = (int)vm.DefaultShell;
         ShellCombo.SelectionChanged += ShellCombo_OnSelectionChanged;
@@ -168,6 +176,22 @@ public partial class SettingsView : UserControl
         if (ViewModel is { } vm && LanguageCombo.SelectedIndex >= 0)
         {
             vm.Language = (AppLanguage)LanguageCombo.SelectedIndex; // combo order = enum order: System, English, Türkçe.
+        }
+    }
+
+    private void PositionCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ViewModel is { } vm && PositionCombo.SelectedIndex >= 0)
+        {
+            vm.Position = (PanelPosition)PositionCombo.SelectedIndex; // combo order = enum order: Center, Top, Bottom.
+        }
+    }
+
+    private void PanelStyleCombo_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ViewModel is { } vm && PanelStyleCombo.SelectedIndex >= 0)
+        {
+            vm.PanelStyle = (PanelStyle)PanelStyleCombo.SelectedIndex; // combo order = enum order: Floating, Docked.
         }
     }
 

@@ -97,6 +97,71 @@ public class ThemeCatalogTests
     }
 
     [Fact]
+    public void Settings_PositionAndEdgeMargin_DefaultToCenterAndZero()
+    {
+        var result = ConfigSerializer.Deserialize("""{ "version": 1, "settings": {}, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");
+
+        Assert.True(result.Success);
+        Assert.Equal(PanelPosition.Center, result.Config!.Settings.Position);
+        Assert.Equal(0, result.Config.Settings.EdgeMargin);
+    }
+
+    [Fact]
+    public void Settings_PositionAndEdgeMargin_RoundTripThroughConfig()
+    {
+        var config = new LauncherConfig();
+        config.Settings.Position = PanelPosition.Bottom;
+        config.Settings.EdgeMargin = 12;
+
+        var json = ConfigSerializer.Serialize(config);
+        Assert.Contains("\"position\": \"bottom\"", json);
+        Assert.Contains("\"edgeMargin\": 12", json);
+
+        var reloaded = ConfigSerializer.Deserialize(json);
+        Assert.True(reloaded.Success);
+        Assert.Equal(PanelPosition.Bottom, reloaded.Config!.Settings.Position);
+        Assert.Equal(12, reloaded.Config.Settings.EdgeMargin);
+    }
+
+    [Fact]
+    public void Settings_PanelStyle_DefaultsToFloating()
+    {
+        Assert.Equal(PanelStyle.Floating, new Settings().PanelStyle);
+
+        var result = ConfigSerializer.Deserialize("""{ "version": 1, "settings": {}, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");
+
+        Assert.True(result.Success);
+        Assert.Equal(PanelStyle.Floating, result.Config!.Settings.PanelStyle);
+    }
+
+    [Fact]
+    public void Settings_PanelStyle_RoundTripsThroughConfig()
+    {
+        var config = new LauncherConfig();
+        config.Settings.PanelStyle = PanelStyle.Docked;
+
+        var json = ConfigSerializer.Serialize(config);
+        Assert.Contains("\"panelStyle\": \"docked\"", json);
+
+        var reloaded = ConfigSerializer.Deserialize(json);
+        Assert.True(reloaded.Success);
+        Assert.Equal(PanelStyle.Docked, reloaded.Config!.Settings.PanelStyle);
+    }
+
+    [Fact]
+    public void Settings_CaelestiaTheme_UsesConfigNameAndEmbeddedFont()
+    {
+        var config = new LauncherConfig();
+        config.Settings.Theme = Theme.CaelestiaDarkGlass;
+
+        var json = ConfigSerializer.Serialize(config);
+        Assert.Contains("\"theme\": \"caelestiaDarkGlass\"", json);
+        Assert.Equal(Theme.CaelestiaDarkGlass, ConfigSerializer.Deserialize(json).Config!.Settings.Theme);
+        Assert.Equal("Rubik", ThemeCatalog.Get(Theme.CaelestiaDarkGlass).FontFamily);
+        Assert.All(ThemeCatalog.Palettes.Where(p => p.Theme != Theme.CaelestiaDarkGlass), p => Assert.Null(p.FontFamily));
+    }
+
+    [Fact]
     public void Settings_ConfigWithoutOpacity_DefaultsTo90()
     {
         var result = ConfigSerializer.Deserialize("""{ "version": 1, "settings": { "theme": "tokyoNight" }, "root": { "id": "root", "type": "folder", "name": "Root", "children": [] } }""");

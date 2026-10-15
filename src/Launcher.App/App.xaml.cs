@@ -149,7 +149,10 @@ public partial class App : Application
         viewModel.ReloadFailed += OnViewModelReloadFailed;
         viewModel.SettingsApplied += OnSettingsApplied;
 
-        _mainWindow = new MainWindow(viewModel, _themeService);
+        // The panel style is fixed for the process lifetime (a transparent window cannot be switched later).
+        var panelStyle = configService.Config.Settings.PanelStyle;
+        PanelStyleService.Apply(panelStyle);
+        _mainWindow = new MainWindow(viewModel, _themeService, panelStyle);
         viewModel.RequestHide += () => _mainWindow?.HideLauncher();
 
         // Force HWND creation without showing the window yet, so the hotkey and tray icon have a handle to bind to.
