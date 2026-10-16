@@ -5,7 +5,7 @@ Partner Center alanlarına aynen yapıştırılacak metinler aşağıda. Paket 0
 ve **Turkish (Turkey)**. İkisinin metinleri aşağıda.
 Kimlik: `ABAPer.YourLauncher`, Publisher `CN=48947E55-115C-445B-9841-39A5BCF271DD`, PublisherDisplayName `ABAPer`.
 
-Son güncelleme: 2026-10-15 (0.3.0 gönderimi için). "Yenilikler" metni önce 0.3'ü, sonra kısaca 0.2 serisini
+Son güncelleme: 2026-10-16 (0.3.1 gönderimi için; ilk satır 0.3.1 düzeltmeleri). "Yenilikler" metni önce 0.3'ü, sonra kısaca 0.2 serisini
 anlatır: 0.2.1 Store'a gönderilmediyse Store kullanıcıları 0.1.1'den doğrudan 0.3.0'a geçer. 0.2.1 gönderimi hâlâ
 sertifikasyondaysa yenisini oluşturmadan önce onun bitmesini bekleyin ya da iptal edin.
 
@@ -24,13 +24,14 @@ altındaki tek `.msix` dosyaları GitHub içindir; yüklenirse Partner Center "m
 
 ## Store listing — English (United States)
 
-**What's new in this version** (0.3.0)
+**What's new in this version** (0.3.1)
 
 ```
+0.3.1: the docked panel no longer flashes open twice, and its first row is no longer clipped by the rounded corner. The Caelestia (Dark Glass) theme is now simply called Dark Glass; your setting is kept.
 New in 0.3: put the panel where you want it.
 • Panel position: centered as before, or docked to the top or bottom edge of the screen, with an adjustable gap.
 • Docked style: an opaque panel that blends into a desktop bar; docked at the bottom, the search box sits at the bottom too.
-• New theme: Caelestia (Dark Glass), with the Rubik font.
+• New theme: Dark Glass, with the Rubik font.
 • The "yourlauncher" command opens the panel, so desktop bars and scripts can show it.
 Coming from 0.1? The 0.2 update added 21 themes with live preview and opacity, a calculator, system commands, window switching, {query} items, per-item hotkeys, Start menu import, file search (Everything or Windows Search), plugins and a Turkish interface.
 ```
@@ -98,13 +99,14 @@ Keyboard-first launcher: your own tree of apps, links and commands, plus window 
 
 ## Store listing — Turkish (Turkey)
 
-**Bu sürümdeki yenilikler** (0.3.0)
+**Bu sürümdeki yenilikler** (0.3.1)
 
 ```
+0.3.1: kenara yapışık panel artık iki kez açılıyormuş gibi görünmüyor ve ilk satırı yuvarlak köşede kesilmiyor. Caelestia (Dark Glass) temasının adı artık yalnızca Dark Glass; ayarınız korunur.
 0.3'te yeni: paneli istediğiniz yere koyun.
 • Panel konumu: eskisi gibi ortada ya da ekranın üst veya alt kenarına yapışık; kenar boşluğu ayarlanabilir.
 • Kenara yapışık stil: masaüstü çubuğuyla kaynaşan opak bir panel; alt kenarda arama kutusu da altta durur.
-• Yeni tema: Caelestia (Dark Glass), Rubik yazı tipiyle.
+• Yeni tema: Dark Glass, Rubik yazı tipiyle.
 • "yourlauncher" komutu paneli açar; masaüstü çubukları ve betikler paneli gösterebilir.
 0.1'den mi geliyorsunuz? 0.2 güncellemesi şunları eklemişti: canlı önizlemeli ve opaklık ayarlı 21 tema, hesap makinesi, sistem komutları, pencere geçişi, {query} öğeleri, öğe başına kısayol tuşu, Başlat menüsünden içe aktarma, dosya araması (Everything veya Windows Search), eklentiler ve Türkçe arayüz.
 ```
