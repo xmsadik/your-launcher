@@ -1,4 +1,5 @@
 ## Görev dosyaları
+- 2026-10-16 · Sürüm 0.3.1: yapışık panel düzeltmeleri ve "Dark Glass" tema adı · TAMAMLANDI · [dosya](2026-10-16-surum-0-3-1.md)
 - 2026-10-15 · Yapışık panelde çift açılma, ilk satırın köşede kesilmesi ve "Dark Glass" tema adı · TAMAMLANDI · [dosya](2026-10-15-yapisik-cift-acilis.md)
 - 2026-10-15 · Sürüm 0.3.0 · TAMAMLANDI · [dosya](2026-10-15-surum-0-3-0.md)
 - 2026-10-15 · Caelestia görünümü: kenara yapışık panel stili · TAMAMLANDI · [dosya](2026-10-15-caelestia-gorunumu.md)
@@ -7,19 +8,18 @@
 - 2026-10-14 · Popüler geliştirici temaları ve arka plan opaklığı · TAMAMLANDI · [dosya](2026-10-14-temalar-ve-opaklik.md)
 - 2026-10-14 · Sürüm 0.2.1: eklenti düzeltmesi · TAMAMLANDI · [dosya](2026-10-14-surum-0-2-1.md)
 
-## Devam noktası (güncel: 2026-10-15)
+## Devam noktası (güncel: 2026-10-16)
 
-**Şu an (2026-10-15, commit edilmedi):** Store 0.3.0 yayında. Kullanıcı üç şey bildirdi, üçü de kodda
-düzeltildi ama ekranda doğrulanmadı; kullanıcı Debug derlemeyle deneyecek. Ayrıntı ve açık maddeler:
-`tasks/2026-10-15-yapisik-cift-acilis.md`.
-1. Alta yapışık modda kısayolla açarken panel "iki kez açılıyor" (katmanlı pencerenin eski karesi). Düzeltme:
-   gizlemeden önce içerik boşaltılıyor, pencere iki kare sonra gizleniyor (`MainWindow.HideWindow`).
-2. Alta yapışık modda ilk satırın vurgu çizgisi yuvarlak köşede kesiliyor. Düzeltme: üstte 28 DIP boşluk
-   (`ApplyDockedRowOrder`). Beğenilmezse yedek çözüm: arama kutusu en üste.
-3. Tema adı "Caelestia (Dark Glass)" yerine "Dark Glass", config `darkGlass`; eski `caelestiaDarkGlass` okunuyor.
-Denemeden sonra: sorun varsa düzelt; yoksa commit + 0.3.1 kararı kullanıcıda. 801 test geçiyor.
-Deneme: önce tepsiden Store sürümünü kapat, sonra
-`src\Launcher.App\bin\Debug\net10.0-windows10.0.19041.0\YourLauncher.exe` (gerçek config'i kullanır).
+**Şu an (2026-10-16):** 0.3.1 GitHub'da yayımlandı (yapışık panelde çift açılma ve ilk satırın köşede
+kesilmesi düzeltildi; tema adı "Dark Glass", config `darkGlass`, eski `caelestiaDarkGlass` okunuyor). Store
+bundle'ı `dist\store\YourLauncher_0.3.1.0_Bundle.msixbundle`; Partner Center gönderimi kullanıcıda. Düzeltmeler
+ekranda doğrulanmadı (kullanıcı elle testi sona bırakıyor). Ayrıntı: `tasks/2026-10-16-surum-0-3-1.md`.
+
+**Proje başka bilgisayara taşınıyor (2026-10-16).** Git'te olmayanlar: imza sertifikası (bu bilgisayarın
+`CurrentUser\My` deposu, parmak izi `E5148BD2…6F09`), `dist\` (Store ekran görüntüleri
+`dist\store\screenshots-en\` ve `screenshots-tr\` dahil) ve Claude hafızası. Yeni bilgisayarda `pack.ps1 -Sign`
+çalıştırmadan önce sertifikanın `.pfx` ile içe aktarıldığını doğrula; yoksa farklı bir sertifika üretilir ve
+sideload kullanıcıları güncelleyemez. `gh` ile giriş gerekebilir (`gh auth login`).
 
 **Önceki durum:** 0.3.0 GitHub'da yayımlandı (panel konumu, kenara yapışık stil, Caelestia teması,
 `yourlauncher.exe` komutu). Kullanıcı 0.3.0 bundle'ını 2026-10-15'te Store'a gönderdi; sertifikasyon
