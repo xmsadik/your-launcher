@@ -31,7 +31,10 @@ public enum Theme
     GithubDark,
     GithubLight,
     RosePine,
-    CaelestiaDarkGlass,
+
+    /// <summary>Shipped in 0.3.0 as "Caelestia (Dark Glass)"; configs from that version still say "caelestiaDarkGlass".</summary>
+    [JsonEnumAlias("caelestiaDarkGlass")]
+    DarkGlass,
 }
 
 /// <summary>

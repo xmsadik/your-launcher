@@ -38,7 +38,7 @@
     <PublishReadyToRunExclude Include="Microsoft.Windows.SDK.NET.dll" />
   </ItemGroup>
 
-  <!-- Rubik (Caelestia theme font): static Regular + Medium, SIL OFL 1.1. Embedded as WPF resources (pack://application:,,,/Fonts/);
+  <!-- Rubik (Dark Glass theme font): static Regular + Medium, SIL OFL 1.1. Embedded as WPF resources (pack://application:,,,/Fonts/);
        the license text ships next to the exe. Static files on purpose - WPF handles variable fonts poorly. -->
   <ItemGroup>
     <Resource Include="Fonts\*.ttf" />

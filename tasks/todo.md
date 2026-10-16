@@ -1,4 +1,5 @@
 ## Görev dosyaları
+- 2026-10-15 · Yapışık panelde çift açılma, ilk satırın köşede kesilmesi ve "Dark Glass" tema adı · TAMAMLANDI · [dosya](2026-10-15-yapisik-cift-acilis.md)
 - 2026-10-15 · Sürüm 0.3.0 · TAMAMLANDI · [dosya](2026-10-15-surum-0-3-0.md)
 - 2026-10-15 · Caelestia görünümü: kenara yapışık panel stili · TAMAMLANDI · [dosya](2026-10-15-caelestia-gorunumu.md)
 - 2026-10-15 · Panelin ekrandaki konumu için ayar · TAMAMLANDI · [dosya](2026-10-15-panel-konumu.md)
@@ -8,7 +9,19 @@
 
 ## Devam noktası (güncel: 2026-10-15)
 
-**Nerede kaldık:** 0.3.0 GitHub'da yayımlandı (panel konumu, kenara yapışık stil, Caelestia teması,
+**Şu an (2026-10-15, commit edilmedi):** Store 0.3.0 yayında. Kullanıcı üç şey bildirdi, üçü de kodda
+düzeltildi ama ekranda doğrulanmadı; kullanıcı Debug derlemeyle deneyecek. Ayrıntı ve açık maddeler:
+`tasks/2026-10-15-yapisik-cift-acilis.md`.
+1. Alta yapışık modda kısayolla açarken panel "iki kez açılıyor" (katmanlı pencerenin eski karesi). Düzeltme:
+   gizlemeden önce içerik boşaltılıyor, pencere iki kare sonra gizleniyor (`MainWindow.HideWindow`).
+2. Alta yapışık modda ilk satırın vurgu çizgisi yuvarlak köşede kesiliyor. Düzeltme: üstte 28 DIP boşluk
+   (`ApplyDockedRowOrder`). Beğenilmezse yedek çözüm: arama kutusu en üste.
+3. Tema adı "Caelestia (Dark Glass)" yerine "Dark Glass", config `darkGlass`; eski `caelestiaDarkGlass` okunuyor.
+Denemeden sonra: sorun varsa düzelt; yoksa commit + 0.3.1 kararı kullanıcıda. 801 test geçiyor.
+Deneme: önce tepsiden Store sürümünü kapat, sonra
+`src\Launcher.App\bin\Debug\net10.0-windows10.0.19041.0\YourLauncher.exe` (gerçek config'i kullanır).
+
+**Önceki durum:** 0.3.0 GitHub'da yayımlandı (panel konumu, kenara yapışık stil, Caelestia teması,
 `yourlauncher.exe` komutu). Kullanıcı 0.3.0 bundle'ını 2026-10-15'te Store'a gönderdi; sertifikasyon
 bekleniyor. Ret gelirse aşağıdaki tabloya bak; onay gelirse yapılacak bir şey yok.
 

@@ -507,7 +507,7 @@ Theme, Background opacity and Use Windows accent color preview live: the panel c
 
 **Panel style** (Settings → Panel style, `settings.panelStyle`): `floating` (default) is the usual rounded window over the Windows 11 Mica/Acrylic backdrop. `docked` draws an opaque panel meant to fuse with a screen-edge bar: with `position` `bottom` or `top` the corners on that edge are square, the other two are rounded, and a concave 22 px fillet on each side curves the panel into the edge; `center` just rounds all four corners. With `bottom` the list page puts the search box at the bottom (list, then hint bar, then search box); the settings and editor pages keep their usual order, and a bottom/top panel slides in from its edge when opened (skipped when Windows animations are off). The shape follows `position` live. Because the docked panel is opaque, `opacity` has no effect, and since a transparent window cannot be switched on a live window the style is read at startup: a change takes effect after restarting Your Launcher (the settings page says so while the choice differs from the running style). Installed from the Store/MSIX package, Your Launcher also registers the command `yourlauncher.exe`, which shows the panel (it forwards "show" to the running instance); a desktop bar can call it, for Zebar use the full path `%LOCALAPPDATA%\Microsoft\WindowsApps\yourlauncher.exe`. The alias does not exist for the unpackaged exe.
 
-The **Caelestia (Dark Glass)** theme (`caelestiaDarkGlass`) pairs with the docked style and uses the Rubik font, embedded in the app (see Third-party fonts below); the panel and its menus switch fonts together with the theme.
+The **Dark Glass** theme (`darkGlass`; configs from 0.3.0 that say `caelestiaDarkGlass` still load) pairs with the docked style and uses the Rubik font, embedded in the app (see Third-party fonts below); the panel and its menus switch fonts together with the theme.
 
 **Language** (Settings → Language, `settings.language`): `system` (default) follows the Windows display language — the UI is Turkish when Windows is Turkish and English otherwise — or pin `en` / `tr`. The language is applied at startup, before any text is created, so a change takes effect after restarting Your Launcher (the settings page says so under the box while the choice differs from the running language). Strings live in `Localization/Strings.resx` + `Strings.tr.resx` (app) and `Localization/CoreStrings*.resx` (Core); key names inside hotkey strings (`Ctrl+Alt+Space`) always stay English. In Turkish the type picker letters follow the Turkish names (`K` Klasör / `U` Uygulama / `D` Dosya veya klasör / `M` Komut / `W` Web adresi / `A` Ayırıcı).
 
@@ -634,7 +634,7 @@ Shape (spec §4.2–§4.5):
                                  // catppuccinFrappe | catppuccinLatte | tokyoNight | tokyoNightStorm |
                                  // tokyoNightDay | dracula | nord | gruvboxDark | gruvboxLight | oneDark |
                                  // solarizedDark | solarizedLight | monokai | githubDark | githubLight | rosePine |
-                                 // caelestiaDarkGlass
+                                 // darkGlass
     "language": "system",        // system | en | tr (UI language; applied at the next start)
     "opacity": 90,               // 40-100: panel background over the Win11 22H2+ Mica/Acrylic backdrop (no effect on Win10)
     "useWindowsAccent": false,   // true: accent color follows the Windows accent color (updates live)
@@ -1125,7 +1125,7 @@ A quick-reference list — most of these are explained in more detail in the sec
 
 ## Third-party fonts
 
-The Caelestia (Dark Glass) theme uses [Rubik](https://github.com/googlefonts/rubik) (static Regular and Medium, copyright 2015 The Rubik Project Authors), embedded in the app and licensed under the SIL Open Font License 1.1. The license text ships with the app as `Fonts\OFL.txt` (source: `src/Launcher.App/Fonts/OFL.txt`).
+The Dark Glass theme uses [Rubik](https://github.com/googlefonts/rubik) (static Regular and Medium, copyright 2015 The Rubik Project Authors), embedded in the app and licensed under the SIL Open Font License 1.1. The license text ships with the app as `Fonts\OFL.txt` (source: `src/Launcher.App/Fonts/OFL.txt`).
 
 ## Key decisions (D1–D8, see `tasks/todo.md` §0 for full rationale)
 

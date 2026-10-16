@@ -75,6 +75,9 @@ public partial class MainWindow : Window
     /// <summary>Docked only: the content root that holds the panel and the fillets, and carries the slide-in transform.</summary>
     private Grid? _dockedRoot;
     private TranslateTransform? _slide;
+
+    /// <summary>Docked only: frames left until a pending hide (see <see cref="HideWindow"/>) runs; 0 when none is pending.</summary>
+    private int _hideFramesLeft;
     private System.Windows.Shapes.Path? _filletLeft;
     private System.Windows.Shapes.Path? _filletRight;
 
@@ -173,7 +176,13 @@ public partial class MainWindow : Window
         _viewModel.ResetToRoot();
         PositionOnCursorMonitor();
 
+        CancelPendingHide();
         var slideIn = _docked && PrepareSlideIn();
+        if (_docked)
+        {
+            _dockedRoot!.Opacity = 1;
+        }
+
         Show();
         Activate();
         ForceForeground();
@@ -197,7 +206,7 @@ public partial class MainWindow : Window
     /// </summary>
     public void RequestShow()
     {
-        if (IsVisible || _suppressAutoHideCount > 0)
+        if (IsShown || _suppressAutoHideCount > 0)
         {
             ForceForeground();
             return;
@@ -208,21 +217,21 @@ public partial class MainWindow : Window
 
     public void HideLauncher()
     {
+        if (_hideFramesLeft > 0)
+        {
+            return; // already on its way out.
+        }
+
         _viewModel.RememberCurrentLocation();
         _viewModel.ClearCutState();
         _viewModel.EndHotkeyCaptures();
         _viewModel.FlushPendingReloadIfAny();
-        if (_docked)
-        {
-            StopSlide(); // hidden mid-slide: the next show starts from a clean transform.
-        }
-
-        Hide();
+        HideWindow();
     }
 
     public void ToggleLauncher()
     {
-        if (IsVisible)
+        if (IsShown)
         {
             HideLauncher();
         }
@@ -260,7 +269,7 @@ public partial class MainWindow : Window
             // hiding here would leave the panel hidden once the dialog closes.
             if (_suppressAutoHideCount == 0)
             {
-                Hide();
+                HideWindow();
             }
 
             return;
@@ -579,6 +588,9 @@ public partial class MainWindow : Window
     /// become list, error line, hint/confirm bar, separator, search - so the hint/confirm bars keep their top separator
     /// line and sit right above the search box. Other pages (settings, editor, pickers) are forms and keep the XAML
     /// order, header on top. Re-evaluated when the page or settings.position changes.
+    /// With the list on top, its first row would run into the rounded top corners: the clip cut the selected row's
+    /// accent bar and highlight in half. So the panel gets a top padding of one corner radius - the rows start below
+    /// the curve and need no clip (the bottom edge is square).
     /// </summary>
     private void ApplyDockedRowOrder()
     {
@@ -593,6 +605,9 @@ public partial class MainWindow : Window
         {
             Grid.SetRow(child, searchAtBottom ? SearchAtBottomRows[row] : row);
         }
+
+        RootBorder.Padding = new Thickness(0, searchAtBottom ? PanelCornerRadius : 0, 0, 0);
+        UpdateDockedClip();
     }
 
     /// <summary>XAML row (0 search/header, 1 separator, 2 list/page, 3 error line, 4 hint/confirm bars) -> row with the search at the bottom.</summary>
@@ -607,6 +622,12 @@ public partial class MainWindow : Window
     private void UpdateDockedClip()
     {
         var content = (FrameworkElement)RootBorder.Child;
+        if (_rowsReversed)
+        {
+            content.Clip = null; // below the top padding nothing reaches the rounded corners.
+            return;
+        }
+
         var width = content.ActualWidth;
         var height = content.ActualHeight;
         if (width <= 0 || height <= 0)
@@ -657,6 +678,55 @@ public partial class MainWindow : Window
 
         var animation = new DoubleAnimation(SlideOffset(height), 0, SlideDuration) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
         _slide!.BeginAnimation(TranslateTransform.YProperty, animation, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    /// <summary>Visible and not on its way out: a pending docked hide counts as hidden, so a show request in between reopens the panel.</summary>
+    private bool IsShown => IsVisible && _hideFramesLeft == 0;
+
+    /// <summary>
+    /// Hides the window. Docked: a layered window puts the last frame it presented back on screen the moment it is
+    /// shown again, before WPF renders a new one. Hidden straight away, the next show flashed the old, fully open
+    /// panel, which then vanished for the slide-in and slid back - the panel looked like it opened twice. So the
+    /// content is blanked first and the window hides two frames later, once that empty frame has reached the screen.
+    /// </summary>
+    private void HideWindow()
+    {
+        if (!_docked)
+        {
+            Hide();
+            return;
+        }
+
+        if (_hideFramesLeft > 0)
+        {
+            return;
+        }
+
+        StopSlide(); // hidden mid-slide: the next show starts from a clean transform.
+        _dockedRoot!.Opacity = 0;
+        _hideFramesLeft = 2;
+        CompositionTarget.Rendering += OnHideFrame;
+    }
+
+    /// <summary>Rendering fires before each frame: the first one draws the empty content, by the second it is on screen.</summary>
+    private void OnHideFrame(object? sender, EventArgs e)
+    {
+        if (--_hideFramesLeft > 0)
+        {
+            return;
+        }
+
+        CompositionTarget.Rendering -= OnHideFrame;
+        Hide();
+    }
+
+    private void CancelPendingHide()
+    {
+        if (_hideFramesLeft > 0)
+        {
+            CompositionTarget.Rendering -= OnHideFrame;
+            _hideFramesLeft = 0;
+        }
     }
 
     /// <summary>Starts below the panel when docked at the bottom, above it at the top.</summary>

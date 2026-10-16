@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -25,6 +26,17 @@ public sealed class JsonCamelCaseEnumConverter<T> : JsonConverter<T> where T : s
             if (string.Equals(ToCamelCase(value.ToString()), text, StringComparison.OrdinalIgnoreCase))
             {
                 return value;
+            }
+        }
+
+        foreach (var field in typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            foreach (var alias in field.GetCustomAttributes<JsonEnumAliasAttribute>())
+            {
+                if (string.Equals(alias.Name, text, StringComparison.OrdinalIgnoreCase))
+                {
+                    return (T)field.GetValue(null)!;
+                }
             }
         }
 

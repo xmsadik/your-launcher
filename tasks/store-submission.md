@@ -56,7 +56,7 @@ One search box
 • Plugins: small programs in any language (PowerShell, Python, ...) can add their own results via simple JSON.
 
 Looks and feel
-• 22 themes: Windows Light and Dark, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine and Caelestia, with live preview, adjustable background opacity over Mica/Acrylic, and the Windows accent color.
+• 22 themes: Windows Light and Dark, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine and Dark Glass, with live preview, adjustable background opacity over Mica/Acrylic, and the Windows accent color.
 • Open the panel centered, or docked to the top or bottom edge of the screen as part of your desktop bar.
 • English and Turkish interface.
 • Fully keyboard driven: add, edit, cut, paste, duplicate and delete without touching the mouse.
@@ -130,7 +130,7 @@ Tek arama kutusu
 • Eklentiler: herhangi bir dilde (PowerShell, Python, ...) yazılmış küçük programlar basit JSON ile kendi sonuçlarını ekler.
 
 Görünüm
-• 22 tema: Windows Açık ve Koyu, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine ve Caelestia. Canlı önizleme, Mica/Acrylic üzerinde ayarlanabilir arka plan opaklığı ve Windows vurgu rengi.
+• 22 tema: Windows Açık ve Koyu, Catppuccin, Tokyo Night, Dracula, Nord, Gruvbox, One Dark, Solarized, Monokai, GitHub, Rosé Pine ve Dark Glass. Canlı önizleme, Mica/Acrylic üzerinde ayarlanabilir arka plan opaklığı ve Windows vurgu rengi.
 • Paneli ortada ya da masaüstü çubuğunuzun parçası gibi ekranın üst veya alt kenarına yapışık açın.
 • Türkçe ve İngilizce arayüz.
 • Tamamen klavyeyle: fareye dokunmadan ekleyin, düzenleyin, kesin, yapıştırın, çoğaltın ve silin.

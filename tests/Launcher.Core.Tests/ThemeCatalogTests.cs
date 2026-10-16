@@ -149,16 +149,25 @@ public class ThemeCatalogTests
     }
 
     [Fact]
-    public void Settings_CaelestiaTheme_UsesConfigNameAndEmbeddedFont()
+    public void Settings_DarkGlassTheme_UsesConfigNameAndEmbeddedFont()
     {
         var config = new LauncherConfig();
-        config.Settings.Theme = Theme.CaelestiaDarkGlass;
+        config.Settings.Theme = Theme.DarkGlass;
 
         var json = ConfigSerializer.Serialize(config);
-        Assert.Contains("\"theme\": \"caelestiaDarkGlass\"", json);
-        Assert.Equal(Theme.CaelestiaDarkGlass, ConfigSerializer.Deserialize(json).Config!.Settings.Theme);
-        Assert.Equal("Rubik", ThemeCatalog.Get(Theme.CaelestiaDarkGlass).FontFamily);
-        Assert.All(ThemeCatalog.Palettes.Where(p => p.Theme != Theme.CaelestiaDarkGlass), p => Assert.Null(p.FontFamily));
+        Assert.Contains("\"theme\": \"darkGlass\"", json);
+        Assert.Equal(Theme.DarkGlass, ConfigSerializer.Deserialize(json).Config!.Settings.Theme);
+        Assert.Equal("Rubik", ThemeCatalog.Get(Theme.DarkGlass).FontFamily);
+        Assert.All(ThemeCatalog.Palettes.Where(p => p.Theme != Theme.DarkGlass), p => Assert.Null(p.FontFamily));
+    }
+
+    [Fact]
+    public void Settings_LegacyCaelestiaThemeName_StillReads()
+    {
+        // 0.3.0 wrote "caelestiaDarkGlass"; the renamed theme must still load from such a config.
+        var json = ConfigSerializer.Serialize(new LauncherConfig()).Replace("\"theme\": \"system\"", "\"theme\": \"caelestiaDarkGlass\"");
+        Assert.Contains("caelestiaDarkGlass", json);
+        Assert.Equal(Theme.DarkGlass, ConfigSerializer.Deserialize(json).Config!.Settings.Theme);
     }
 
     [Fact]

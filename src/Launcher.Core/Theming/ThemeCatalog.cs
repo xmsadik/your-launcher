@@ -183,7 +183,7 @@ public static class ThemeCatalog
         },
         new()
         {
-            Theme = Theme.CaelestiaDarkGlass, DisplayName = "Caelestia (Dark Glass)", IsDark = true,
+            Theme = Theme.DarkGlass, DisplayName = "Dark Glass", IsDark = true,
             Background = "#101013", Border = "#2E2E36", Foreground = "#E7E7EC", SecondaryText = "#8F8F99",
             Accent = "#C6C3FF", Selection = "#28282B", Hover = "#1D1D20", Error = "#F38BA8",
             Warning = "#F9E2AF", MissingBadge = "#FAB387", InputBackground = "#0B0B0D",

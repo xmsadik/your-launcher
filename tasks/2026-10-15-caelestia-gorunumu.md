@@ -220,3 +220,17 @@ Test, yönergedeki adımlarla yapıldı: ayrı config (`%TEMP%\yl-docked-test`),
 - `.cmd` doğrudan çalıştırılınca (`cmd /c open.cmd`) arka plandaki test kopyasının paneli açıldı: YourLauncher tarafı doğru çalışıyor.
 - Zebar'ın alt-orta şeridinden fareyle açma çalışmadı: o şerit Zebar'da fare olayı üretmedi (sağ alt köşe aynı yükseklikte çalışıyor, orta çalışmıyor; nedeni bulunamadı). Kullanıcı kararıyla Zebar'dan fareyle açma kaldırıldı; başlatıcı kendi kısayoluyla (`Win+Alt+Space`) açılacak. `yourlauncher.exe` takma adına Zebar tarafında artık ihtiyaç yok.
 - Test kopyası kapatıldı, test config klasörü ve `.cmd` silindi.
+
+## Kurulu 0.3.0 Store paketiyle gerçek ayarlar — 2026-10-15 (Zebar oturumu)
+
+Store paketi `ABAPer.YourLauncher 0.3.0.0` 16:11'de kuruldu; `yourlauncher.exe` takma adı var ve paketteki DLL'lerde `panelStyle` / `caelestiaDarkGlass` bulunuyor.
+
+- Kullanıcının gerçek config'i (`%APPDATA%\Your Launcher\config.json`) yedeklendi: `config.json.bak-20261015-docked`. `settings` içinde yalnızca şunlar değişti (metin düzeyinde, dosyanın geri kalanı bayt bayt aynı): `theme: caelestiaDarkGlass`, `panelStyle: docked`, `position: bottom`, `edgeMargin: 10`. Diğer ayarlar (kısayol `Win+Alt+Space`, `startWithWindows: true`) korundu.
+- `panelStyle` yalnızca açılışta okunduğu için süreç sonlandırılıp (`Stop-Process`, kapanışta eski ayarların geri yazılmaması için) takma adla `--silent` başlatıldı; panel ikinci başlatmayla açıldı.
+
+| Değer | Sonuç | Beklenen |
+|---|---|---|
+| Pencere | L=1452 T=1667 R=2478 B=2146, genişlik 1026 | 1026, alt 2145-2146 — tamam |
+| Panel zemini (iki nokta) | rgb(16,16,19) | `#101013` — tamam |
+
+Görüntüde: liste, ipucu çubuğu, en altta "Search…" / "Root"; üst köşeler yuvarlak, alt kenar ekranın altına oturuyor, seçili satırda sol vurgu çizgisi var. Kısayolla açma (`Win+Alt+Space`) tuş gönderilerek denenmedi; kullanıcı kendi deneyecek.

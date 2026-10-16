@@ -57,3 +57,9 @@
   and scale. Also: a manually started YourLauncher shows its panel on start (only `--silent` / the startup task
   doesn't) — start the first test instance with `--silent` when testing the "show" request, and wait for
   WaitForExit() + a pause between instances on the same config dir (the single-instance mutex lingers).
+
+## 2026-10-15 — Screen capture missed the layered (docked) panel
+- What happened: `Graphics.CopyFromScreen` returned frames without the docked panel, because plain BitBlt skips
+  layered windows; .NET also rejects `SourceCopy | CaptureBlt` as an enum value.
+- Rule: capture with P/Invoke `BitBlt(..., SRCCOPY | CAPTUREBLT = 0x40CC0020)` when the target may be a layered
+  window, and check the desktop is not in use by another session before trusting frame timings.
